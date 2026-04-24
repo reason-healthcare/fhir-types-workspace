@@ -1,5 +1,5 @@
 {
-  "name": "@rh/fhir-generator",
+  "name": "@rh/fhir-ts-codegen",
   "version": "1.0.0",
   "description": "General-purpose FHIR StructureDefinition → TypeScript declarations + Zod schemas",
   "type": "module",

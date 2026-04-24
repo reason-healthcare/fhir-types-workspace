@@ -29,7 +29,7 @@ jobs:
         run: bun run format:check
 
       - name: Typecheck generator
-        run: cd packages/generator && bun run typecheck
+        run: cd packages/fhir-ts-codegen && bun run typecheck
 
       - name: Test
         run: bun run test

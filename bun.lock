@@ -8,8 +8,8 @@
         "@biomejs/biome": "^2.4.13",
       },
     },
-    "packages/generator": {
-      "name": "@rh/fhir-generator",
+    "packages/fhir-ts-codegen": {
+      "name": "@rh/fhir-ts-codegen",
       "version": "1.0.0",
       "bin": {
         "fhir-generate": "./src/cli.ts",
@@ -21,21 +21,22 @@
         "@types/bun": "latest",
       },
     },
+    "packages/fhir-zod": {
+      "name": "@rh/fhir-zod",
+      "version": "0.1.0",
+      "dependencies": {
+        "@rh/fhir-ts-codegen": "workspace:*",
+        "zod": "^3.24.0",
+      },
+      "devDependencies": {
+        "@types/bun": "latest",
+      },
+    },
     "packages/types-fhir": {
       "name": "@types/fhir",
       "version": "0.0.0",
       "devDependencies": {
         "@definitelytyped/dtslint": "latest",
-        "@types/bun": "latest",
-      },
-    },
-    "packages/zod-fhir": {
-      "name": "@rh/fhir-zod",
-      "version": "0.0.0",
-      "dependencies": {
-        "zod": "^3.24.0",
-      },
-      "devDependencies": {
         "@types/bun": "latest",
       },
     },
@@ -113,9 +114,9 @@
 
     "@npmcli/redact": ["@npmcli/redact@4.0.0", "", {}, "sha512-gOBg5YHMfZy+TfHArfVogwgfBeQnKbbGo3pSUyK/gSI0AVu+pEiDVcKlQb0D8Mg1LNRZILZ6XG8I5dJ4KuAd9Q=="],
 
-    "@rh/fhir-generator": ["@rh/fhir-generator@workspace:packages/generator"],
+    "@rh/fhir-ts-codegen": ["@rh/fhir-ts-codegen@workspace:packages/fhir-ts-codegen"],
 
-    "@rh/fhir-zod": ["@rh/fhir-zod@workspace:packages/zod-fhir"],
+    "@rh/fhir-zod": ["@rh/fhir-zod@workspace:packages/fhir-zod"],
 
     "@rtsao/scc": ["@rtsao/scc@1.1.0", "", {}, "sha512-zt6OdqaDoOnJ1ZYsCYGt9YmWzDXl4vQdKTyJev62gFhRGKdx7mcT54V9KIjg+d2wi9EXsPvAPKe7i7WjfVWB8g=="],
 

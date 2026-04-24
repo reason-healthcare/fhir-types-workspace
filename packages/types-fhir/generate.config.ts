@@ -1,4 +1,4 @@
-import type { GenerateConfig } from "@rh/fhir-generator";
+import type { GenerateConfig } from "@rh/fhir-ts-codegen";
 
 const config: GenerateConfig = {
   entries: [

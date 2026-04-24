@@ -27,7 +27,7 @@
       "!packages/types-fhir/index.d.ts",
       "!packages/types-fhir/r*.d.ts",
       "!packages/types-fhir/test/**",
-      "!packages/zod-fhir/src/**",
+      "!packages/fhir-zod/src/**",
       "!bun.lock"
     ]
   }

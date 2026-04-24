@@ -1,6 +1,6 @@
 # @rh/fhir-zod
 
-Zod schemas for FHIR R2, R3, R4, R4B, and R5. Generated from official FHIR StructureDefinition packages via [`@rh/fhir-generator`](../generator).
+Zod schemas for FHIR R2, R3, R4, R4B, and R5. Generated from official FHIR StructureDefinition packages via [`@rh/fhir-ts-codegen`](../generator).
 
 ## Installation
 
@@ -61,4 +61,4 @@ Notable schema features:
 bun run generate
 ```
 
-Requires `@rh/fhir-generator` to be available (installed via workspace). FHIR packages are downloaded automatically on first run and cached in `.fhir-cache/`.
+Requires `@rh/fhir-ts-codegen` to be available (installed via workspace). FHIR packages are downloaded automatically on first run and cached in `.fhir-cache/`.

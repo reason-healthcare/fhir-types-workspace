@@ -4,7 +4,7 @@
   "description": "TypeScript definitions for FHIR R2, R3, R4, R4B, R5",
   "license": "MIT",
   "scripts": {
-    "generate": "bun run ../generator/src/cli.ts --config ./generate.config.ts",
+    "generate": "bun run ../fhir-ts-codegen/src/cli.ts --config ./generate.config.ts",
     "typecheck": "NODE_OPTIONS='--max-old-space-size=4096' bunx tsc --noEmit",
     "test": "dtslint ."
   },

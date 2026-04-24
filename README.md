@@ -6,9 +6,9 @@ A pure TypeScript/Bun monorepo that generates TypeScript declaration files and Z
 
 | Package | Description |
 |---------|-------------|
-| [`@rh/fhir-generator`](./packages/generator) | General-purpose CLI and library — parses any FHIR NPM package and emits TypeScript `.d.ts` or Zod schemas |
+| [`@rh/fhir-ts-codegen`](./packages/fhir-ts-codegen) | General-purpose CLI and library — parses any FHIR NPM package and emits TypeScript `.d.ts` or Zod schemas |
 | [`@types/fhir`](./packages/types-fhir) | Generated TypeScript declarations for FHIR R2–R5 (see [DEFINITELY_TYPED.md](./DEFINITELY_TYPED.md)) |
-| [`@rh/fhir-zod`](./packages/zod-fhir) | Generated Zod schemas for FHIR R4, R4B, R5 |
+| [`@rh/fhir-zod`](./packages/fhir-zod) | Generated Zod schemas for FHIR R4, R4B, R5 |
 
 ## Requirements
 
@@ -41,7 +41,7 @@ Generate from any FHIR NPM package without a config file:
 
 ```bash
 # TypeScript declarations
-bun run packages/generator/src/cli.ts \
+bun run packages/fhir-ts-codegen/src/cli.ts \
   --package hl7.fhir.r4.core \
   --package-version 4.0.1 \
   --fhir-version r4 \
@@ -50,7 +50,7 @@ bun run packages/generator/src/cli.ts \
   --out ./r4.d.ts
 
 # Zod schemas
-bun run packages/generator/src/cli.ts \
+bun run packages/fhir-ts-codegen/src/cli.ts \
   --package hl7.fhir.r4.core \
   --package-version 4.0.1 \
   --fhir-version r4 \
@@ -61,7 +61,7 @@ bun run packages/generator/src/cli.ts \
 Works with any FHIR IG — not just core packages:
 
 ```bash
-bun run packages/generator/src/cli.ts \
+bun run packages/fhir-ts-codegen/src/cli.ts \
   --package hl7.fhir.us.core \
   --package-version 5.0.1 \
   --fhir-version r4 \
@@ -74,7 +74,7 @@ bun run packages/generator/src/cli.ts \
 Output packages declare a `generate.config.ts` to drive multi-version generation:
 
 ```ts
-import type { GenerateConfig } from '@rh/fhir-generator'
+import type { GenerateConfig } from '@rh/fhir-ts-codegen'
 
 const config: GenerateConfig = {
   entries: [
@@ -104,7 +104,7 @@ export default config
 Run it with:
 
 ```bash
-bun run packages/generator/src/cli.ts --config path/to/generate.config.ts
+bun run packages/fhir-ts-codegen/src/cli.ts --config path/to/generate.config.ts
 ```
 
 ## How it works
@@ -160,7 +160,7 @@ bun run format
 bun run format:check
 
 # Type-check the generator
-cd packages/generator && bun run typecheck
+cd packages/fhir-ts-codegen && bun run typecheck
 
 # Run tests
 bun run test

@@ -31,13 +31,8 @@ interface GenerateConfigEntry {
   outFile: string;
   /** Required when emit=typescript */
   namespace?: string;
-  /** Optional test/example file output path */
+  /** Optional DT test file output path (typescript emit only) */
   testOutFile?: string;
-  /**
-   * Required when emit=zod and testOutFile is set.
-   * Relative import path from testOutFile to the generated schema file.
-   */
-  testImportPath?: string;
   /** Examples package ID for test generation (e.g. `hl7.fhir.r4.examples`) */
   testExamplesPackageId?: string;
   /** Version for the examples package (e.g. `4.0.1`) */
@@ -91,7 +86,6 @@ async function main() {
         outFile: resolve(configDir, entry.outFile),
         namespace: entry.namespace,
         testOutFile: entry.testOutFile ? resolve(configDir, entry.testOutFile) : undefined,
-        testImportPath: entry.testImportPath,
         testExamplesPackageId: entry.testExamplesPackageId,
         testExamplesPackageVersion: entry.testExamplesPackageVersion,
       });

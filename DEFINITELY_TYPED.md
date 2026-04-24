@@ -45,7 +45,7 @@ DT_FORK=/path/to/DefinitelyTyped
 cp packages/types-fhir/*.d.ts           $DT_FORK/types/fhir/
 cp packages/types-fhir/tsconfig.json    $DT_FORK/types/fhir/
 cp packages/types-fhir/package.dt.json  $DT_FORK/types/fhir/package.json
-cp -r packages/types-fhir/test/         $DT_FORK/types/fhir/test/
+cp -r packages/types-fhir/test/.          $DT_FORK/types/fhir/test/
 ```
 
 > **`package.dt.json`** is a DT-compatible `package.json` (with `name`, `version`, `owners`, `nonNpm`, etc.) maintained in this repo. It is intentionally separate from the workspace `package.json`.

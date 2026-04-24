@@ -17,7 +17,6 @@
 import { resolve, dirname } from 'node:path'
 import { generate, type EmitType } from './generate/index.ts'
 import { generateIndexFile } from './generate/index-file.ts'
-import { resetSeenTests } from './generate/tests.ts'
 import type { FhirVersion } from './ir.ts'
 
 // ---------------------------------------------------------------------------
@@ -34,6 +33,10 @@ interface GenerateConfigEntry {
   namespace?: string
   /** Optional DT test file output path (typescript emit only) */
   testOutFile?: string
+  /** Examples package ID for test generation (e.g. `hl7.fhir.r4.examples`) */
+  testExamplesPackageId?: string
+  /** Version for the examples package (e.g. `4.0.1`) */
+  testExamplesPackageVersion?: string
 }
 
 interface GenerateConfig {
@@ -74,7 +77,6 @@ async function main() {
     console.log(`Loading config: ${configPath}`)
     const { default: config } = (await import(configPath)) as { default: GenerateConfig }
 
-    resetSeenTests()
 
     for (const entry of config.entries) {
       await generate({
@@ -85,6 +87,8 @@ async function main() {
         outFile: resolve(configDir, entry.outFile),
         namespace: entry.namespace,
         testOutFile: entry.testOutFile ? resolve(configDir, entry.testOutFile) : undefined,
+        testExamplesPackageId: entry.testExamplesPackageId,
+        testExamplesPackageVersion: entry.testExamplesPackageVersion,
       })
     }
 
@@ -118,7 +122,6 @@ async function main() {
     process.exit(1)
   }
 
-  resetSeenTests()
 
   await generate({
     packageId,

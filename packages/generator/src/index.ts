@@ -14,6 +14,15 @@ export interface GenerateConfigEntry {
   namespace?: string
   /** Optional DT test file output path (typescript emit only) */
   testOutFile?: string
+  /**
+   * FHIR package ID for example JSON files used in test generation.
+   * Use this when examples are published as a separate FHIR npm package
+   * (e.g. `hl7.fhir.r4.examples`). Must be paired with `testExamplesPackageVersion`.
+   * When omitted, example files are read from the main package directory.
+   */
+  testExamplesPackageId?: string
+  /** Version for the examples package (e.g. `4.0.1`). */
+  testExamplesPackageVersion?: string
 }
 
 /** Top-level generate.config.ts shape */

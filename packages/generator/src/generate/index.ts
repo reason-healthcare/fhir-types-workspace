@@ -27,6 +27,15 @@ export interface GenerateOptions {
    * Optional — omit to skip test generation.
    */
   testOutFile?: string
+  /**
+   * FHIR package ID for example JSON files used in test generation.
+   * Use this when examples are published as a separate FHIR npm package
+   * (e.g. `hl7.fhir.r4.examples`). Must be paired with `testExamplesPackageVersion`.
+   * When omitted, example files are read from the main package directory.
+   */
+  testExamplesPackageId?: string
+  /** Version for the examples package (e.g. `4.0.1`). */
+  testExamplesPackageVersion?: string
 }
 
 /**
@@ -35,7 +44,7 @@ export interface GenerateOptions {
 export async function generate(opts: GenerateOptions): Promise<void> {
   const {
     packageId, packageVersion, fhirVersion, emit,
-    outFile, namespace, testOutFile,
+    outFile, namespace, testOutFile, testExamplesPackageId, testExamplesPackageVersion,
   } = opts
 
   console.log(`\n[${fhirVersion}] ${packageId}@${packageVersion} → ${emit}`)
@@ -59,6 +68,9 @@ export async function generate(opts: GenerateOptions): Promise<void> {
   console.log(`  Wrote: ${outFile}`)
 
   if (emit === 'typescript' && testOutFile && namespace) {
-    await generateTestFile(packageDir, fhirVersion, namespace, testOutFile)
+    const examplesDir = testExamplesPackageId && testExamplesPackageVersion
+      ? await resolvePackageDir(testExamplesPackageId, testExamplesPackageVersion)
+      : undefined
+    await generateTestFile(packageDir, fhirVersion, namespace, testOutFile, examplesDir)
   }
 }

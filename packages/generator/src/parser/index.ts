@@ -226,7 +226,24 @@ function processLevel(
 
     // Normal single-type field
     if (types.length === 0) {
-      // No type info — skip
+      // FHIR R2 uses empty type arrays for recursive backbone references.
+      // If the last segment of this element's path matches the last segment
+      // of the parent path, it's a recursive self-reference.
+      const lastSegment = el.path.split('.').pop()!
+      const parentLastSegment = parentPath_.split('.').pop()!
+      if (lastSegment === parentLastSegment) {
+        const fieldName = rawFieldName
+        fields.push({
+          name: fieldName,
+          tsType: interfaceName,
+          required,
+          isArray,
+          description: elementDescription(el),
+          hasPrimitiveExtension: false,
+          isLazy: true,
+        })
+      }
+      // Otherwise no type info — skip
       continue
     }
 
@@ -371,10 +388,11 @@ function parseStructureDefinition(
 
   const name = sd.name
 
-  // Determine the base interface name
+  // Determine the base interface name (R2 uses `base`, R3+ uses `baseDefinition`)
   let baseInterface: string | undefined
-  if (sd.baseDefinition) {
-    const base = sd.baseDefinition.split('/').pop()!
+  const baseDefUrl = sd.baseDefinition ?? sd.base
+  if (baseDefUrl) {
+    const base = baseDefUrl.split('/').pop()!
     if (base !== name) baseInterface = base
   }
 

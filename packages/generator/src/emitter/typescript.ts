@@ -44,7 +44,12 @@ function renderInterface(iface: IrInterface): string {
   const ext = iface.extends ? ` extends ${iface.extends}` : ''
   lines.push(`export interface ${iface.name}${ext} {`)
 
+  const seenFieldNames = new Set<string>()
   for (const field of iface.fields) {
+    // Polymorphic [x] fields can expand to the same TS name (e.g. who[x] → whoReference × 5)
+    if (seenFieldNames.has(field.name)) continue
+    seenFieldNames.add(field.name)
+
     const doc = renderJsDoc(field.description)
     if (doc) lines.push(doc.trimEnd())
     lines.push(renderField(field))

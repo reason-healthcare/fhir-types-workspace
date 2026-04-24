@@ -52,6 +52,8 @@ export interface StructureDefinition {
   abstract?: boolean
   type?: string
   baseDefinition?: string
+  /** FHIR R2 only: same as baseDefinition in R3+ */
+  base?: string
   /** FHIR R3+: 'specialization' = base type, 'constraint' = profile */
   derivation?: 'specialization' | 'constraint'
   /** FHIR R2 only: present on profiles, identifies the constrained type */

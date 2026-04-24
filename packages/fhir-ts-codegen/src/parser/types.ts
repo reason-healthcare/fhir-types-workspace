@@ -53,8 +53,8 @@ export function isFhirPrimitive(code: string): boolean {
  * For complex types and resources, returns the type name as-is.
  */
 export function fhirTypeToTs(code: string): string {
-  if (code in FHIR_PRIMITIVE_MAP) return FHIR_PRIMITIVE_MAP[code]!;
-  if (code in FHIRPATH_SYSTEM_MAP) return FHIRPATH_SYSTEM_MAP[code]!;
+  if (code in FHIR_PRIMITIVE_MAP) return FHIR_PRIMITIVE_MAP[code] as string;
+  if (code in FHIRPATH_SYSTEM_MAP) return FHIRPATH_SYSTEM_MAP[code] as string;
   // Complex types / resources — use as-is (interface name)
   return code;
 }

@@ -122,5 +122,5 @@ export function emitTypeScript(
   // Remove trailing blank line
   while (parts[parts.length - 1] === "") parts.pop();
 
-  return parts.join("\n") + "\n";
+  return `${parts.join("\n")}\n`;
 }

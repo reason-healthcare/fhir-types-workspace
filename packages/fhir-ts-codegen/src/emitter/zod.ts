@@ -19,7 +19,7 @@ function tsTypeToZod(tsType: string, isLazy?: boolean): string {
   // Inline enum: ('a'|'b'|'c')
   const enumMatch = tsType.match(/^\(([^)]+)\)$/);
   if (enumMatch) {
-    const values = enumMatch[1]!.split("|").map((v) => v.trim());
+    const values = enumMatch[1]?.split("|").map((v) => v.trim());
     return `z.enum([${values.join(", ")}])`;
   }
 
@@ -29,7 +29,7 @@ function tsTypeToZod(tsType: string, isLazy?: boolean): string {
   }
 
   // TypeScript primitives
-  if (tsType in PRIMITIVE_ZOD) return PRIMITIVE_ZOD[tsType]!;
+  if (tsType in PRIMITIVE_ZOD) return PRIMITIVE_ZOD[tsType] as string;
 
   // Complex type reference — wrap in z.lazy() if flagged or always for complex types
   const schemaName = `${tsType}Schema`;
@@ -156,7 +156,7 @@ function renderSchema(iface: IrInterface, lazyTargets: Set<string>, allNames: Se
     lines.push(`export const ${schemaName}: z.ZodType<${iface.name}> = z.lazy(() =>`);
     lines.push("  z.object({");
     for (const field of iface.fields) {
-      lines.push("  " + renderZodField(field));
+      lines.push(`  ${renderZodField(field)}`);
       // Shadow field for primitives
       if (field.hasPrimitiveExtension) {
         lines.push(`    _${field.name}: ElementSchema.optional(),`);
@@ -215,5 +215,5 @@ export function emitZod(model: IrModel): string {
   // Remove trailing blank line
   while (parts[parts.length - 1] === "") parts.pop();
 
-  return parts.join("\n") + "\n";
+  return `${parts.join("\n")}\n`;
 }

@@ -53,10 +53,10 @@ interface GenerateConfig {
 function parseArgs(args: string[]): Record<string, string> {
   const result: Record<string, string> = {};
   for (let i = 0; i < args.length; i++) {
-    const arg = args[i]!;
+    const arg = args[i] as string;
     if (arg.startsWith("--")) {
       const key = arg.slice(2);
-      const value = args[i + 1] && !args[i + 1]!.startsWith("--") ? args[++i]! : "true";
+      const value = args[i + 1] && !args[i + 1]?.startsWith("--") ? (args[++i] as string) : "true";
       result[key] = value;
     }
   }
@@ -71,8 +71,8 @@ async function main() {
   const args = parseArgs(process.argv.slice(2));
 
   // Config-file mode
-  if (args["config"]) {
-    const configPath = resolve(args["config"]);
+  if (args.config) {
+    const configPath = resolve(args.config);
     const configDir = dirname(configPath);
     console.log(`Loading config: ${configPath}`);
     const { default: config } = (await import(configPath)) as { default: GenerateConfig };
@@ -94,7 +94,7 @@ async function main() {
     if (config.indexOutFile) {
       const tsEntries = config.entries.filter((e) => e.emit === "typescript" && e.namespace);
       await generateIndexFile(
-        tsEntries.map((e) => ({ outputFile: e.fhirVersion, namespace: e.namespace! })),
+        tsEntries.map((e) => ({ outputFile: e.fhirVersion, namespace: e.namespace as string })),
         resolve(configDir, config.indexOutFile),
       );
     }
@@ -104,12 +104,12 @@ async function main() {
   }
 
   // Single-shot CLI mode
-  const packageId = args["package"];
+  const packageId = args.package;
   const packageVersion = args["package-version"];
   const fhirVersion = args["fhir-version"] as FhirVersion | undefined;
-  const emit = (args["emit"] ?? "typescript") as EmitType;
-  const outFile = args["out"];
-  const namespace = args["namespace"];
+  const emit = (args.emit ?? "typescript") as EmitType;
+  const outFile = args.out;
+  const namespace = args.namespace;
   const testOutFile = args["test-out"];
 
   if (!packageId || !packageVersion || !fhirVersion || !outFile) {

@@ -22,12 +22,12 @@
   "files": {
     "includes": [
       "**",
-      "!node_modules/**",
-      "!packages/.fhir-cache/**",
+      "!node_modules",
+      "!packages/.fhir-cache",
       "!packages/types-fhir/index.d.ts",
       "!packages/types-fhir/r*.d.ts",
-      "!packages/types-fhir/test/**",
-      "!packages/fhir-zod/src/**",
+      "!packages/types-fhir/test",
+      "!packages/fhir-zod/src",
       "!bun.lock"
     ]
   }

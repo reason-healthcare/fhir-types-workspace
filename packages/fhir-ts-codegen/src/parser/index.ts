@@ -154,7 +154,7 @@ function processLevel(
   const fields: IrField[] = [];
 
   for (const el of directChildren) {
-    const rawFieldName = el.path.split(".").pop()!;
+    const rawFieldName = el.path.split(".").at(-1) ?? "";
     const isChoice = rawFieldName.endsWith("[x]");
     const required = (el.min ?? 0) > 0;
     const isArray = el.max === "*";
@@ -234,8 +234,8 @@ function processLevel(
       // FHIR R2 uses empty type arrays for recursive backbone references.
       // If the last segment of this element's path matches the last segment
       // of the parent path, it's a recursive self-reference.
-      const lastSegment = el.path.split(".").pop()!;
-      const parentLastSegment = parentPath_.split(".").pop()!;
+      const lastSegment = el.path.split(".").at(-1) ?? "";
+      const parentLastSegment = parentPath_.split(".").at(-1) ?? "";
       if (lastSegment === parentLastSegment) {
         const fieldName = rawFieldName;
         fields.push({
@@ -257,12 +257,12 @@ function processLevel(
     // Most elements have a single type, but some have multiple (union)
     let tsType: string;
     if (types.length === 1) {
-      tsType = resolveType(types[0]!.code, el.binding, enumRegistry);
+      tsType = resolveType(types[0]?.code, el.binding, enumRegistry);
     } else {
       tsType = types.map((t) => resolveType(t.code, el.binding, enumRegistry)).join(" | ");
     }
 
-    const isPrim = types.length === 1 && isFhirPrimitive(types[0]!.code);
+    const isPrim = types.length === 1 && isFhirPrimitive(types[0]?.code);
 
     fields.push({
       name: fieldName,
@@ -391,11 +391,11 @@ function parseStructureDefinition(
   sd: StructureDefinition,
   enumRegistry: EnumRegistry,
 ): IrInterface[] | null {
-  const elements = sd.differential!.element;
+  const elements = sd.differential?.element;
   if (!elements.length) return null;
 
   // The first element may be the root (e.g. "Patient") — skip it if so
-  const firstNonRoot = elements[0]!.path.includes(".") ? elements : elements.slice(1);
+  const firstNonRoot = elements[0]?.path.includes(".") ? elements : elements.slice(1);
   const rootPath = sd.name;
 
   const name = sd.name;
@@ -404,7 +404,7 @@ function parseStructureDefinition(
   let baseInterface: string | undefined;
   const baseDefUrl = sd.baseDefinition ?? sd.base;
   if (baseDefUrl) {
-    const base = baseDefUrl.split("/").pop()!;
+    const base = baseDefUrl.split("/").at(-1) ?? "";
     if (base !== name) baseInterface = base;
   }
 

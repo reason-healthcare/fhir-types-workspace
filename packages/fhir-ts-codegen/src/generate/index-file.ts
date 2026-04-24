@@ -11,7 +11,7 @@ export interface VersionRef {
  */
 export async function generateIndexFile(versions: VersionRef[], outFile: string): Promise<void> {
   const refs = versions.map((v) => `/// <reference path="${v.outputFile}.d.ts" />`);
-  const content = DT_HEADER + refs.join("\n") + "\n";
+  const content = `${DT_HEADER + refs.join("\n")}\n`;
   await writeFile(outFile, content);
   console.log(`  Wrote index: ${outFile}`);
 }

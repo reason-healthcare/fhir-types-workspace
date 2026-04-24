@@ -1,6 +1,6 @@
 # @rh/fhir-zod
 
-Zod schemas for FHIR R2, R3, R4, R4B, and R5. Generated from official FHIR StructureDefinition packages via [`@rh/fhir-ts-codegen`](../generator).
+Zod schemas for FHIR R2, R3, R4, R4B, and R5. Generated from official FHIR StructureDefinition packages via [`@rh/fhir-ts-codegen`](../fhir-ts-codegen).
 
 ## Installation
 

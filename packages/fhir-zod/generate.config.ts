@@ -1,4 +1,4 @@
-import type { GenerateConfig } from "@rh/fhir-ts-codegen";
+import type { GenerateConfig } from "@reasonhealth/fhir-ts-codegen";
 
 const config: GenerateConfig = {
   entries: [

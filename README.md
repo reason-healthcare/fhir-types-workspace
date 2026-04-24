@@ -8,9 +8,9 @@ A pure TypeScript/Bun monorepo that generates TypeScript declaration files and Z
 
 | Package | Description |
 |---------|-------------|
-| [`@rh/fhir-ts-codegen`](./packages/fhir-ts-codegen) | General-purpose CLI and library — parses any FHIR NPM package and emits TypeScript `.d.ts` or Zod schemas |
+| [`@reasonhealth/fhir-ts-codegen`](./packages/fhir-ts-codegen) | General-purpose CLI and library — parses any FHIR NPM package and emits TypeScript `.d.ts` or Zod schemas |
 | [`@types/fhir`](./packages/types-fhir) | Generated TypeScript declarations for FHIR R2–R5 (see [DEFINITELY_TYPED.md](./DEFINITELY_TYPED.md)) |
-| [`@rh/fhir-zod`](./packages/fhir-zod) | Generated Zod schemas for FHIR R4, R4B, R5 |
+| [`@reasonhealth/fhir-zod`](./packages/fhir-zod) | Generated Zod schemas for FHIR R4, R4B, R5 |
 
 ## Requirements
 
@@ -22,7 +22,7 @@ A pure TypeScript/Bun monorepo that generates TypeScript declaration files and Z
 # Install dependencies
 bun install
 
-# Generate everything (@types/fhir + @rh/fhir-zod)
+# Generate everything (@types/fhir + @reasonhealth/fhir-zod)
 bun run generate
 
 # Generate only TypeScript declarations
@@ -76,7 +76,7 @@ bun run packages/fhir-ts-codegen/src/cli.ts \
 Output packages declare a `generate.config.ts` to drive multi-version generation:
 
 ```ts
-import type { GenerateConfig } from '@rh/fhir-ts-codegen'
+import type { GenerateConfig } from '@reasonhealth/fhir-ts-codegen'
 
 const config: GenerateConfig = {
   entries: [
@@ -170,7 +170,7 @@ bun run test
 
 ## Versioning
 
-The monorepo uses a single shared version across the root and all publishable packages (`@rh/fhir-ts-codegen`, `@rh/fhir-zod`). The root `package.json` is the source of truth.
+The monorepo uses a single shared version across the root and all publishable packages (`@reasonhealth/fhir-ts-codegen`, `@reasonhealth/fhir-zod`). The root `package.json` is the source of truth.
 
 Bump and sync in one step:
 
@@ -204,11 +204,11 @@ Packages are published to npm under the `@rh` scope. You must be logged in (`npm
 bun run publish:all
 
 # Or publish individually
-bun run publish:codegen   # @rh/fhir-ts-codegen
-bun run publish:zod       # @rh/fhir-zod
+bun run publish:codegen   # @reasonhealth/fhir-ts-codegen
+bun run publish:zod       # @reasonhealth/fhir-zod
 ```
 
-> **Note:** `@rh/fhir-zod` declares `@rh/fhir-ts-codegen` as a `workspace:*` dependency.
+> **Note:** `@reasonhealth/fhir-zod` declares `@reasonhealth/fhir-ts-codegen` as a `workspace:*` dependency.
 > npm will resolve this to the pinned version at publish time automatically.
 
 ### Full release checklist

@@ -1,5 +1,5 @@
 {
-  "name": "@rh/fhir-types-workspace",
+  "name": "@reasonhealth/fhir-types-workspace",
   "version": "1.0.0",
   "private": true,
   "workspaces": [

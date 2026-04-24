@@ -1,4 +1,4 @@
-// Public library exports for @rh/fhir-ts-codegen
+// Public library exports for @reasonhealth/fhir-ts-codegen
 export type { IrField, IrInterface, IrModel, FhirVersion } from "./ir.ts";
 export type { EmitType, GenerateOptions } from "./generate/index.ts";
 export type { VersionRef } from "./generate/index-file.ts";

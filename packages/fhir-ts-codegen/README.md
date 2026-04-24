@@ -1,6 +1,6 @@
-# @rh/fhir-ts-codegen
+# @reasonhealth/fhir-ts-codegen
 
-[![npm](https://img.shields.io/npm/v/@rh/fhir-ts-codegen)](https://www.npmjs.com/package/@rh/fhir-ts-codegen)
+[![npm](https://img.shields.io/npm/v/@reasonhealth/fhir-ts-codegen)](https://www.npmjs.com/package/@reasonhealth/fhir-ts-codegen)
 
 General-purpose CLI and library that reads FHIR NPM packages and emits either TypeScript `.d.ts` declarations or Zod schemas. Works with any FHIR IG package, not just the core specification.
 
@@ -54,7 +54,7 @@ bun run src/cli.ts \
 ## Config file format
 
 ```ts
-import type { GenerateConfig } from '@rh/fhir-ts-codegen'
+import type { GenerateConfig } from '@reasonhealth/fhir-ts-codegen'
 
 const config: GenerateConfig = {
   entries: [
@@ -93,7 +93,7 @@ Packages are resolved in this order — no manual download needed in most cases:
 ## Library API
 
 ```ts
-import { generate } from '@rh/fhir-ts-codegen'
+import { generate } from '@reasonhealth/fhir-ts-codegen'
 
 await generate({
   packageId: 'hl7.fhir.r4.core',
@@ -107,7 +107,7 @@ await generate({
 IR types are also exported for building custom emitters:
 
 ```ts
-import type { IrModel, IrInterface, IrField } from '@rh/fhir-ts-codegen'
+import type { IrModel, IrInterface, IrField } from '@reasonhealth/fhir-ts-codegen'
 ```
 
 ## Architecture

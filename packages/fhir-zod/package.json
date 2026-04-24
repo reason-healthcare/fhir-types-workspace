@@ -1,5 +1,5 @@
 {
-  "name": "@rh/fhir-zod",
+  "name": "@reasonhealth/fhir-zod",
   "version": "1.0.0",
   "description": "Zod schemas for FHIR R4, R4B, R5",
   "type": "module",
@@ -17,7 +17,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@rh/fhir-ts-codegen": "workspace:*",
+    "@reasonhealth/fhir-ts-codegen": "workspace:*",
     "zod": "^3.24.0"
   },
   "devDependencies": {

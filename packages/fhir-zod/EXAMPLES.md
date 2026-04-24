@@ -1,9 +1,9 @@
-# @rh/fhir-zod — Examples
+# @reasonhealth/fhir-zod — Examples
 
 ## Basic parse and validate
 
 ```ts
-import { PatientSchema } from '@rh/fhir-zod/r4'
+import { PatientSchema } from '@reasonhealth/fhir-zod/r4'
 
 const raw = await fetch('https://hapi.fhir.org/baseR4/Patient/example').then(r => r.json())
 
@@ -16,7 +16,7 @@ console.log(patient.name?.[0]?.family)
 ## Safe parse — handle validation errors without throwing
 
 ```ts
-import { ObservationSchema } from '@rh/fhir-zod/r4'
+import { ObservationSchema } from '@reasonhealth/fhir-zod/r4'
 
 const result = ObservationSchema.safeParse(raw)
 
@@ -33,7 +33,7 @@ The schemas are the source of truth — derive types from them directly rather t
 
 ```ts
 import { z } from 'zod'
-import { PatientSchema, BundleSchema } from '@rh/fhir-zod/r4'
+import { PatientSchema, BundleSchema } from '@reasonhealth/fhir-zod/r4'
 
 type Patient = z.infer<typeof PatientSchema>
 type Bundle  = z.infer<typeof BundleSchema>
@@ -45,12 +45,12 @@ function greet(patient: Patient): string {
 
 ## Using with `@types/fhir`
 
-`@types/fhir` provides ambient namespace types (`fhir4.Patient`, etc.) that may already be used throughout your codebase. `@rh/fhir-zod` adds runtime validation on top of those same shapes.
+`@types/fhir` provides ambient namespace types (`fhir4.Patient`, etc.) that may already be used throughout your codebase. `@reasonhealth/fhir-zod` adds runtime validation on top of those same shapes.
 
 ### Validating data already typed as `fhir4.Patient`
 
 ```ts
-import { PatientSchema } from '@rh/fhir-zod/r4'
+import { PatientSchema } from '@reasonhealth/fhir-zod/r4'
 
 declare const incoming: fhir4.Patient  // type from @types/fhir
 
@@ -65,7 +65,7 @@ The Zod-inferred types and the `@types/fhir` namespace types describe the same F
 
 ```ts
 import { z } from 'zod'
-import { PatientSchema } from '@rh/fhir-zod/r4'
+import { PatientSchema } from '@reasonhealth/fhir-zod/r4'
 
 type ZodPatient = z.infer<typeof PatientSchema>
 
@@ -82,7 +82,7 @@ function fromAmbient(p: fhir4.Patient): ZodPatient {
 ### Building a type-guard
 
 ```ts
-import { PatientSchema } from '@rh/fhir-zod/r4'
+import { PatientSchema } from '@reasonhealth/fhir-zod/r4'
 
 function isPatient(resource: fhir4.Resource): resource is fhir4.Patient {
   return PatientSchema.safeParse(resource).success
@@ -99,7 +99,7 @@ if (isPatient(resource)) {
 Parse a bundle and pull out all resources of a given type:
 
 ```ts
-import { BundleSchema, PatientSchema } from '@rh/fhir-zod/r4'
+import { BundleSchema, PatientSchema } from '@reasonhealth/fhir-zod/r4'
 
 const bundle = BundleSchema.parse(raw)
 
@@ -115,7 +115,7 @@ Because every schema exports `resourceType` as a `z.literal`, you can compose a 
 
 ```ts
 import { z } from 'zod'
-import { PatientSchema, PractitionerSchema, OrganizationSchema } from '@rh/fhir-zod/r4'
+import { PatientSchema, PractitionerSchema, OrganizationSchema } from '@reasonhealth/fhir-zod/r4'
 
 const SubjectSchema = z.discriminatedUnion('resourceType', [
   PatientSchema,
@@ -139,7 +139,7 @@ switch (subject.resourceType) {
 Use Zod's `.pick()`, `.omit()`, or `.extend()` to adapt a schema for a stricter profile or a partial input form:
 
 ```ts
-import { PatientSchema } from '@rh/fhir-zod/r4'
+import { PatientSchema } from '@reasonhealth/fhir-zod/r4'
 
 // Only the fields you need
 const PatientSummarySchema = PatientSchema.pick({
@@ -159,6 +159,6 @@ const IdentifiedPatientSchema = PatientSchema.extend({
 The same patterns apply to R4B and R5 imports:
 
 ```ts
-import { PatientSchema } from '@rh/fhir-zod/r4b'
-import { PatientSchema as PatientR5Schema } from '@rh/fhir-zod/r5'
+import { PatientSchema } from '@reasonhealth/fhir-zod/r4b'
+import { PatientSchema as PatientR5Schema } from '@reasonhealth/fhir-zod/r5'
 ```

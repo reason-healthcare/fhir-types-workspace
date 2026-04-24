@@ -1,6 +1,6 @@
 # @types/fhir
 
-TypeScript type definitions for FHIR R2, R3, R4, R4B, and R5. Generated from official FHIR StructureDefinition packages via [`@rh/fhir-ts-codegen`](../fhir-ts-codegen).
+TypeScript type definitions for FHIR R2, R3, R4, R4B, and R5. Generated from official FHIR StructureDefinition packages via [`@reasonhealth/fhir-ts-codegen`](../fhir-ts-codegen).
 
 ## Installation
 
@@ -67,4 +67,4 @@ Notable type features:
 bun run generate
 ```
 
-Requires `@rh/fhir-ts-codegen` to be available (installed via workspace). FHIR packages are downloaded automatically on first run and cached in `.fhir-cache/`.
+Requires `@reasonhealth/fhir-ts-codegen` to be available (installed via workspace). FHIR packages are downloaded automatically on first run and cached in `.fhir-cache/`.

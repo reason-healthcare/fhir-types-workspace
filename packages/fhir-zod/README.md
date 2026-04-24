@@ -1,15 +1,15 @@
-# @rh/fhir-zod
+# @reasonhealth/fhir-zod
 
-[![npm](https://img.shields.io/npm/v/@rh/fhir-zod)](https://www.npmjs.com/package/@rh/fhir-zod)
+[![npm](https://img.shields.io/npm/v/@reasonhealth/fhir-zod)](https://www.npmjs.com/package/@reasonhealth/fhir-zod)
 
-Zod schemas for FHIR R4, R4B, and R5. Generated from official FHIR StructureDefinition packages via [`@rh/fhir-ts-codegen`](../fhir-ts-codegen).
+Zod schemas for FHIR R4, R4B, and R5. Generated from official FHIR StructureDefinition packages via [`@reasonhealth/fhir-ts-codegen`](../fhir-ts-codegen).
 
 ## Installation
 
 ```bash
-npm install @rh/fhir-zod zod
+npm install @reasonhealth/fhir-zod zod
 # or
-bun add @rh/fhir-zod zod
+bun add @reasonhealth/fhir-zod zod
 ```
 
 Pair with [`@types/fhir`](https://www.npmjs.com/package/@types/fhir) for ambient TypeScript types if you need them alongside runtime validation:
@@ -21,7 +21,7 @@ npm install --save-dev @types/fhir
 ## Usage
 
 ```ts
-import { PatientSchema, BundleSchema } from '@rh/fhir-zod/r4'
+import { PatientSchema, BundleSchema } from '@reasonhealth/fhir-zod/r4'
 
 // Parse and validate (throws ZodError on failure)
 const patient = PatientSchema.parse(rawJson)
@@ -34,7 +34,7 @@ if (result.success) {
 
 // Infer types directly from the schema
 import type { z } from 'zod'
-import { PatientSchema } from '@rh/fhir-zod/r4'
+import { PatientSchema } from '@reasonhealth/fhir-zod/r4'
 type Patient = z.infer<typeof PatientSchema>
 ```
 
@@ -44,9 +44,9 @@ See [EXAMPLES.md](./EXAMPLES.md) for more usage patterns.
 
 | Import | FHIR Version |
 |--------|-------------|
-| `@rh/fhir-zod/r4` | FHIR R4 (4.0.1) |
-| `@rh/fhir-zod/r4b` | FHIR R4B (4.3.0) |
-| `@rh/fhir-zod/r5` | FHIR R5 (5.0.0) |
+| `@reasonhealth/fhir-zod/r4` | FHIR R4 (4.0.1) |
+| `@reasonhealth/fhir-zod/r4b` | FHIR R4B (4.3.0) |
+| `@reasonhealth/fhir-zod/r5` | FHIR R5 (5.0.0) |
 
 Every schema file exports:
 
@@ -71,4 +71,4 @@ Notable schema features:
 bun run generate
 ```
 
-Requires `@rh/fhir-ts-codegen` to be available (installed via workspace). FHIR packages are downloaded automatically on first run and cached in `.fhir-cache/`.
+Requires `@reasonhealth/fhir-ts-codegen` to be available (installed via workspace). FHIR packages are downloaded automatically on first run and cached in `.fhir-cache/`.

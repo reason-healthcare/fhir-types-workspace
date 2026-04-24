@@ -51,14 +51,17 @@ cp -r packages/types-fhir/test/      $DT_FORK/types/fhir/test/
 
 ## Step 4: Run the DT test suite
 
-From the **root** of your DefinitelyTyped fork, install dependencies and run the package tests:
+From the **root** of your DefinitelyTyped fork, sync with upstream, install dependencies, and run the package tests:
 
 ```bash
 cd $DT_FORK
+git fetch upstream && git merge upstream/master
 pnpm install
 pnpm test fhir
 ```
 
+> **Note:** `pnpm install` must be run after syncing the fork — outdated `node_modules` will cause false `@typescript-eslint` rule errors like *"Definition for rule was not found"*.
+>
 > Do **not** run `npx dtslint .` directly inside `types/fhir/`. DT uses `@definitelytyped/dtslint` (via `pnpm test`), which is a different, newer package from the legacy `dtslint` on npm.
 
 Resolve any dtslint errors. Some tests may require adjustment to match dtslint's expectations for assertion syntax.

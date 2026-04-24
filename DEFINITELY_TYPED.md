@@ -42,12 +42,13 @@ Copy the generated files into your DefinitelyTyped fork:
 ```bash
 DT_FORK=/path/to/DefinitelyTyped
 
-cp packages/types-fhir/*.d.ts        $DT_FORK/types/fhir/
-cp packages/types-fhir/tsconfig.json $DT_FORK/types/fhir/
-cp -r packages/types-fhir/test/      $DT_FORK/types/fhir/test/
+cp packages/types-fhir/*.d.ts           $DT_FORK/types/fhir/
+cp packages/types-fhir/tsconfig.json    $DT_FORK/types/fhir/
+cp packages/types-fhir/package.dt.json  $DT_FORK/types/fhir/package.json
+cp -r packages/types-fhir/test/         $DT_FORK/types/fhir/test/
 ```
 
-> **Do not copy `package.json`** — the DT fork manages its own `package.json` (with `name`, `version`, `owners`, `nonNpm`, etc.). Leave it untouched.
+> **`package.dt.json`** is a DT-compatible `package.json` (with `name`, `version`, `owners`, `nonNpm`, etc.) maintained in this repo. It is intentionally separate from the workspace `package.json`.
 
 ## Step 4: Run the DT test suite
 

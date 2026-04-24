@@ -7,6 +7,10 @@ export const LOCAL_FHIR_CACHE = [`${process.env.HOME}/.fhir/packages`];
 /** Directory where packages are downloaded/extracted for this generator */
 export const PACKAGES_DIR = new URL("../../.fhir-cache", import.meta.url).pathname;
 
-/** DT index.d.ts header — no old-style `// Type definitions for` block; metadata lives in package.json */
-export const DT_HEADER = `// Generated with https://github.com/reason-healthcare/fhir-types-workspace/tree/main/packages/fhir-ts-codegen
+/** DT index.d.ts header — no `// Definitions by:` block; owners live in package.json */
+export const DT_HEADER = `// Type definitions for non-npm package FHIR
+// Project: http://hl7.org/fhir/index.html
+// Definitions: https://github.com/DefinitelyTyped/DefinitelyTyped
+//
+// Generated with https://github.com/reason-healthcare/fhir-types-workspace/tree/main/packages/fhir-ts-codegen
 `;

@@ -14,36 +14,36 @@
  *     --out ./out/r4.d.ts
  */
 
-import { resolve, dirname } from 'node:path'
-import { generate, type EmitType } from './generate/index.ts'
-import { generateIndexFile } from './generate/index-file.ts'
-import type { FhirVersion } from './ir.ts'
+import { resolve, dirname } from "node:path";
+import { generate, type EmitType } from "./generate/index.ts";
+import { generateIndexFile } from "./generate/index-file.ts";
+import type { FhirVersion } from "./ir.ts";
 
 // ---------------------------------------------------------------------------
 // Config file interface (for --config mode)
 // ---------------------------------------------------------------------------
 
 interface GenerateConfigEntry {
-  packageId: string
-  packageVersion: string
-  fhirVersion: FhirVersion
-  emit: EmitType
-  outFile: string
+  packageId: string;
+  packageVersion: string;
+  fhirVersion: FhirVersion;
+  emit: EmitType;
+  outFile: string;
   /** Required when emit=typescript */
-  namespace?: string
+  namespace?: string;
   /** Optional DT test file output path (typescript emit only) */
-  testOutFile?: string
+  testOutFile?: string;
   /** Examples package ID for test generation (e.g. `hl7.fhir.r4.examples`) */
-  testExamplesPackageId?: string
+  testExamplesPackageId?: string;
   /** Version for the examples package (e.g. `4.0.1`) */
-  testExamplesPackageVersion?: string
+  testExamplesPackageVersion?: string;
 }
 
 interface GenerateConfig {
   /** Entries to generate */
-  entries: GenerateConfigEntry[]
+  entries: GenerateConfigEntry[];
   /** Optional index.d.ts output path (typescript emit only) */
-  indexOutFile?: string
+  indexOutFile?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -51,16 +51,16 @@ interface GenerateConfig {
 // ---------------------------------------------------------------------------
 
 function parseArgs(args: string[]): Record<string, string> {
-  const result: Record<string, string> = {}
+  const result: Record<string, string> = {};
   for (let i = 0; i < args.length; i++) {
-    const arg = args[i]!
-    if (arg.startsWith('--')) {
-      const key = arg.slice(2)
-      const value = args[i + 1] && !args[i + 1]!.startsWith('--') ? args[++i]! : 'true'
-      result[key] = value
+    const arg = args[i]!;
+    if (arg.startsWith("--")) {
+      const key = arg.slice(2);
+      const value = args[i + 1] && !args[i + 1]!.startsWith("--") ? args[++i]! : "true";
+      result[key] = value;
     }
   }
-  return result
+  return result;
 }
 
 // ---------------------------------------------------------------------------
@@ -68,15 +68,14 @@ function parseArgs(args: string[]): Record<string, string> {
 // ---------------------------------------------------------------------------
 
 async function main() {
-  const args = parseArgs(process.argv.slice(2))
+  const args = parseArgs(process.argv.slice(2));
 
   // Config-file mode
-  if (args['config']) {
-    const configPath = resolve(args['config'])
-    const configDir = dirname(configPath)
-    console.log(`Loading config: ${configPath}`)
-    const { default: config } = (await import(configPath)) as { default: GenerateConfig }
-
+  if (args["config"]) {
+    const configPath = resolve(args["config"]);
+    const configDir = dirname(configPath);
+    console.log(`Loading config: ${configPath}`);
+    const { default: config } = (await import(configPath)) as { default: GenerateConfig };
 
     for (const entry of config.entries) {
       await generate({
@@ -89,39 +88,38 @@ async function main() {
         testOutFile: entry.testOutFile ? resolve(configDir, entry.testOutFile) : undefined,
         testExamplesPackageId: entry.testExamplesPackageId,
         testExamplesPackageVersion: entry.testExamplesPackageVersion,
-      })
+      });
     }
 
     if (config.indexOutFile) {
-      const tsEntries = config.entries.filter(e => e.emit === 'typescript' && e.namespace)
+      const tsEntries = config.entries.filter((e) => e.emit === "typescript" && e.namespace);
       await generateIndexFile(
-        tsEntries.map(e => ({ outputFile: e.fhirVersion, namespace: e.namespace! })),
+        tsEntries.map((e) => ({ outputFile: e.fhirVersion, namespace: e.namespace! })),
         resolve(configDir, config.indexOutFile),
-      )
+      );
     }
 
-    console.log('\nDone.')
-    return
+    console.log("\nDone.");
+    return;
   }
 
   // Single-shot CLI mode
-  const packageId = args['package']
-  const packageVersion = args['package-version']
-  const fhirVersion = args['fhir-version'] as FhirVersion | undefined
-  const emit = (args['emit'] ?? 'typescript') as EmitType
-  const outFile = args['out']
-  const namespace = args['namespace']
-  const testOutFile = args['test-out']
+  const packageId = args["package"];
+  const packageVersion = args["package-version"];
+  const fhirVersion = args["fhir-version"] as FhirVersion | undefined;
+  const emit = (args["emit"] ?? "typescript") as EmitType;
+  const outFile = args["out"];
+  const namespace = args["namespace"];
+  const testOutFile = args["test-out"];
 
   if (!packageId || !packageVersion || !fhirVersion || !outFile) {
     console.error(
-      'Usage: cli.ts --package <id> --package-version <ver> --fhir-version <r4> ' +
-      '--emit typescript|zod --out <path> [--namespace <ns>] [--test-out <path>]\n' +
-      '       cli.ts --config <path/to/generate.config.ts>'
-    )
-    process.exit(1)
+      "Usage: cli.ts --package <id> --package-version <ver> --fhir-version <r4> " +
+        "--emit typescript|zod --out <path> [--namespace <ns>] [--test-out <path>]\n" +
+        "       cli.ts --config <path/to/generate.config.ts>",
+    );
+    process.exit(1);
   }
-
 
   await generate({
     packageId,
@@ -131,12 +129,12 @@ async function main() {
     outFile: resolve(outFile),
     namespace,
     testOutFile: testOutFile ? resolve(testOutFile) : undefined,
-  })
+  });
 
-  console.log('\nDone.')
+  console.log("\nDone.");
 }
 
-main().catch(err => {
-  console.error(err)
-  process.exit(1)
-})
+main().catch((err) => {
+  console.error(err);
+  process.exit(1);
+});

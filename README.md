@@ -6,21 +6,21 @@ A pure TypeScript/Bun monorepo that generates TypeScript declaration files and Z
 
 | Package | Description |
 |---------|-------------|
-| [`@fhir-types/generator`](./packages/generator) | General-purpose CLI and library — parses any FHIR NPM package and emits TypeScript `.d.ts` or Zod schemas |
-| [`@types/fhir`](./packages/types-fhir) | Generated TypeScript declarations for FHIR R2–R5 |
-| [`fhir-zod`](./packages/zod-fhir) | Generated Zod schemas for FHIR R4, R4B, R5 |
+| [`@rh/fhir-generator`](./packages/generator) | General-purpose CLI and library — parses any FHIR NPM package and emits TypeScript `.d.ts` or Zod schemas |
+| [`@types/fhir`](./packages/types-fhir) | Generated TypeScript declarations for FHIR R2–R5 (see [DEFINITELY_TYPED.md](./DEFINITELY_TYPED.md)) |
+| [`@rh/fhir-zod`](./packages/zod-fhir) | Generated Zod schemas for FHIR R2, R3, R4, R4B, R5 |
 
 ## Requirements
 
 - [Bun](https://bun.sh) ≥ 1.0
 
-## Generating output
+## Quick start
 
 ```bash
 # Install dependencies
 bun install
 
-# Generate everything (@types/fhir + fhir-zod)
+# Generate everything (@types/fhir + @rh/fhir-zod)
 bun run generate
 
 # Generate only TypeScript declarations
@@ -40,6 +40,7 @@ FHIR packages are resolved in order:
 Generate from any FHIR NPM package without a config file:
 
 ```bash
+# TypeScript declarations
 bun run packages/generator/src/cli.ts \
   --package hl7.fhir.r4.core \
   --package-version 4.0.1 \
@@ -48,6 +49,7 @@ bun run packages/generator/src/cli.ts \
   --namespace fhir4 \
   --out ./r4.d.ts
 
+# Zod schemas
 bun run packages/generator/src/cli.ts \
   --package hl7.fhir.r4.core \
   --package-version 4.0.1 \
@@ -56,7 +58,7 @@ bun run packages/generator/src/cli.ts \
   --out ./r4-schemas.ts
 ```
 
-Works with any FHIR IG, not just core packages:
+Works with any FHIR IG — not just core packages:
 
 ```bash
 bun run packages/generator/src/cli.ts \
@@ -72,7 +74,7 @@ bun run packages/generator/src/cli.ts \
 Output packages declare a `generate.config.ts` to drive multi-version generation:
 
 ```ts
-import type { GenerateConfig } from '@fhir-types/generator'
+import type { GenerateConfig } from '@rh/fhir-generator'
 
 const config: GenerateConfig = {
   entries: [
@@ -148,6 +150,18 @@ FHIR NPM package
 ## Development
 
 ```bash
+# Lint
+bun run lint
+
+# Format (write)
+bun run format
+
+# Format (check only)
+bun run format:check
+
 # Type-check the generator
 cd packages/generator && bun run typecheck
+
+# Run tests
+bun run test
 ```

@@ -1,5 +1,5 @@
 {
-  "name": "@fhir-types/generator",
+  "name": "@rh/fhir-generator",
   "version": "1.0.0",
   "description": "General-purpose FHIR StructureDefinition → TypeScript declarations + Zod schemas",
   "type": "module",
@@ -7,7 +7,7 @@
     "fhir-generate": "./src/cli.ts"
   },
   "scripts": {
-    "typecheck": "tsc --noEmit"
+    "typecheck": "bunx tsc --noEmit"
   },
   "dependencies": {
     "zod": "^3.24.0"

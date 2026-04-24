@@ -1,56 +1,56 @@
-import { mkdir, access } from 'node:fs/promises'
-import { join } from 'node:path'
-import { LOCAL_FHIR_CACHE, PACKAGES_DIR } from '../config.ts'
+import { mkdir, access } from "node:fs/promises";
+import { join } from "node:path";
+import { LOCAL_FHIR_CACHE, PACKAGES_DIR } from "../config.ts";
 
 /** Returns a local cache directory for a package if it already exists */
 async function findInLocalCache(packageId: string, version: string): Promise<string | null> {
-  const folderName = `${packageId}#${version}`
+  const folderName = `${packageId}#${version}`;
   for (const cacheDir of LOCAL_FHIR_CACHE) {
-    const candidate = join(cacheDir, folderName, 'package')
+    const candidate = join(cacheDir, folderName, "package");
     try {
-      await access(candidate)
-      return candidate
+      await access(candidate);
+      return candidate;
     } catch {
       // not found in this cache dir
     }
   }
-  return null
+  return null;
 }
 
 /** Download and extract a FHIR package tgz, returning the extracted package dir */
 async function downloadAndExtract(packageId: string, version: string): Promise<string> {
-  const url = `https://packages.fhir.org/${packageId}/${version}`
-  const destDir = join(PACKAGES_DIR, `${packageId}#${version}`)
-  const packageDir = join(destDir, 'package')
+  const url = `https://packages.fhir.org/${packageId}/${version}`;
+  const destDir = join(PACKAGES_DIR, `${packageId}#${version}`);
+  const packageDir = join(destDir, "package");
 
-  await mkdir(packageDir, { recursive: true })
+  await mkdir(packageDir, { recursive: true });
 
-  console.log(`Downloading ${packageId}@${version} from ${url}...`)
+  console.log(`Downloading ${packageId}@${version} from ${url}...`);
 
-  const res = await fetch(url)
+  const res = await fetch(url);
   if (!res.ok) {
-    throw new Error(`Failed to download ${url}: ${res.status} ${res.statusText}`)
+    throw new Error(`Failed to download ${url}: ${res.status} ${res.statusText}`);
   }
 
-  const tgzBuf = await res.arrayBuffer()
+  const tgzBuf = await res.arrayBuffer();
 
   // Bun has native gzip/tar support via Bun.gunzipSync + archive extraction
   // We use the system tar command for maximum compatibility with tgz format
-  const tgzPath = join(destDir, 'package.tgz')
-  await Bun.write(tgzPath, tgzBuf)
+  const tgzPath = join(destDir, "package.tgz");
+  await Bun.write(tgzPath, tgzBuf);
 
-  console.log(`Extracting ${packageId}@${version}...`)
-  const proc = Bun.spawn(['tar', '-xzf', tgzPath, '-C', destDir], {
-    stdout: 'ignore',
-    stderr: 'pipe',
-  })
-  const exitCode = await proc.exited
+  console.log(`Extracting ${packageId}@${version}...`);
+  const proc = Bun.spawn(["tar", "-xzf", tgzPath, "-C", destDir], {
+    stdout: "ignore",
+    stderr: "pipe",
+  });
+  const exitCode = await proc.exited;
   if (exitCode !== 0) {
-    const errText = await new Response(proc.stderr).text()
-    throw new Error(`tar extraction failed: ${errText}`)
+    const errText = await new Response(proc.stderr).text();
+    throw new Error(`tar extraction failed: ${errText}`);
   }
 
-  return packageDir
+  return packageDir;
 }
 
 /**
@@ -62,25 +62,24 @@ async function downloadAndExtract(packageId: string, version: string): Promise<s
  *   2. ~/.fhir/packages (FHIR IG Publisher cache)
  *   3. Download from packages.fhir.org
  */
-export async function resolvePackageDir(
-  packageId: string,
-  version: string,
-): Promise<string> {
+export async function resolvePackageDir(packageId: string, version: string): Promise<string> {
   // 1. Check project-local cache
-  const localProject = join(PACKAGES_DIR, `${packageId}#${version}`, 'package')
+  const localProject = join(PACKAGES_DIR, `${packageId}#${version}`, "package");
   try {
-    await access(localProject)
-    console.log(`Using cached ${packageId}@${version}`)
-    return localProject
-  } catch { /* not cached yet */ }
+    await access(localProject);
+    console.log(`Using cached ${packageId}@${version}`);
+    return localProject;
+  } catch {
+    /* not cached yet */
+  }
 
   // 2. Check system FHIR cache
-  const systemCache = await findInLocalCache(packageId, version)
+  const systemCache = await findInLocalCache(packageId, version);
   if (systemCache) {
-    console.log(`Using system FHIR cache for ${packageId}@${version}`)
-    return systemCache
+    console.log(`Using system FHIR cache for ${packageId}@${version}`);
+    return systemCache;
   }
 
   // 3. Download
-  return downloadAndExtract(packageId, version)
+  return downloadAndExtract(packageId, version);
 }

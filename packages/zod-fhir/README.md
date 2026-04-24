@@ -1,19 +1,19 @@
-# fhir-zod
+# @rh/fhir-zod
 
-Zod schemas for FHIR R4, R4B, and R5. Generated from official FHIR StructureDefinition packages via [`@fhir-types/generator`](../generator).
+Zod schemas for FHIR R2, R3, R4, R4B, and R5. Generated from official FHIR StructureDefinition packages via [`@rh/fhir-generator`](../generator).
 
 ## Installation
 
 ```bash
-npm install fhir-zod zod
+npm install @rh/fhir-zod zod
 # or
-bun add fhir-zod zod
+bun add @rh/fhir-zod zod
 ```
 
 ## Usage
 
 ```ts
-import { PatientSchema, BundleSchema } from 'fhir-zod/r4'
+import { PatientSchema, BundleSchema } from '@rh/fhir-zod/r4'
 
 // Parse and validate
 const patient = PatientSchema.parse(rawJson)
@@ -25,16 +25,18 @@ if (result.success) {
 }
 
 // Inferred types
-import type { Patient } from 'fhir-zod/r4'
+import type { Patient } from '@rh/fhir-zod/r4'
 ```
 
 ### Available entry points
 
 | Import | FHIR Version |
 |--------|-------------|
-| `fhir-zod/r4` | FHIR R4 (4.0.1) |
-| `fhir-zod/r4b` | FHIR R4B (4.3.0) |
-| `fhir-zod/r5` | FHIR R5 (5.0.0) |
+| `@rh/fhir-zod/r2` | FHIR R2 (1.0.2) |
+| `@rh/fhir-zod/r3` | FHIR R3 (3.0.2) |
+| `@rh/fhir-zod/r4` | FHIR R4 (4.0.1) |
+| `@rh/fhir-zod/r4b` | FHIR R4B (4.3.0) |
+| `@rh/fhir-zod/r5` | FHIR R5 (5.0.0) |
 
 Every schema file exports:
 
@@ -59,4 +61,4 @@ Notable schema features:
 bun run generate
 ```
 
-Requires `@fhir-types/generator` to be available (installed via workspace). FHIR packages are downloaded automatically on first run and cached in `.fhir-cache/`.
+Requires `@rh/fhir-generator` to be available (installed via workspace). FHIR packages are downloaded automatically on first run and cached in `.fhir-cache/`.

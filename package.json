@@ -8,6 +8,13 @@
   "scripts": {
     "generate": "bun run packages/generator/src/cli.ts --config packages/types-fhir/generate.config.ts && bun run packages/generator/src/cli.ts --config packages/zod-fhir/generate.config.ts",
     "generate:types": "bun run packages/generator/src/cli.ts --config packages/types-fhir/generate.config.ts",
-    "generate:zod": "bun run packages/generator/src/cli.ts --config packages/zod-fhir/generate.config.ts"
+    "generate:zod": "bun run packages/generator/src/cli.ts --config packages/zod-fhir/generate.config.ts",
+    "lint": "bunx biome lint .",
+    "format": "bunx biome format --write .",
+    "format:check": "bunx biome format .",
+    "test": "bun test packages/generator/src/__tests__"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.4.13"
   }
 }

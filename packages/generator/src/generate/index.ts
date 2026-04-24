@@ -1,41 +1,41 @@
-import { writeFile, mkdir } from 'node:fs/promises'
-import { dirname } from 'node:path'
-import { resolvePackageDir } from '../download/index.ts'
-import { parsePackageDir } from '../parser/index.ts'
-import { emitTypeScript } from '../emitter/typescript.ts'
-import { emitZod } from '../emitter/zod.ts'
-import { generateTestFile } from './tests.ts'
-import type { FhirVersion } from '../ir.ts'
+import { writeFile, mkdir } from "node:fs/promises";
+import { dirname } from "node:path";
+import { resolvePackageDir } from "../download/index.ts";
+import { parsePackageDir } from "../parser/index.ts";
+import { emitTypeScript } from "../emitter/typescript.ts";
+import { emitZod } from "../emitter/zod.ts";
+import { generateTestFile } from "./tests.ts";
+import type { FhirVersion } from "../ir.ts";
 
-export type EmitType = 'typescript' | 'zod'
+export type EmitType = "typescript" | "zod";
 
 export interface GenerateOptions {
   /** FHIR package ID, e.g. hl7.fhir.r4.core */
-  packageId: string
+  packageId: string;
   /** Package version, e.g. 4.0.1 */
-  packageVersion: string
+  packageVersion: string;
   /** FHIR version key for the IR model */
-  fhirVersion: FhirVersion
+  fhirVersion: FhirVersion;
   /** Emit target */
-  emit: EmitType
+  emit: EmitType;
   /** Absolute path to write the generated file */
-  outFile: string
+  outFile: string;
   /** TypeScript namespace name (required when emit=typescript), e.g. fhir4 */
-  namespace?: string
+  namespace?: string;
   /**
    * When emit=typescript, also generate a DT test file at this path.
    * Optional — omit to skip test generation.
    */
-  testOutFile?: string
+  testOutFile?: string;
   /**
    * FHIR package ID for example JSON files used in test generation.
    * Use this when examples are published as a separate FHIR npm package
    * (e.g. `hl7.fhir.r4.examples`). Must be paired with `testExamplesPackageVersion`.
    * When omitted, example files are read from the main package directory.
    */
-  testExamplesPackageId?: string
+  testExamplesPackageId?: string;
   /** Version for the examples package (e.g. `4.0.1`). */
-  testExamplesPackageVersion?: string
+  testExamplesPackageVersion?: string;
 }
 
 /**
@@ -43,34 +43,42 @@ export interface GenerateOptions {
  */
 export async function generate(opts: GenerateOptions): Promise<void> {
   const {
-    packageId, packageVersion, fhirVersion, emit,
-    outFile, namespace, testOutFile, testExamplesPackageId, testExamplesPackageVersion,
-  } = opts
+    packageId,
+    packageVersion,
+    fhirVersion,
+    emit,
+    outFile,
+    namespace,
+    testOutFile,
+    testExamplesPackageId,
+    testExamplesPackageVersion,
+  } = opts;
 
-  console.log(`\n[${fhirVersion}] ${packageId}@${packageVersion} → ${emit}`)
+  console.log(`\n[${fhirVersion}] ${packageId}@${packageVersion} → ${emit}`);
 
-  const packageDir = await resolvePackageDir(packageId, packageVersion)
-  console.log(`  Parsing...`)
+  const packageDir = await resolvePackageDir(packageId, packageVersion);
+  console.log(`  Parsing...`);
 
-  const model = await parsePackageDir(packageDir, fhirVersion)
-  console.log(`  Parsed ${model.interfaces.length} types`)
+  const model = await parsePackageDir(packageDir, fhirVersion);
+  console.log(`  Parsed ${model.interfaces.length} types`);
 
-  let output: string
-  if (emit === 'typescript') {
-    if (!namespace) throw new Error('namespace is required for TypeScript emit')
-    output = emitTypeScript(model, namespace, packageId, packageVersion)
+  let output: string;
+  if (emit === "typescript") {
+    if (!namespace) throw new Error("namespace is required for TypeScript emit");
+    output = emitTypeScript(model, namespace, packageId, packageVersion);
   } else {
-    output = emitZod(model)
+    output = emitZod(model);
   }
 
-  await mkdir(dirname(outFile), { recursive: true })
-  await writeFile(outFile, output)
-  console.log(`  Wrote: ${outFile}`)
+  await mkdir(dirname(outFile), { recursive: true });
+  await writeFile(outFile, output);
+  console.log(`  Wrote: ${outFile}`);
 
-  if (emit === 'typescript' && testOutFile && namespace) {
-    const examplesDir = testExamplesPackageId && testExamplesPackageVersion
-      ? await resolvePackageDir(testExamplesPackageId, testExamplesPackageVersion)
-      : undefined
-    await generateTestFile(packageDir, fhirVersion, namespace, testOutFile, examplesDir)
+  if (emit === "typescript" && testOutFile && namespace) {
+    const examplesDir =
+      testExamplesPackageId && testExamplesPackageVersion
+        ? await resolvePackageDir(testExamplesPackageId, testExamplesPackageVersion)
+        : undefined;
+    await generateTestFile(packageDir, fhirVersion, namespace, testOutFile, examplesDir);
   }
 }

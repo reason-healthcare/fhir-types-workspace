@@ -119,11 +119,18 @@ function contentReferenceToTypeName(refPath: string): string {
   return refPath.split('.').map(capitalize).join('')
 }
 
+/** Normalize text for dedup comparison: trim and strip trailing period */
+function normalizeText(s: string): string {
+  return s.trim().replace(/\.$/, '')
+}
+
 /** Build description string from element */
 function elementDescription(el: FhirElement): string | undefined {
   const parts: string[] = []
   if (el.short) parts.push(el.short)
-  if (el.definition && el.definition !== el.short) parts.push(el.definition)
+  if (el.definition && normalizeText(el.definition) !== normalizeText(el.short ?? '')) {
+    parts.push(el.definition)
+  }
   if (el.comment) parts.push(el.comment)
   return parts.length ? parts.join('\n') : undefined
 }

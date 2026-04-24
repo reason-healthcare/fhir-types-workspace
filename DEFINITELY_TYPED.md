@@ -51,16 +51,17 @@ cp -r packages/types-fhir/test/      $DT_FORK/types/fhir/test/
 
 ## Step 4: Run the DT test suite
 
-From the **root** of your DefinitelyTyped fork, sync with upstream, install dependencies, and run the package tests:
+From the **root** of your DefinitelyTyped fork, sync with upstream, do a clean install, and run the package tests:
 
 ```bash
 cd $DT_FORK
 git fetch upstream && git merge upstream/master
+rm -rf node_modules          # required: removes stale hoisted packages
 pnpm install
 pnpm test fhir
 ```
 
-> **Note:** `pnpm install` must be run after syncing the fork — outdated `node_modules` will cause false `@typescript-eslint` rule errors like *"Definition for rule was not found"*.
+> **Why `rm -rf node_modules`?** The DT repo has upgraded from `@typescript-eslint/eslint-plugin` v5 → v8. If your fork was installed before this upgrade, pnpm may leave v5 hoisted at the root, causing dtslint to find it first and report *"Definition for rule was not found"* errors. A clean install resolves this.
 >
 > Do **not** run `npx dtslint .` directly inside `types/fhir/`. DT uses `@definitelytyped/dtslint` (via `pnpm test`), which is a different, newer package from the legacy `dtslint` on npm.
 

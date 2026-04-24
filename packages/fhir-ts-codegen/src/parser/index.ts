@@ -392,7 +392,7 @@ function parseStructureDefinition(
   enumRegistry: EnumRegistry,
 ): IrInterface[] | null {
   const elements = sd.differential?.element;
-  if (!elements.length) return null;
+  if (!elements?.length) return null;
 
   // The first element may be the root (e.g. "Patient") — skip it if so
   const firstNonRoot = elements[0]?.path.includes(".") ? elements : elements.slice(1);

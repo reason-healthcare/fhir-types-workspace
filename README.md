@@ -165,3 +165,55 @@ cd packages/fhir-ts-codegen && bun run typecheck
 # Run tests
 bun run test
 ```
+
+## Versioning
+
+The monorepo uses a single shared version across the root and all publishable packages (`@rh/fhir-ts-codegen`, `@rh/fhir-zod`). The root `package.json` is the source of truth.
+
+Bump and sync in one step:
+
+```bash
+# Patch release (1.0.0 → 1.0.1)
+bun run version:patch
+
+# Minor release (1.0.0 → 1.1.0)
+bun run version:minor
+
+# Major release (1.0.0 → 2.0.0)
+bun run version:major
+```
+
+Each command updates the root `package.json` and then runs `scripts/sync-version.ts` to propagate the new version to every package. After bumping, commit and tag:
+
+```bash
+VERSION=$(node -p "require('./package.json').version")
+git add package.json packages/fhir-ts-codegen/package.json packages/fhir-zod/package.json
+git commit -m "chore: release v${VERSION}"
+git tag "v${VERSION}"
+git push && git push --tags
+```
+
+## Publishing
+
+Packages are published to npm under the `@rh` scope. You must be logged in (`npm login`) and have publish rights to the `@rh` org.
+
+```bash
+# Publish both packages
+bun run publish:all
+
+# Or publish individually
+bun run publish:codegen   # @rh/fhir-ts-codegen
+bun run publish:zod       # @rh/fhir-zod
+```
+
+> **Note:** `@rh/fhir-zod` declares `@rh/fhir-ts-codegen` as a `workspace:*` dependency.
+> npm will resolve this to the pinned version at publish time automatically.
+
+### Full release checklist
+
+1. Regenerate output if FHIR source data has changed: `bun run generate`
+2. Ensure tests pass: `bun run test`
+3. Bump the version: `bun run version:patch` (or `minor` / `major`)
+4. Commit + tag (see commands above)
+5. Publish: `bun run publish:all`
+

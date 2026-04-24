@@ -12,7 +12,14 @@
     "lint": "bunx biome lint .",
     "format": "bunx biome format --write .",
     "format:check": "bunx biome format .",
-    "test": "bun test packages/fhir-ts-codegen/src/__tests__"
+    "test": "bun test packages/fhir-ts-codegen/src/__tests__",
+    "version:sync": "bun run scripts/sync-version.ts",
+    "version:patch": "npm version patch --no-git-tag-version && bun run version:sync",
+    "version:minor": "npm version minor --no-git-tag-version && bun run version:sync",
+    "version:major": "npm version major --no-git-tag-version && bun run version:sync",
+    "publish:codegen": "npm publish --access public -w packages/fhir-ts-codegen",
+    "publish:zod": "npm publish --access public -w packages/fhir-zod",
+    "publish:all": "bun run publish:codegen && bun run publish:zod"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.4.13"

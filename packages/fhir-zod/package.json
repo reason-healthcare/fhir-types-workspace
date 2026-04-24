@@ -1,6 +1,6 @@
 {
   "name": "@rh/fhir-zod",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Zod schemas for FHIR R4, R4B, R5",
   "type": "module",
   "license": "MIT",

@@ -47,6 +47,20 @@ cp packages/types-fhir/tsconfig.json $DT_FORK/types/fhir/
 cp -r packages/types-fhir/test/      $DT_FORK/types/fhir/test/
 ```
 
+## Step 3b: Fix package.json
+
+dtslint requires that `types/fhir/package.json` does **not** contain a `name` field. The DT package.json should look like:
+
+```json
+{
+  "private": true,
+  "dependencies": {},
+  "devDependencies": {}
+}
+```
+
+If the file has a `name` (or other disallowed fields), remove them before running dtslint.
+
 ## Step 4: Run dtslint
 
 From inside the DefinitelyTyped fork, run the official linter:

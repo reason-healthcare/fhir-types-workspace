@@ -5,8 +5,6 @@
   "type": "module",
   "license": "MIT",
   "exports": {
-    "./r2": "./src/r2.ts",
-    "./r3": "./src/r3.ts",
     "./r4": "./src/r4.ts",
     "./r4b": "./src/r4b.ts",
     "./r5": "./src/r5.ts"

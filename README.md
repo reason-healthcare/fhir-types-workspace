@@ -8,7 +8,7 @@ A pure TypeScript/Bun monorepo that generates TypeScript declaration files and Z
 |---------|-------------|
 | [`@rh/fhir-generator`](./packages/generator) | General-purpose CLI and library — parses any FHIR NPM package and emits TypeScript `.d.ts` or Zod schemas |
 | [`@types/fhir`](./packages/types-fhir) | Generated TypeScript declarations for FHIR R2–R5 (see [DEFINITELY_TYPED.md](./DEFINITELY_TYPED.md)) |
-| [`@rh/fhir-zod`](./packages/zod-fhir) | Generated Zod schemas for FHIR R2, R3, R4, R4B, R5 |
+| [`@rh/fhir-zod`](./packages/zod-fhir) | Generated Zod schemas for FHIR R4, R4B, R5 |
 
 ## Requirements
 

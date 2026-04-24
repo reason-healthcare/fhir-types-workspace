@@ -47,28 +47,19 @@ cp packages/types-fhir/tsconfig.json $DT_FORK/types/fhir/
 cp -r packages/types-fhir/test/      $DT_FORK/types/fhir/test/
 ```
 
-## Step 3b: Fix package.json
+> **Do not copy `package.json`** — the DT fork manages its own `package.json` (with `name`, `version`, `owners`, `nonNpm`, etc.). Leave it untouched.
 
-dtslint requires that `types/fhir/package.json` does **not** contain a `name` field. The DT package.json should look like:
+## Step 4: Run the DT test suite
 
-```json
-{
-  "private": true,
-  "dependencies": {},
-  "devDependencies": {}
-}
-```
-
-If the file has a `name` (or other disallowed fields), remove them before running dtslint.
-
-## Step 4: Run dtslint
-
-From inside the DefinitelyTyped fork, run the official linter:
+From the **root** of your DefinitelyTyped fork, install dependencies and run the package tests:
 
 ```bash
-cd $DT_FORK/types/fhir
-npx dtslint .
+cd $DT_FORK
+pnpm install
+pnpm test fhir
 ```
+
+> Do **not** run `npx dtslint .` directly inside `types/fhir/`. DT uses `@definitelytyped/dtslint` (via `pnpm test`), which is a different, newer package from the legacy `dtslint` on npm.
 
 Resolve any dtslint errors. Some tests may require adjustment to match dtslint's expectations for assertion syntax.
 

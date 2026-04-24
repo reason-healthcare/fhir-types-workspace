@@ -49,7 +49,7 @@ export async function generate(opts: GenerateOptions): Promise<void> {
   let output: string
   if (emit === 'typescript') {
     if (!namespace) throw new Error('namespace is required for TypeScript emit')
-    output = emitTypeScript(model, namespace)
+    output = emitTypeScript(model, namespace, packageId, packageVersion)
   } else {
     output = emitZod(model)
   }

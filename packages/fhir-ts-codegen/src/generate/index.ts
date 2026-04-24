@@ -4,7 +4,7 @@ import { resolvePackageDir } from "../download/index.ts";
 import { parsePackageDir } from "../parser/index.ts";
 import { emitTypeScript } from "../emitter/typescript.ts";
 import { emitZod } from "../emitter/zod.ts";
-import { generateTestFile } from "./tests.ts";
+import { generateTestFile, generateZodTestFile } from "./tests.ts";
 import type { FhirVersion } from "../ir.ts";
 
 export type EmitType = "typescript" | "zod";
@@ -23,10 +23,17 @@ export interface GenerateOptions {
   /** TypeScript namespace name (required when emit=typescript), e.g. fhir4 */
   namespace?: string;
   /**
-   * When emit=typescript, also generate a DT test file at this path.
+   * When set, also generate a test/example file at this path.
+   * - For emit=typescript: generates a DT-style type assertion file
+   * - For emit=zod: generates `.parse()` example calls (requires testImportPath)
    * Optional — omit to skip test generation.
    */
   testOutFile?: string;
+  /**
+   * When emit=zod and testOutFile is set: the relative import path from
+   * testOutFile to the generated schema file (e.g. `"../src/r4"`).
+   */
+  testImportPath?: string;
   /**
    * FHIR package ID for example JSON files used in test generation.
    * Use this when examples are published as a separate FHIR npm package
@@ -50,6 +57,7 @@ export async function generate(opts: GenerateOptions): Promise<void> {
     outFile,
     namespace,
     testOutFile,
+    testImportPath,
     testExamplesPackageId,
     testExamplesPackageVersion,
   } = opts;
@@ -80,5 +88,13 @@ export async function generate(opts: GenerateOptions): Promise<void> {
         ? await resolvePackageDir(testExamplesPackageId, testExamplesPackageVersion)
         : undefined;
     await generateTestFile(packageDir, fhirVersion, namespace, testOutFile, examplesDir);
+  }
+
+  if (emit === "zod" && testOutFile && testImportPath) {
+    const examplesDir =
+      testExamplesPackageId && testExamplesPackageVersion
+        ? await resolvePackageDir(testExamplesPackageId, testExamplesPackageVersion)
+        : undefined;
+    await generateZodTestFile(packageDir, fhirVersion, testImportPath, testOutFile, examplesDir);
   }
 }

@@ -12,8 +12,14 @@ export interface GenerateConfigEntry {
   outFile: string;
   /** Required when emit=typescript */
   namespace?: string;
-  /** Optional DT test file output path (typescript emit only) */
+  /** Optional test/example file output path */
   testOutFile?: string;
+  /**
+   * Required when emit=zod and testOutFile is set.
+   * Relative import path from testOutFile to the generated schema file
+   * (e.g. `"../src/r4"`).
+   */
+  testImportPath?: string;
   /**
    * FHIR package ID for example JSON files used in test generation.
    * Use this when examples are published as a separate FHIR npm package

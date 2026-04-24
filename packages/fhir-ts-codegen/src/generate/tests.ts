@@ -181,3 +181,77 @@ export async function generateTestFile(
   await writeFile(outFile, lines.join("\n"));
   console.log(`  Wrote test file: ${outFile}`);
 }
+
+/**
+ * Generate a Zod test/example file from FHIR example JSON files.
+ *
+ * Emits one `.parse()` call per resource type, importing the relevant
+ * `*Schema` export from `schemaImportPath`. The generated file is intended
+ * as both a correctness check (Zod will throw on schema violations) and
+ * inline documentation of real-world usage.
+ *
+ * @param packageDir       Path to the extracted FHIR package directory
+ * @param version          FHIR version key (r4, r4b, r5, …)
+ * @param schemaImportPath Relative import path to the generated Zod schemas
+ *                         (e.g. `"../src/r4"`)
+ * @param outFile          Full path to write the generated example file
+ * @param examplesDir      Optional override: directory of example JSON files
+ */
+export async function generateZodTestFile(
+  packageDir: string,
+  version: string,
+  schemaImportPath: string,
+  outFile: string,
+  examplesDir?: string,
+): Promise<void> {
+  const sourceDir = examplesDir ?? packageDir;
+  const exceptions = EXCEPTIONS[version] ?? [];
+  const skipTypes = new Set(SKIP_TYPES[version] ?? []);
+
+  const files = await readdir(sourceDir);
+  const sorted = files.filter((f) => f.endsWith(".json")).sort();
+
+  const seenTypes = new Set<string>();
+  const schemaNames: string[] = [];
+  const exampleLines: string[] = [];
+
+  for (const file of sorted) {
+    if (file.endsWith(".profile.json")) continue;
+    if (file.includes("diff")) continue;
+    if (exceptions.includes(file)) continue;
+
+    try {
+      const raw = stripBom(await readFile(join(sourceDir, file), "utf8"));
+      const resource = JSON.parse(raw) as Record<string, unknown>;
+      const { resourceType } = resource;
+      if (typeof resourceType !== "string") continue;
+      if (resourceType === "StructureDefinition") continue;
+      if (skipTypes.has(resourceType)) continue;
+
+      if (seenTypes.has(resourceType)) continue;
+      seenTypes.add(resourceType);
+
+      const schemaName = `${resourceType}Schema`;
+      schemaNames.push(schemaName);
+
+      const cleaned = cleanEmpty(removeKeys(resource, ["fhir_comments", "contained", "entry"]));
+
+      exampleLines.push(`// ${file}`);
+      exampleLines.push(`${schemaName}.parse(${JSON.stringify(cleaned)});`);
+      exampleLines.push("");
+    } catch {
+      // skip malformed example files
+    }
+  }
+
+  const lines: string[] = [
+    `import { ${schemaNames.join(", ")} } from "${schemaImportPath}";`,
+    "",
+    ...exampleLines,
+    "",
+  ];
+
+  await mkdir(outFile.replace(/\/[^/]+$/, ""), { recursive: true });
+  await writeFile(outFile, lines.join("\n"));
+  console.log(`  Wrote Zod example file: ${outFile}`);
+}

@@ -9,6 +9,9 @@
     "./r4b": "./src/r4b.ts",
     "./r5": "./src/r5.ts"
   },
+  "files": [
+    "src"
+  ],
   "scripts": {
     "generate": "fhir-generate --config ./generate.config.ts",
     "typecheck": "tsc --noEmit"

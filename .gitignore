@@ -7,7 +7,7 @@ node_modules/
 # Generated TypeScript declaration output
 packages/types-fhir/index.d.ts
 packages/types-fhir/**/*.d.ts
-packages/types-fhir/tests/
+packages/types-fhir/test/
 
 # Generated Zod schema output
 packages/zod-fhir/src/

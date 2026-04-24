@@ -1,5 +1,7 @@
 # @rh/fhir-zod
 
+[![npm](https://img.shields.io/npm/v/@rh/fhir-zod)](https://www.npmjs.com/package/@rh/fhir-zod)
+
 Zod schemas for FHIR R4, R4B, and R5. Generated from official FHIR StructureDefinition packages via [`@rh/fhir-ts-codegen`](../fhir-ts-codegen).
 
 ## Installation

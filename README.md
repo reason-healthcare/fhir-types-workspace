@@ -1,4 +1,6 @@
-# dt-types-fhir
+# FHIR Types Workspace
+
+[![CI](https://github.com/reason-healthcare/fhir-types-workspace/actions/workflows/ci.yml/badge.svg)](https://github.com/reason-healthcare/fhir-types-workspace/actions/workflows/ci.yml)
 
 A pure TypeScript/Bun monorepo that generates TypeScript declaration files and Zod schemas from FHIR StructureDefinitions. Replaces the old `@types/fhir` pipeline that required dotnet and Gulp.
 

@@ -1,5 +1,7 @@
 # @rh/fhir-ts-codegen
 
+[![npm](https://img.shields.io/npm/v/@rh/fhir-ts-codegen)](https://www.npmjs.com/package/@rh/fhir-ts-codegen)
+
 General-purpose CLI and library that reads FHIR NPM packages and emits either TypeScript `.d.ts` declarations or Zod schemas. Works with any FHIR IG package, not just the core specification.
 
 ## Requirements

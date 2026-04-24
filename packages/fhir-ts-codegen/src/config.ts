@@ -17,5 +17,5 @@ export const DT_HEADER = `// Type definitions for non-npm package FHIR
 // Definitions: https://github.com/DefinitelyTyped/DefinitelyTypes
 // Minimum TypeScript Version: 4.3
 
-// Generated with https://github.com/reason-healthcare/fhir-types/packages/fhir-ts-codegen
+// Generated with https://github.com/reason-healthcare/fhir-types-workspace/tree/main/packages/fhir-ts-codegen
 `;

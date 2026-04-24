@@ -3,6 +3,16 @@
   "version": "1.0.0",
   "description": "General-purpose FHIR StructureDefinition → TypeScript declarations + Zod schemas",
   "type": "module",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/reason-healthcare/fhir-types-workspace.git",
+    "directory": "packages/fhir-ts-codegen"
+  },
+  "homepage": "https://github.com/reason-healthcare/fhir-types-workspace/tree/main/packages/fhir-ts-codegen#readme",
+  "bugs": {
+    "url": "https://github.com/reason-healthcare/fhir-types-workspace/issues"
+  },
   "bin": {
     "fhir-generate": "./src/cli.ts"
   },

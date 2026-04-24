@@ -4,6 +4,15 @@
   "description": "Zod schemas for FHIR R4, R4B, R5",
   "type": "module",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/reason-healthcare/fhir-types-workspace.git",
+    "directory": "packages/fhir-zod"
+  },
+  "homepage": "https://github.com/reason-healthcare/fhir-types-workspace/tree/main/packages/fhir-zod#readme",
+  "bugs": {
+    "url": "https://github.com/reason-healthcare/fhir-types-workspace/issues"
+  },
   "exports": {
     "./r4": "./src/r4.ts",
     "./r4b": "./src/r4b.ts",

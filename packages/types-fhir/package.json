@@ -5,6 +5,7 @@
   "license": "MIT",
   "scripts": {
     "generate": "bun run ../generator/src/cli.ts --config ./generate.config.ts",
+    "typecheck": "NODE_OPTIONS='--max-old-space-size=4096' bunx tsc --noEmit",
     "test": "dtslint ."
   },
   "devDependencies": {

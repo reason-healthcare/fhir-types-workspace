@@ -1,0 +1,108 @@
+import type { IrModel, IrInterface, IrField } from '../ir.ts'
+
+const SHADOW_TYPE = 'Element'
+
+/** Wrap a raw TS type in `Array<T>` or `T` as appropriate */
+function arrayWrap(tsType: string, isArray: boolean): string {
+  return isArray ? `${tsType}[]` : tsType
+}
+
+/** Render a single field line (without shadow) */
+function renderField(field: IrField, indent = '  '): string {
+  const prefix = field.readonly ? 'readonly ' : ''
+  const opt = field.required ? '' : '?'
+  const type = arrayWrap(field.tsType, field.isArray)
+  const suffix = field.required ? ';' : ' | undefined;'
+  return `${indent}${prefix}${field.name}${opt}: ${type}${suffix}`
+}
+
+/** Render a JSDoc comment block */
+function renderJsDoc(description: string | undefined, indent = '  '): string {
+  if (!description) return ''
+  const lines = description.split('\n').filter(Boolean)
+  if (lines.length === 0) return ''
+  if (lines.length === 1) return `${indent}/** ${lines[0]} */\n`
+  return [
+    `${indent}/**`,
+    ...lines.map(l => `${indent} * ${l}`),
+    `${indent} */`,
+    '',
+  ].join('\n')
+}
+
+/** Render a single interface */
+function renderInterface(iface: IrInterface): string {
+  const lines: string[] = []
+
+  if (iface.description) {
+    const desc = iface.description.split('\n').filter(Boolean)
+    lines.push('/**')
+    lines.push(...desc.map(l => ` * ${l}`))
+    lines.push(' */')
+  }
+
+  const ext = iface.extends ? ` extends ${iface.extends}` : ''
+  lines.push(`export interface ${iface.name}${ext} {`)
+
+  for (const field of iface.fields) {
+    const doc = renderJsDoc(field.description)
+    if (doc) lines.push(doc.trimEnd())
+    lines.push(renderField(field))
+
+    // FHIR primitive extension shadow field
+    if (field.hasPrimitiveExtension) {
+      const shadowOpt = '?'
+      const shadowName = `_${field.name}`
+      if (field.isArray) {
+        lines.push(`  ${shadowName}${shadowOpt}: ${SHADOW_TYPE}[] | undefined;`)
+      } else {
+        lines.push(`  ${shadowName}${shadowOpt}: ${SHADOW_TYPE} | undefined;`)
+      }
+    }
+  }
+
+  lines.push('}')
+  return lines.join('\n')
+}
+
+/**
+ * Emit a complete `.d.ts` file from an IrModel.
+ *
+ * @param model      The parsed IR
+ * @param namespace  The UMD namespace name, e.g. `fhir4`
+ */
+export function emitTypeScript(model: IrModel, namespace: string): string {
+  const parts: string[] = []
+
+  // UMD namespace declaration (required by DT)
+  parts.push(`export as namespace ${namespace};`)
+  parts.push('')
+
+  const resourceNames: string[] = []
+
+  for (const iface of model.interfaces) {
+    // Primitive-type FHIR definitions (boolean, string, etc.) have no useful
+    // representation in TypeScript — the native types are already correct.
+    if (iface.isPrimitive) continue
+
+    if (iface.isResource) resourceNames.push(iface.name)
+
+    parts.push(renderInterface(iface))
+    parts.push('')
+  }
+
+  // Emit a FhirResource discriminated union of all concrete resource types
+  if (resourceNames.length > 0) {
+    parts.push('export type FhirResource =')
+    for (let i = 0; i < resourceNames.length; i++) {
+      const sep = i < resourceNames.length - 1 ? ' |' : ';'
+      parts.push(`  ${resourceNames[i]}${sep}`)
+    }
+    parts.push('')
+  }
+
+  // Remove trailing blank line
+  while (parts[parts.length - 1] === '') parts.pop()
+
+  return parts.join('\n') + '\n'
+}

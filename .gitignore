@@ -1,0 +1,25 @@
+# Dependencies
+node_modules/
+
+# FHIR package downloads
+.fhir-cache/
+
+# Generated TypeScript declaration output
+packages/types-fhir/index.d.ts
+packages/types-fhir/**/*.d.ts
+packages/types-fhir/tests/
+
+# Generated Zod schema output
+packages/zod-fhir/src/
+
+# Build artifacts
+dist/
+*.js.map
+
+# OS
+.DS_Store
+
+# Editor
+.vscode/
+.idea/
+*.swp

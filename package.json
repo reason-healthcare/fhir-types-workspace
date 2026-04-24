@@ -1,0 +1,13 @@
+{
+  "name": "dt-types-fhir-workspace",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "generate": "bun run packages/generator/src/cli.ts --config packages/types-fhir/generate.config.ts && bun run packages/generator/src/cli.ts --config packages/zod-fhir/generate.config.ts",
+    "generate:types": "bun run packages/generator/src/cli.ts --config packages/types-fhir/generate.config.ts",
+    "generate:zod": "bun run packages/generator/src/cli.ts --config packages/zod-fhir/generate.config.ts"
+  }
+}

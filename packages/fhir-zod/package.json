@@ -26,10 +26,10 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@reasonhealth/fhir-ts-codegen": "workspace:*",
     "zod": "^3.24.0"
   },
   "devDependencies": {
+    "@reasonhealth/fhir-ts-codegen": "workspace:*",
     "@types/bun": "latest"
   }
 }

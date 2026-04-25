@@ -1,6 +1,16 @@
 import { z } from 'zod'
 
 /**
+ * Base StructureDefinition for Element Type: Base definition for all elements in a resource.
+ */
+export const ElementSchema = z.object({
+  id: z.string().optional(),
+  _id: z.lazy(() => ElementSchema).optional(),
+  extension: z.lazy(() => z.array(ExtensionSchema)).optional(),
+})
+export type Element = z.infer<typeof ElementSchema>
+
+/**
  * Base StructureDefinition for Coding Type: A reference to a code defined by a terminology system.
  */
 export const CodingSchema = ElementSchema.extend({
@@ -18,14 +28,46 @@ export const CodingSchema = ElementSchema.extend({
 export type Coding = z.infer<typeof CodingSchema>
 
 /**
- * Base StructureDefinition for CodeableConcept Type: A concept that may be defined by a formal reference to a terminology or ontology or may be provided by text.
+ * Base StructureDefinition for Meta Type: The metadata about a resource. This is content in the resource that is maintained by the infrastructure. Changes to the content might not always be associated with version changes to the resource.
  */
-export const CodeableConceptSchema = ElementSchema.extend({
-  coding: z.array(CodingSchema).optional(),
-  text: z.string().optional(),
-  _text: ElementSchema.optional(),
+export const MetaSchema = ElementSchema.extend({
+  versionId: z.string().optional(),
+  _versionId: ElementSchema.optional(),
+  lastUpdated: z.string().optional(),
+  _lastUpdated: ElementSchema.optional(),
+  source: z.string().optional(),
+  _source: ElementSchema.optional(),
+  profile: z.array(z.string()).optional(),
+  _profile: ElementSchema.optional(),
+  security: z.array(CodingSchema).optional(),
+  tag: z.array(CodingSchema).optional(),
 })
-export type CodeableConcept = z.infer<typeof CodeableConceptSchema>
+export type Meta = z.infer<typeof MetaSchema>
+
+/**
+ * This is the base resource type for everything.
+ */
+export const ResourceSchema = z.object({
+  id: z.string().optional(),
+  _id: ElementSchema.optional(),
+  meta: MetaSchema.optional(),
+  implicitRules: z.string().optional(),
+  _implicitRules: ElementSchema.optional(),
+  language: z.string().optional(),
+  _language: ElementSchema.optional(),
+})
+export type Resource = z.infer<typeof ResourceSchema>
+
+/**
+ * Base StructureDefinition for Narrative Type: A human-readable summary of the resource conveying the essential clinical and business information for the resource.
+ */
+export const NarrativeSchema = ElementSchema.extend({
+  status: z.enum(['generated', 'extensions', 'additional', 'empty']),
+  _status: ElementSchema.optional(),
+  div: z.string(),
+  _div: ElementSchema.optional(),
+})
+export type Narrative = z.infer<typeof NarrativeSchema>
 
 /**
  * Base StructureDefinition for Period Type: A time period defined by a start and end date and optionally time.
@@ -39,34 +81,30 @@ export const PeriodSchema = ElementSchema.extend({
 export type Period = z.infer<typeof PeriodSchema>
 
 /**
- * Base StructureDefinition for Reference Type: A reference from one resource to another.
+ * Base StructureDefinition for Address Type: An address expressed using postal conventions (as opposed to GPS or other location definition formats).  This data type may be used to convey addresses for use in delivering mail as well as for visiting locations which might not be valid for mail delivery.  There are a variety of postal address formats defined around the world.
  */
-export const ReferenceSchema = ElementSchema.extend({
-  reference: z.string().optional(),
-  _reference: ElementSchema.optional(),
-  type: z.string().optional(),
-  _type: ElementSchema.optional(),
-  identifier: IdentifierSchema.optional(),
-  display: z.string().optional(),
-  _display: ElementSchema.optional(),
-})
-export type Reference = z.infer<typeof ReferenceSchema>
-
-/**
- * Base StructureDefinition for Identifier Type: An identifier - identifies some entity uniquely and unambiguously. Typically this is used for business identifiers.
- */
-export const IdentifierSchema = ElementSchema.extend({
-  use: z.enum(['usual', 'official', 'temp', 'secondary', 'old']).optional(),
+export const AddressSchema = ElementSchema.extend({
+  use: z.enum(['home', 'work', 'temp', 'old', 'billing']).optional(),
   _use: ElementSchema.optional(),
-  type: CodeableConceptSchema.optional(),
-  system: z.string().optional(),
-  _system: ElementSchema.optional(),
-  value: z.string().optional(),
-  _value: ElementSchema.optional(),
+  type: z.enum(['postal', 'physical', 'both']).optional(),
+  _type: ElementSchema.optional(),
+  text: z.string().optional(),
+  _text: ElementSchema.optional(),
+  line: z.array(z.string()).optional(),
+  _line: ElementSchema.optional(),
+  city: z.string().optional(),
+  _city: ElementSchema.optional(),
+  district: z.string().optional(),
+  _district: ElementSchema.optional(),
+  state: z.string().optional(),
+  _state: ElementSchema.optional(),
+  postalCode: z.string().optional(),
+  _postalCode: ElementSchema.optional(),
+  country: z.string().optional(),
+  _country: ElementSchema.optional(),
   period: PeriodSchema.optional(),
-  assigner: ReferenceSchema.optional(),
 })
-export type Identifier = z.infer<typeof IdentifierSchema>
+export type Address = z.infer<typeof AddressSchema>
 
 /**
  * Base StructureDefinition for Quantity Type: A measured amount (or an amount that can potentially be measured). Note that measured amounts include amounts that are not precisely quantified, including amounts involving arbitrary units and floating currencies.
@@ -84,6 +122,575 @@ export const QuantitySchema = ElementSchema.extend({
   _code: ElementSchema.optional(),
 })
 export type Quantity = z.infer<typeof QuantitySchema>
+
+/**
+ * Base StructureDefinition for Age Type: A duration of time during which an organism (or a process) has existed.
+ */
+export const AgeSchema = QuantitySchema.extend({
+})
+export type Age = z.infer<typeof AgeSchema>
+
+/**
+ * Base StructureDefinition for CodeableConcept Type: A concept that may be defined by a formal reference to a terminology or ontology or may be provided by text.
+ */
+export const CodeableConceptSchema = ElementSchema.extend({
+  coding: z.array(CodingSchema).optional(),
+  text: z.string().optional(),
+  _text: ElementSchema.optional(),
+})
+export type CodeableConcept = z.infer<typeof CodeableConceptSchema>
+
+/**
+ * Base StructureDefinition for Identifier Type: An identifier - identifies some entity uniquely and unambiguously. Typically this is used for business identifiers.
+ */
+export const IdentifierSchema = ElementSchema.extend({
+  use: z.enum(['usual', 'official', 'temp', 'secondary', 'old']).optional(),
+  _use: ElementSchema.optional(),
+  type: CodeableConceptSchema.optional(),
+  system: z.string().optional(),
+  _system: ElementSchema.optional(),
+  value: z.string().optional(),
+  _value: ElementSchema.optional(),
+  period: PeriodSchema.optional(),
+  assigner: z.lazy(() => ReferenceSchema).optional(),
+})
+export type Identifier = z.infer<typeof IdentifierSchema>
+
+/**
+ * Base StructureDefinition for Reference Type: A reference from one resource to another.
+ */
+export const ReferenceSchema = ElementSchema.extend({
+  reference: z.string().optional(),
+  _reference: ElementSchema.optional(),
+  type: z.string().optional(),
+  _type: ElementSchema.optional(),
+  identifier: IdentifierSchema.optional(),
+  display: z.string().optional(),
+  _display: ElementSchema.optional(),
+})
+export type Reference = z.infer<typeof ReferenceSchema>
+
+/**
+ * Base StructureDefinition for Annotation Type: A  text note which also  contains information about who made the statement and when.
+ */
+export const AnnotationSchema = ElementSchema.extend({
+  authorReference: ReferenceSchema.optional(),
+  authorString: z.string().optional(),
+  _authorString: ElementSchema.optional(),
+  time: z.string().optional(),
+  _time: ElementSchema.optional(),
+  text: z.string(),
+  _text: ElementSchema.optional(),
+})
+export type Annotation = z.infer<typeof AnnotationSchema>
+
+/**
+ * Base StructureDefinition for Attachment Type: For referring to data content defined in other formats.
+ */
+export const AttachmentSchema = ElementSchema.extend({
+  contentType: z.string().optional(),
+  _contentType: ElementSchema.optional(),
+  language: z.string().optional(),
+  _language: ElementSchema.optional(),
+  data: z.string().optional(),
+  _data: ElementSchema.optional(),
+  url: z.string().optional(),
+  _url: ElementSchema.optional(),
+  size: z.number().optional(),
+  _size: ElementSchema.optional(),
+  hash: z.string().optional(),
+  _hash: ElementSchema.optional(),
+  title: z.string().optional(),
+  _title: ElementSchema.optional(),
+  creation: z.string().optional(),
+  _creation: ElementSchema.optional(),
+})
+export type Attachment = z.infer<typeof AttachmentSchema>
+
+/**
+ * Base StructureDefinition for ContactPoint Type: Details for all kinds of technology mediated contact points for a person or organization, including telephone, email, etc.
+ */
+export const ContactPointSchema = ElementSchema.extend({
+  system: z.enum(['phone', 'fax', 'email', 'pager', 'url', 'sms', 'other']).optional(),
+  _system: ElementSchema.optional(),
+  value: z.string().optional(),
+  _value: ElementSchema.optional(),
+  use: z.enum(['home', 'work', 'temp', 'old', 'mobile']).optional(),
+  _use: ElementSchema.optional(),
+  rank: z.number().optional(),
+  _rank: ElementSchema.optional(),
+  period: PeriodSchema.optional(),
+})
+export type ContactPoint = z.infer<typeof ContactPointSchema>
+
+/**
+ * Base StructureDefinition for Count Type: A measured amount (or an amount that can potentially be measured). Note that measured amounts include amounts that are not precisely quantified, including amounts involving arbitrary units and floating currencies.
+ */
+export const CountSchema = QuantitySchema.extend({
+})
+export type Count = z.infer<typeof CountSchema>
+
+/**
+ * Base StructureDefinition for Distance Type: A length - a value with a unit that is a physical distance.
+ */
+export const DistanceSchema = QuantitySchema.extend({
+})
+export type Distance = z.infer<typeof DistanceSchema>
+
+/**
+ * Base StructureDefinition for Duration Type: A length of time.
+ */
+export const DurationSchema = QuantitySchema.extend({
+})
+export type Duration = z.infer<typeof DurationSchema>
+
+/**
+ * Base StructureDefinition for HumanName Type: A human's name with the ability to identify parts and usage.
+ */
+export const HumanNameSchema = ElementSchema.extend({
+  use: z.enum(['usual', 'official', 'temp', 'nickname', 'anonymous', 'old', 'maiden']).optional(),
+  _use: ElementSchema.optional(),
+  text: z.string().optional(),
+  _text: ElementSchema.optional(),
+  family: z.string().optional(),
+  _family: ElementSchema.optional(),
+  given: z.array(z.string()).optional(),
+  _given: ElementSchema.optional(),
+  prefix: z.array(z.string()).optional(),
+  _prefix: ElementSchema.optional(),
+  suffix: z.array(z.string()).optional(),
+  _suffix: ElementSchema.optional(),
+  period: PeriodSchema.optional(),
+})
+export type HumanName = z.infer<typeof HumanNameSchema>
+
+/**
+ * Base StructureDefinition for Money Type: An amount of economic utility in some recognized currency.
+ */
+export const MoneySchema = ElementSchema.extend({
+  value: z.number().optional(),
+  _value: ElementSchema.optional(),
+  currency: z.string().optional(),
+  _currency: ElementSchema.optional(),
+})
+export type Money = z.infer<typeof MoneySchema>
+
+/**
+ * Base StructureDefinition for Range Type: A set of ordered Quantities defined by a low and high limit.
+ */
+export const RangeSchema = ElementSchema.extend({
+  low: QuantitySchema.optional(),
+  high: QuantitySchema.optional(),
+})
+export type Range = z.infer<typeof RangeSchema>
+
+/**
+ * Base StructureDefinition for Ratio Type: A relationship of two Quantity values - expressed as a numerator and a denominator.
+ */
+export const RatioSchema = ElementSchema.extend({
+  numerator: QuantitySchema.optional(),
+  denominator: QuantitySchema.optional(),
+})
+export type Ratio = z.infer<typeof RatioSchema>
+
+/**
+ * Base StructureDefinition for SampledData Type: A series of measurements taken by a device, with upper and lower limits. There may be more than one dimension in the data.
+ */
+export const SampledDataSchema = ElementSchema.extend({
+  origin: QuantitySchema,
+  period: z.number(),
+  _period: ElementSchema.optional(),
+  factor: z.number().optional(),
+  _factor: ElementSchema.optional(),
+  lowerLimit: z.number().optional(),
+  _lowerLimit: ElementSchema.optional(),
+  upperLimit: z.number().optional(),
+  _upperLimit: ElementSchema.optional(),
+  dimensions: z.number(),
+  _dimensions: ElementSchema.optional(),
+  data: z.string().optional(),
+  _data: ElementSchema.optional(),
+})
+export type SampledData = z.infer<typeof SampledDataSchema>
+
+/**
+ * Base StructureDefinition for Signature Type: A signature along with supporting context. The signature may be a digital signature that is cryptographic in nature, or some other signature acceptable to the domain. This other signature may be as simple as a graphical image representing a hand-written signature, or a signature ceremony Different signature approaches have different utilities.
+ */
+export const SignatureSchema = ElementSchema.extend({
+  type: z.array(CodingSchema),
+  when: z.string(),
+  _when: ElementSchema.optional(),
+  who: ReferenceSchema,
+  onBehalfOf: ReferenceSchema.optional(),
+  targetFormat: z.string().optional(),
+  _targetFormat: ElementSchema.optional(),
+  sigFormat: z.string().optional(),
+  _sigFormat: ElementSchema.optional(),
+  data: z.string().optional(),
+  _data: ElementSchema.optional(),
+})
+export type Signature = z.infer<typeof SignatureSchema>
+
+/**
+ * Base StructureDefinition for BackboneElement Type: Base definition for all elements that are defined inside a resource - but not those in a data type.
+ */
+export const BackboneElementSchema = ElementSchema.extend({
+  modifierExtension: z.lazy(() => z.array(ExtensionSchema)).optional(),
+})
+export type BackboneElement = z.infer<typeof BackboneElementSchema>
+
+/**
+ * When the event is to occur
+ * A set of rules that describe when the event is scheduled.
+ */
+export const TimingRepeatSchema = BackboneElementSchema.extend({
+  boundsDuration: DurationSchema.optional(),
+  boundsRange: RangeSchema.optional(),
+  boundsPeriod: PeriodSchema.optional(),
+  count: z.number().optional(),
+  _count: ElementSchema.optional(),
+  countMax: z.number().optional(),
+  _countMax: ElementSchema.optional(),
+  duration: z.number().optional(),
+  _duration: ElementSchema.optional(),
+  durationMax: z.number().optional(),
+  _durationMax: ElementSchema.optional(),
+  durationUnit: z.enum(['s', 'min', 'h', 'd', 'wk', 'mo', 'a']).optional(),
+  _durationUnit: ElementSchema.optional(),
+  frequency: z.number().optional(),
+  _frequency: ElementSchema.optional(),
+  frequencyMax: z.number().optional(),
+  _frequencyMax: ElementSchema.optional(),
+  period: z.number().optional(),
+  _period: ElementSchema.optional(),
+  periodMax: z.number().optional(),
+  _periodMax: ElementSchema.optional(),
+  periodUnit: z.enum(['s', 'min', 'h', 'd', 'wk', 'mo', 'a']).optional(),
+  _periodUnit: ElementSchema.optional(),
+  dayOfWeek: z.array(z.enum(['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'])).optional(),
+  _dayOfWeek: ElementSchema.optional(),
+  timeOfDay: z.array(z.string()).optional(),
+  _timeOfDay: ElementSchema.optional(),
+  when: z.array(z.enum(['MORN', 'MORN.early', 'MORN.late', 'NOON', 'AFT', 'AFT.early', 'AFT.late', 'EVE', 'EVE.early', 'EVE.late', 'NIGHT', 'PHS', 'HS', 'WAKE', 'C', 'CM', 'CD', 'CV', 'AC', 'ACM', 'ACD', 'ACV', 'PC', 'PCM', 'PCD', 'PCV'])).optional(),
+  _when: ElementSchema.optional(),
+  offset: z.number().optional(),
+  _offset: ElementSchema.optional(),
+})
+export type TimingRepeat = z.infer<typeof TimingRepeatSchema>
+
+/**
+ * Base StructureDefinition for Timing Type: Specifies an event that may occur multiple times. Timing schedules are used to record when things are planned, expected or requested to occur. The most common usage is in dosage instructions for medications. They are also used when planning care of various kinds, and may be used for reporting the schedule to which past regular activities were carried out.
+ */
+export const TimingSchema = BackboneElementSchema.extend({
+  event: z.array(z.string()).optional(),
+  _event: ElementSchema.optional(),
+  repeat: TimingRepeatSchema.optional(),
+  code: CodeableConceptSchema.optional(),
+})
+export type Timing = z.infer<typeof TimingSchema>
+
+/**
+ * Base StructureDefinition for ContactDetail Type: Specifies contact information for a person or organization.
+ */
+export const ContactDetailSchema = ElementSchema.extend({
+  name: z.string().optional(),
+  _name: ElementSchema.optional(),
+  telecom: z.array(ContactPointSchema).optional(),
+})
+export type ContactDetail = z.infer<typeof ContactDetailSchema>
+
+/**
+ * Base StructureDefinition for Contributor Type: A contributor to the content of a knowledge asset, including authors, editors, reviewers, and endorsers.
+ */
+export const ContributorSchema = ElementSchema.extend({
+  type: z.enum(['author', 'editor', 'reviewer', 'endorser']),
+  _type: ElementSchema.optional(),
+  name: z.string(),
+  _name: ElementSchema.optional(),
+  contact: z.array(ContactDetailSchema).optional(),
+})
+export type Contributor = z.infer<typeof ContributorSchema>
+
+/**
+ * What codes are expected
+ * Code filters specify additional constraints on the data, specifying the value set of interest for a particular element of the data. Each code filter defines an additional constraint on the data, i.e. code filters are AND'ed, not OR'ed.
+ */
+export const DataRequirementCodeFilterSchema = BackboneElementSchema.extend({
+  path: z.string().optional(),
+  _path: ElementSchema.optional(),
+  searchParam: z.string().optional(),
+  _searchParam: ElementSchema.optional(),
+  valueSet: z.string().optional(),
+  _valueSet: ElementSchema.optional(),
+  code: z.array(CodingSchema).optional(),
+})
+export type DataRequirementCodeFilter = z.infer<typeof DataRequirementCodeFilterSchema>
+
+/**
+ * What dates/date ranges are expected
+ * Date filters specify additional constraints on the data in terms of the applicable date range for specific elements. Each date filter specifies an additional constraint on the data, i.e. date filters are AND'ed, not OR'ed.
+ */
+export const DataRequirementDateFilterSchema = BackboneElementSchema.extend({
+  path: z.string().optional(),
+  _path: ElementSchema.optional(),
+  searchParam: z.string().optional(),
+  _searchParam: ElementSchema.optional(),
+  valueDateTime: z.string().optional(),
+  _valueDateTime: ElementSchema.optional(),
+  valuePeriod: PeriodSchema.optional(),
+  valueDuration: DurationSchema.optional(),
+})
+export type DataRequirementDateFilter = z.infer<typeof DataRequirementDateFilterSchema>
+
+/**
+ * Order of the results
+ * Specifies the order of the results to be returned.
+ * This element can be used in combination with the sort element to specify quota requirements such as "the most recent 5" or "the highest 5". When multiple sorts are specified, they are applied in the order they appear in the resource.
+ */
+export const DataRequirementSortSchema = BackboneElementSchema.extend({
+  path: z.string(),
+  _path: ElementSchema.optional(),
+  direction: z.enum(['ascending', 'descending']),
+  _direction: ElementSchema.optional(),
+})
+export type DataRequirementSort = z.infer<typeof DataRequirementSortSchema>
+
+/**
+ * Base StructureDefinition for DataRequirement Type: Describes a required data item for evaluation in terms of the type of data, and optional code or date-based filters of the data.
+ */
+export const DataRequirementSchema = ElementSchema.extend({
+  type: z.enum(['Address', 'Age', 'Annotation', 'Attachment', 'BackboneElement', 'CodeableConcept', 'Coding', 'ContactDetail', 'ContactPoint', 'Contributor', 'Count', 'DataRequirement', 'Distance', 'Dosage', 'Duration', 'Element', 'ElementDefinition', 'Expression', 'Extension', 'HumanName', 'Identifier', 'MarketingStatus', 'Meta', 'Money', 'MoneyQuantity', 'Narrative', 'ParameterDefinition', 'Period', 'Population', 'ProdCharacteristic', 'ProductShelfLife', 'Quantity', 'Range', 'Ratio', 'Reference', 'RelatedArtifact', 'SampledData', 'Signature', 'SimpleQuantity', 'SubstanceAmount', 'Timing', 'TriggerDefinition', 'UsageContext', 'base64Binary', 'boolean', 'canonical', 'code', 'date', 'dateTime', 'decimal', 'id', 'instant', 'integer', 'markdown', 'oid', 'positiveInt', 'string', 'time', 'unsignedInt', 'uri', 'url', 'uuid', 'xhtml', 'Account', 'ActivityDefinition', 'AdverseEvent', 'AllergyIntolerance', 'Appointment', 'AppointmentResponse', 'AuditEvent', 'Basic', 'Binary', 'BiologicallyDerivedProduct', 'BodyStructure', 'Bundle', 'CapabilityStatement', 'CarePlan', 'CareTeam', 'CatalogEntry', 'ChargeItem', 'ChargeItemDefinition', 'Claim', 'ClaimResponse', 'ClinicalImpression', 'CodeSystem', 'Communication', 'CommunicationRequest', 'CompartmentDefinition', 'Composition', 'ConceptMap', 'Condition', 'Consent', 'Contract', 'Coverage', 'CoverageEligibilityRequest', 'CoverageEligibilityResponse', 'DetectedIssue', 'Device', 'DeviceDefinition', 'DeviceMetric', 'DeviceRequest', 'DeviceUseStatement', 'DiagnosticReport', 'DocumentManifest', 'DocumentReference', 'DomainResource', 'EffectEvidenceSynthesis', 'Encounter', 'Endpoint', 'EnrollmentRequest', 'EnrollmentResponse', 'EpisodeOfCare', 'EventDefinition', 'Evidence', 'EvidenceVariable', 'ExampleScenario', 'ExplanationOfBenefit', 'FamilyMemberHistory', 'Flag', 'Goal', 'GraphDefinition', 'Group', 'GuidanceResponse', 'HealthcareService', 'ImagingStudy', 'Immunization', 'ImmunizationEvaluation', 'ImmunizationRecommendation', 'ImplementationGuide', 'InsurancePlan', 'Invoice', 'Library', 'Linkage', 'List', 'Location', 'Measure', 'MeasureReport', 'Media', 'Medication', 'MedicationAdministration', 'MedicationDispense', 'MedicationKnowledge', 'MedicationRequest', 'MedicationStatement', 'MedicinalProduct', 'MedicinalProductAuthorization', 'MedicinalProductContraindication', 'MedicinalProductIndication', 'MedicinalProductIngredient', 'MedicinalProductInteraction', 'MedicinalProductManufactured', 'MedicinalProductPackaged', 'MedicinalProductPharmaceutical', 'MedicinalProductUndesirableEffect', 'MessageDefinition', 'MessageHeader', 'MolecularSequence', 'NamingSystem', 'NutritionOrder', 'Observation', 'ObservationDefinition', 'OperationDefinition', 'OperationOutcome', 'Organization', 'OrganizationAffiliation', 'Parameters', 'Patient', 'PaymentNotice', 'PaymentReconciliation', 'Person', 'PlanDefinition', 'Practitioner', 'PractitionerRole', 'Procedure', 'Provenance', 'Questionnaire', 'QuestionnaireResponse', 'RelatedPerson', 'RequestGroup', 'ResearchDefinition', 'ResearchElementDefinition', 'ResearchStudy', 'ResearchSubject', 'Resource', 'RiskAssessment', 'RiskEvidenceSynthesis', 'Schedule', 'SearchParameter', 'ServiceRequest', 'Slot', 'Specimen', 'SpecimenDefinition', 'StructureDefinition', 'StructureMap', 'Subscription', 'Substance', 'SubstanceNucleicAcid', 'SubstancePolymer', 'SubstanceProtein', 'SubstanceReferenceInformation', 'SubstanceSourceMaterial', 'SubstanceSpecification', 'SupplyDelivery', 'SupplyRequest', 'Task', 'TerminologyCapabilities', 'TestReport', 'TestScript', 'ValueSet', 'VerificationResult', 'VisionPrescription', 'Type', 'Any']),
+  _type: ElementSchema.optional(),
+  profile: z.array(z.string()).optional(),
+  _profile: ElementSchema.optional(),
+  subjectCodeableConcept: CodeableConceptSchema.optional(),
+  subjectReference: ReferenceSchema.optional(),
+  mustSupport: z.array(z.string()).optional(),
+  _mustSupport: ElementSchema.optional(),
+  codeFilter: z.array(DataRequirementCodeFilterSchema).optional(),
+  dateFilter: z.array(DataRequirementDateFilterSchema).optional(),
+  limit: z.number().optional(),
+  _limit: ElementSchema.optional(),
+  sort: z.array(DataRequirementSortSchema).optional(),
+})
+export type DataRequirement = z.infer<typeof DataRequirementSchema>
+
+/**
+ * Base StructureDefinition for Expression Type: A expression that is evaluated in a specified context and returns a value. The context of use of the expression must specify the context in which the expression is evaluated, and how the result of the expression is used.
+ */
+export const ExpressionSchema = ElementSchema.extend({
+  description: z.string().optional(),
+  _description: ElementSchema.optional(),
+  name: z.string().optional(),
+  _name: ElementSchema.optional(),
+  language: z.string(),
+  _language: ElementSchema.optional(),
+  expression: z.string().optional(),
+  _expression: ElementSchema.optional(),
+  reference: z.string().optional(),
+  _reference: ElementSchema.optional(),
+})
+export type Expression = z.infer<typeof ExpressionSchema>
+
+/**
+ * Base StructureDefinition for ParameterDefinition Type: The parameters to the module. This collection specifies both the input and output parameters. Input parameters are provided by the caller as part of the $evaluate operation. Output parameters are included in the GuidanceResponse.
+ */
+export const ParameterDefinitionSchema = ElementSchema.extend({
+  name: z.string().optional(),
+  _name: ElementSchema.optional(),
+  use: z.enum(['in', 'out']),
+  _use: ElementSchema.optional(),
+  min: z.number().optional(),
+  _min: ElementSchema.optional(),
+  max: z.string().optional(),
+  _max: ElementSchema.optional(),
+  documentation: z.string().optional(),
+  _documentation: ElementSchema.optional(),
+  type: z.enum(['Address', 'Age', 'Annotation', 'Attachment', 'BackboneElement', 'CodeableConcept', 'Coding', 'ContactDetail', 'ContactPoint', 'Contributor', 'Count', 'DataRequirement', 'Distance', 'Dosage', 'Duration', 'Element', 'ElementDefinition', 'Expression', 'Extension', 'HumanName', 'Identifier', 'MarketingStatus', 'Meta', 'Money', 'MoneyQuantity', 'Narrative', 'ParameterDefinition', 'Period', 'Population', 'ProdCharacteristic', 'ProductShelfLife', 'Quantity', 'Range', 'Ratio', 'Reference', 'RelatedArtifact', 'SampledData', 'Signature', 'SimpleQuantity', 'SubstanceAmount', 'Timing', 'TriggerDefinition', 'UsageContext', 'base64Binary', 'boolean', 'canonical', 'code', 'date', 'dateTime', 'decimal', 'id', 'instant', 'integer', 'markdown', 'oid', 'positiveInt', 'string', 'time', 'unsignedInt', 'uri', 'url', 'uuid', 'xhtml', 'Account', 'ActivityDefinition', 'AdverseEvent', 'AllergyIntolerance', 'Appointment', 'AppointmentResponse', 'AuditEvent', 'Basic', 'Binary', 'BiologicallyDerivedProduct', 'BodyStructure', 'Bundle', 'CapabilityStatement', 'CarePlan', 'CareTeam', 'CatalogEntry', 'ChargeItem', 'ChargeItemDefinition', 'Claim', 'ClaimResponse', 'ClinicalImpression', 'CodeSystem', 'Communication', 'CommunicationRequest', 'CompartmentDefinition', 'Composition', 'ConceptMap', 'Condition', 'Consent', 'Contract', 'Coverage', 'CoverageEligibilityRequest', 'CoverageEligibilityResponse', 'DetectedIssue', 'Device', 'DeviceDefinition', 'DeviceMetric', 'DeviceRequest', 'DeviceUseStatement', 'DiagnosticReport', 'DocumentManifest', 'DocumentReference', 'DomainResource', 'EffectEvidenceSynthesis', 'Encounter', 'Endpoint', 'EnrollmentRequest', 'EnrollmentResponse', 'EpisodeOfCare', 'EventDefinition', 'Evidence', 'EvidenceVariable', 'ExampleScenario', 'ExplanationOfBenefit', 'FamilyMemberHistory', 'Flag', 'Goal', 'GraphDefinition', 'Group', 'GuidanceResponse', 'HealthcareService', 'ImagingStudy', 'Immunization', 'ImmunizationEvaluation', 'ImmunizationRecommendation', 'ImplementationGuide', 'InsurancePlan', 'Invoice', 'Library', 'Linkage', 'List', 'Location', 'Measure', 'MeasureReport', 'Media', 'Medication', 'MedicationAdministration', 'MedicationDispense', 'MedicationKnowledge', 'MedicationRequest', 'MedicationStatement', 'MedicinalProduct', 'MedicinalProductAuthorization', 'MedicinalProductContraindication', 'MedicinalProductIndication', 'MedicinalProductIngredient', 'MedicinalProductInteraction', 'MedicinalProductManufactured', 'MedicinalProductPackaged', 'MedicinalProductPharmaceutical', 'MedicinalProductUndesirableEffect', 'MessageDefinition', 'MessageHeader', 'MolecularSequence', 'NamingSystem', 'NutritionOrder', 'Observation', 'ObservationDefinition', 'OperationDefinition', 'OperationOutcome', 'Organization', 'OrganizationAffiliation', 'Parameters', 'Patient', 'PaymentNotice', 'PaymentReconciliation', 'Person', 'PlanDefinition', 'Practitioner', 'PractitionerRole', 'Procedure', 'Provenance', 'Questionnaire', 'QuestionnaireResponse', 'RelatedPerson', 'RequestGroup', 'ResearchDefinition', 'ResearchElementDefinition', 'ResearchStudy', 'ResearchSubject', 'Resource', 'RiskAssessment', 'RiskEvidenceSynthesis', 'Schedule', 'SearchParameter', 'ServiceRequest', 'Slot', 'Specimen', 'SpecimenDefinition', 'StructureDefinition', 'StructureMap', 'Subscription', 'Substance', 'SubstanceNucleicAcid', 'SubstancePolymer', 'SubstanceProtein', 'SubstanceReferenceInformation', 'SubstanceSourceMaterial', 'SubstanceSpecification', 'SupplyDelivery', 'SupplyRequest', 'Task', 'TerminologyCapabilities', 'TestReport', 'TestScript', 'ValueSet', 'VerificationResult', 'VisionPrescription', 'Type', 'Any']),
+  _type: ElementSchema.optional(),
+  profile: z.string().optional(),
+  _profile: ElementSchema.optional(),
+})
+export type ParameterDefinition = z.infer<typeof ParameterDefinitionSchema>
+
+/**
+ * Base StructureDefinition for RelatedArtifact Type: Related artifacts such as additional documentation, justification, or bibliographic references.
+ */
+export const RelatedArtifactSchema = ElementSchema.extend({
+  type: z.enum(['documentation', 'justification', 'citation', 'predecessor', 'successor', 'derived-from', 'depends-on', 'composed-of']),
+  _type: ElementSchema.optional(),
+  label: z.string().optional(),
+  _label: ElementSchema.optional(),
+  display: z.string().optional(),
+  _display: ElementSchema.optional(),
+  citation: z.string().optional(),
+  _citation: ElementSchema.optional(),
+  url: z.string().optional(),
+  _url: ElementSchema.optional(),
+  document: AttachmentSchema.optional(),
+  resource: z.string().optional(),
+  _resource: ElementSchema.optional(),
+})
+export type RelatedArtifact = z.infer<typeof RelatedArtifactSchema>
+
+/**
+ * Base StructureDefinition for TriggerDefinition Type: A description of a triggering event. Triggering events can be named events, data events, or periodic, as determined by the type element.
+ */
+export const TriggerDefinitionSchema = ElementSchema.extend({
+  type: z.enum(['named-event', 'periodic', 'data-changed', 'data-added', 'data-modified', 'data-removed', 'data-accessed', 'data-access-ended']),
+  _type: ElementSchema.optional(),
+  name: z.string().optional(),
+  _name: ElementSchema.optional(),
+  timingTiming: TimingSchema.optional(),
+  timingReference: ReferenceSchema.optional(),
+  timingDate: z.string().optional(),
+  _timingDate: ElementSchema.optional(),
+  timingDateTime: z.string().optional(),
+  _timingDateTime: ElementSchema.optional(),
+  data: z.array(DataRequirementSchema).optional(),
+  condition: ExpressionSchema.optional(),
+})
+export type TriggerDefinition = z.infer<typeof TriggerDefinitionSchema>
+
+/**
+ * Base StructureDefinition for UsageContext Type: Specifies clinical/business/etc. metadata that can be used to retrieve, index and/or categorize an artifact. This metadata can either be specific to the applicable population (e.g., age category, DRG) or the specific context of care (e.g., venue, care setting, provider of care).
+ */
+export const UsageContextSchema = ElementSchema.extend({
+  code: CodingSchema,
+  valueCodeableConcept: CodeableConceptSchema.optional(),
+  valueQuantity: QuantitySchema.optional(),
+  valueRange: RangeSchema.optional(),
+  valueReference: ReferenceSchema.optional(),
+})
+export type UsageContext = z.infer<typeof UsageContextSchema>
+
+/**
+ * Amount of medication administered
+ * The amount of medication administered.
+ */
+export const DosageDoseAndRateSchema = BackboneElementSchema.extend({
+  type: CodeableConceptSchema.optional(),
+  doseRange: RangeSchema.optional(),
+  doseQuantity: QuantitySchema.optional(),
+  rateRatio: RatioSchema.optional(),
+  rateRange: RangeSchema.optional(),
+  rateQuantity: QuantitySchema.optional(),
+})
+export type DosageDoseAndRate = z.infer<typeof DosageDoseAndRateSchema>
+
+/**
+ * Base StructureDefinition for Dosage Type: Indicates how the medication is/was taken or should be taken by the patient.
+ */
+export const DosageSchema = BackboneElementSchema.extend({
+  sequence: z.number().optional(),
+  _sequence: ElementSchema.optional(),
+  text: z.string().optional(),
+  _text: ElementSchema.optional(),
+  additionalInstruction: z.array(CodeableConceptSchema).optional(),
+  patientInstruction: z.string().optional(),
+  _patientInstruction: ElementSchema.optional(),
+  timing: TimingSchema.optional(),
+  asNeededBoolean: z.boolean().optional(),
+  _asNeededBoolean: ElementSchema.optional(),
+  asNeededCodeableConcept: CodeableConceptSchema.optional(),
+  site: CodeableConceptSchema.optional(),
+  route: CodeableConceptSchema.optional(),
+  method: CodeableConceptSchema.optional(),
+  doseAndRate: z.array(DosageDoseAndRateSchema).optional(),
+  maxDosePerPeriod: RatioSchema.optional(),
+  maxDosePerAdministration: QuantitySchema.optional(),
+  maxDosePerLifetime: QuantitySchema.optional(),
+})
+export type Dosage = z.infer<typeof DosageSchema>
+
+/**
+ * Base StructureDefinition for Extension Type: Optional Extension Element - found in all resources.
+ */
+export const ExtensionSchema = ElementSchema.extend({
+  url: z.string(),
+  _url: ElementSchema.optional(),
+  valueBase64Binary: z.string().optional(),
+  _valueBase64Binary: ElementSchema.optional(),
+  valueBoolean: z.boolean().optional(),
+  _valueBoolean: ElementSchema.optional(),
+  valueCanonical: z.string().optional(),
+  _valueCanonical: ElementSchema.optional(),
+  valueCode: z.string().optional(),
+  _valueCode: ElementSchema.optional(),
+  valueDate: z.string().optional(),
+  _valueDate: ElementSchema.optional(),
+  valueDateTime: z.string().optional(),
+  _valueDateTime: ElementSchema.optional(),
+  valueDecimal: z.number().optional(),
+  _valueDecimal: ElementSchema.optional(),
+  valueId: z.string().optional(),
+  _valueId: ElementSchema.optional(),
+  valueInstant: z.string().optional(),
+  _valueInstant: ElementSchema.optional(),
+  valueInteger: z.number().optional(),
+  _valueInteger: ElementSchema.optional(),
+  valueMarkdown: z.string().optional(),
+  _valueMarkdown: ElementSchema.optional(),
+  valueOid: z.string().optional(),
+  _valueOid: ElementSchema.optional(),
+  valuePositiveInt: z.number().optional(),
+  _valuePositiveInt: ElementSchema.optional(),
+  valueString: z.string().optional(),
+  _valueString: ElementSchema.optional(),
+  valueTime: z.string().optional(),
+  _valueTime: ElementSchema.optional(),
+  valueUnsignedInt: z.number().optional(),
+  _valueUnsignedInt: ElementSchema.optional(),
+  valueUri: z.string().optional(),
+  _valueUri: ElementSchema.optional(),
+  valueUrl: z.string().optional(),
+  _valueUrl: ElementSchema.optional(),
+  valueUuid: z.string().optional(),
+  _valueUuid: ElementSchema.optional(),
+  valueAddress: AddressSchema.optional(),
+  valueAge: AgeSchema.optional(),
+  valueAnnotation: AnnotationSchema.optional(),
+  valueAttachment: AttachmentSchema.optional(),
+  valueCodeableConcept: CodeableConceptSchema.optional(),
+  valueCoding: CodingSchema.optional(),
+  valueContactPoint: ContactPointSchema.optional(),
+  valueCount: CountSchema.optional(),
+  valueDistance: DistanceSchema.optional(),
+  valueDuration: DurationSchema.optional(),
+  valueHumanName: HumanNameSchema.optional(),
+  valueIdentifier: IdentifierSchema.optional(),
+  valueMoney: MoneySchema.optional(),
+  valuePeriod: PeriodSchema.optional(),
+  valueQuantity: QuantitySchema.optional(),
+  valueRange: RangeSchema.optional(),
+  valueRatio: RatioSchema.optional(),
+  valueReference: ReferenceSchema.optional(),
+  valueSampledData: SampledDataSchema.optional(),
+  valueSignature: SignatureSchema.optional(),
+  valueTiming: TimingSchema.optional(),
+  valueContactDetail: ContactDetailSchema.optional(),
+  valueContributor: ContributorSchema.optional(),
+  valueDataRequirement: DataRequirementSchema.optional(),
+  valueExpression: ExpressionSchema.optional(),
+  valueParameterDefinition: ParameterDefinitionSchema.optional(),
+  valueRelatedArtifact: RelatedArtifactSchema.optional(),
+  valueTriggerDefinition: TriggerDefinitionSchema.optional(),
+  valueUsageContext: UsageContextSchema.optional(),
+  valueDosage: DosageSchema.optional(),
+  valueMeta: MetaSchema.optional(),
+})
+export type Extension = z.infer<typeof ExtensionSchema>
+
+/**
+ * A resource that includes narrative, extensions, and contained resources.
+ */
+export const DomainResourceSchema = ResourceSchema.extend({
+  text: NarrativeSchema.optional(),
+  contained: z.array(ResourceSchema).optional(),
+  extension: z.array(ExtensionSchema).optional(),
+  modifierExtension: z.array(ExtensionSchema).optional(),
+})
+export type DomainResource = z.infer<typeof DomainResourceSchema>
 
 /**
  * Moiety, for structural modifications
@@ -129,7 +736,7 @@ export interface SubstanceSpecificationStructureIsotopeMolecularWeight extends B
 }
 
 export const SubstanceSpecificationStructureIsotopeMolecularWeightSchema: z.ZodType<SubstanceSpecificationStructureIsotopeMolecularWeight> = z.lazy(() =>
-  z.object({
+  BackboneElementSchema.extend({
     method: CodeableConceptSchema.optional(),
     type: CodeableConceptSchema.optional(),
     amount: QuantitySchema.optional(),
@@ -147,29 +754,6 @@ export const SubstanceSpecificationStructureIsotopeSchema = BackboneElementSchem
   molecularWeight: SubstanceSpecificationStructureIsotopeMolecularWeightSchema.optional(),
 })
 export type SubstanceSpecificationStructureIsotope = z.infer<typeof SubstanceSpecificationStructureIsotopeSchema>
-
-/**
- * Base StructureDefinition for Attachment Type: For referring to data content defined in other formats.
- */
-export const AttachmentSchema = ElementSchema.extend({
-  contentType: z.string().optional(),
-  _contentType: ElementSchema.optional(),
-  language: z.string().optional(),
-  _language: ElementSchema.optional(),
-  data: z.string().optional(),
-  _data: ElementSchema.optional(),
-  url: z.string().optional(),
-  _url: ElementSchema.optional(),
-  size: z.number().optional(),
-  _size: ElementSchema.optional(),
-  hash: z.string().optional(),
-  _hash: ElementSchema.optional(),
-  title: z.string().optional(),
-  _title: ElementSchema.optional(),
-  creation: z.string().optional(),
-  _creation: ElementSchema.optional(),
-})
-export type Attachment = z.infer<typeof AttachmentSchema>
 
 /**
  * Molecular structural representation
@@ -244,40 +828,22 @@ export interface SubstanceSpecificationName extends BackboneElement {
 }
 
 export const SubstanceSpecificationNameSchema: z.ZodType<SubstanceSpecificationName> = z.lazy(() =>
-  z.object({
+  BackboneElementSchema.extend({
     name: z.string(),
-    _name: ElementSchema.optional(),
+      _name: ElementSchema.optional(),
     type: CodeableConceptSchema.optional(),
     status: CodeableConceptSchema.optional(),
     preferred: z.boolean().optional(),
-    _preferred: ElementSchema.optional(),
+      _preferred: ElementSchema.optional(),
     language: z.array(CodeableConceptSchema).optional(),
     domain: z.array(CodeableConceptSchema).optional(),
     jurisdiction: z.array(CodeableConceptSchema).optional(),
-    synonym: z.array(z.lazy(() => SubstanceSpecificationNameSchema)).optional(),
-    translation: z.array(z.lazy(() => SubstanceSpecificationNameSchema)).optional(),
+    synonym: z.lazy(() => z.array(SubstanceSpecificationNameSchema)).optional(),
+    translation: z.lazy(() => z.array(SubstanceSpecificationNameSchema)).optional(),
     official: z.array(SubstanceSpecificationNameOfficialSchema).optional(),
     source: z.array(ReferenceSchema).optional(),
   })
 )
-
-/**
- * Base StructureDefinition for Range Type: A set of ordered Quantities defined by a low and high limit.
- */
-export const RangeSchema = ElementSchema.extend({
-  low: QuantitySchema.optional(),
-  high: QuantitySchema.optional(),
-})
-export type Range = z.infer<typeof RangeSchema>
-
-/**
- * Base StructureDefinition for Ratio Type: A relationship of two Quantity values - expressed as a numerator and a denominator.
- */
-export const RatioSchema = ElementSchema.extend({
-  numerator: QuantitySchema.optional(),
-  denominator: QuantitySchema.optional(),
-})
-export type Ratio = z.infer<typeof RatioSchema>
 
 /**
  * A link between this substance and another, with details of the relationship
@@ -319,7 +885,7 @@ export const SubstanceSpecificationSchema = DomainResourceSchema.extend({
   structure: SubstanceSpecificationStructureSchema.optional(),
   code: z.array(SubstanceSpecificationCodeSchema).optional(),
   name: z.array(SubstanceSpecificationNameSchema).optional(),
-  molecularWeight: z.array(z.lazy(() => SubstanceSpecificationStructureIsotopeMolecularWeightSchema)).optional(),
+  molecularWeight: z.lazy(() => z.array(SubstanceSpecificationStructureIsotopeMolecularWeightSchema)).optional(),
   relationship: z.array(SubstanceSpecificationRelationshipSchema).optional(),
   nucleicAcid: ReferenceSchema.optional(),
   polymer: ReferenceSchema.optional(),
@@ -329,6 +895,15 @@ export const SubstanceSpecificationSchema = DomainResourceSchema.extend({
 export type SubstanceSpecification = z.infer<typeof SubstanceSpecificationSchema>
 
 /**
+ * Base StructureDefinition for uri Type: String of characters used to identify a name or a resource
+ */
+export const uriSchema = ElementSchema.extend({
+  value: z.string().optional(),
+  _value: ElementSchema.optional(),
+})
+export type uri = z.infer<typeof uriSchema>
+
+/**
  * Base StructureDefinition for oid type: An OID represented as a URI
  */
 export const oidSchema = uriSchema.extend({
@@ -336,77 +911,6 @@ export const oidSchema = uriSchema.extend({
   _value: ElementSchema.optional(),
 })
 export type oid = z.infer<typeof oidSchema>
-
-/**
- * Base StructureDefinition for Duration Type: A length of time.
- */
-export const DurationSchema = QuantitySchema.extend({
-})
-export type Duration = z.infer<typeof DurationSchema>
-
-/**
- * When the event is to occur
- * A set of rules that describe when the event is scheduled.
- */
-export const TimingRepeatSchema = BackboneElementSchema.extend({
-  boundsDuration: DurationSchema.optional(),
-  boundsRange: RangeSchema.optional(),
-  boundsPeriod: PeriodSchema.optional(),
-  count: z.number().optional(),
-  _count: ElementSchema.optional(),
-  countMax: z.number().optional(),
-  _countMax: ElementSchema.optional(),
-  duration: z.number().optional(),
-  _duration: ElementSchema.optional(),
-  durationMax: z.number().optional(),
-  _durationMax: ElementSchema.optional(),
-  durationUnit: z.enum(['s', 'min', 'h', 'd', 'wk', 'mo', 'a']).optional(),
-  _durationUnit: ElementSchema.optional(),
-  frequency: z.number().optional(),
-  _frequency: ElementSchema.optional(),
-  frequencyMax: z.number().optional(),
-  _frequencyMax: ElementSchema.optional(),
-  period: z.number().optional(),
-  _period: ElementSchema.optional(),
-  periodMax: z.number().optional(),
-  _periodMax: ElementSchema.optional(),
-  periodUnit: z.enum(['s', 'min', 'h', 'd', 'wk', 'mo', 'a']).optional(),
-  _periodUnit: ElementSchema.optional(),
-  dayOfWeek: z.array(z.enum(['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'])).optional(),
-  _dayOfWeek: ElementSchema.optional(),
-  timeOfDay: z.array(z.string()).optional(),
-  _timeOfDay: ElementSchema.optional(),
-  when: z.array(z.enum(['MORN', 'MORN.early', 'MORN.late', 'NOON', 'AFT', 'AFT.early', 'AFT.late', 'EVE', 'EVE.early', 'EVE.late', 'NIGHT', 'PHS', 'HS', 'WAKE', 'C', 'CM', 'CD', 'CV', 'AC', 'ACM', 'ACD', 'ACV', 'PC', 'PCM', 'PCD', 'PCV'])).optional(),
-  _when: ElementSchema.optional(),
-  offset: z.number().optional(),
-  _offset: ElementSchema.optional(),
-})
-export type TimingRepeat = z.infer<typeof TimingRepeatSchema>
-
-/**
- * Base StructureDefinition for Timing Type: Specifies an event that may occur multiple times. Timing schedules are used to record when things are planned, expected or requested to occur. The most common usage is in dosage instructions for medications. They are also used when planning care of various kinds, and may be used for reporting the schedule to which past regular activities were carried out.
- */
-export const TimingSchema = BackboneElementSchema.extend({
-  event: z.array(z.string()).optional(),
-  _event: ElementSchema.optional(),
-  repeat: TimingRepeatSchema.optional(),
-  code: CodeableConceptSchema.optional(),
-})
-export type Timing = z.infer<typeof TimingSchema>
-
-/**
- * Base StructureDefinition for Annotation Type: A  text note which also  contains information about who made the statement and when.
- */
-export const AnnotationSchema = ElementSchema.extend({
-  authorReference: ReferenceSchema.optional(),
-  authorString: z.string().optional(),
-  _authorString: ElementSchema.optional(),
-  time: z.string().optional(),
-  _time: ElementSchema.optional(),
-  text: z.string(),
-  _text: ElementSchema.optional(),
-})
-export type Annotation = z.infer<typeof AnnotationSchema>
 
 /**
  * A record of a device being used by a patient where the record is the result of a report from the patient or another clinician.
@@ -453,44 +957,6 @@ export const BodyStructureSchema = DomainResourceSchema.extend({
 export type BodyStructure = z.infer<typeof BodyStructureSchema>
 
 /**
- * Base StructureDefinition for ContactPoint Type: Details for all kinds of technology mediated contact points for a person or organization, including telephone, email, etc.
- */
-export const ContactPointSchema = ElementSchema.extend({
-  system: z.enum(['phone', 'fax', 'email', 'pager', 'url', 'sms', 'other']).optional(),
-  _system: ElementSchema.optional(),
-  value: z.string().optional(),
-  _value: ElementSchema.optional(),
-  use: z.enum(['home', 'work', 'temp', 'old', 'mobile']).optional(),
-  _use: ElementSchema.optional(),
-  rank: z.number().optional(),
-  _rank: ElementSchema.optional(),
-  period: PeriodSchema.optional(),
-})
-export type ContactPoint = z.infer<typeof ContactPointSchema>
-
-/**
- * Base StructureDefinition for ContactDetail Type: Specifies contact information for a person or organization.
- */
-export const ContactDetailSchema = ElementSchema.extend({
-  name: z.string().optional(),
-  _name: ElementSchema.optional(),
-  telecom: z.array(ContactPointSchema).optional(),
-})
-export type ContactDetail = z.infer<typeof ContactDetailSchema>
-
-/**
- * Base StructureDefinition for UsageContext Type: Specifies clinical/business/etc. metadata that can be used to retrieve, index and/or categorize an artifact. This metadata can either be specific to the applicable population (e.g., age category, DRG) or the specific context of care (e.g., venue, care setting, provider of care).
- */
-export const UsageContextSchema = ElementSchema.extend({
-  code: CodingSchema,
-  valueCodeableConcept: CodeableConceptSchema.optional(),
-  valueQuantity: QuantitySchema.optional(),
-  valueRange: RangeSchema.optional(),
-  valueReference: ReferenceSchema.optional(),
-})
-export type UsageContext = z.infer<typeof UsageContextSchema>
-
-/**
  * Actor participating in the resource
  */
 export const ExampleScenarioActorSchema = BackboneElementSchema.extend({
@@ -528,11 +994,11 @@ export interface ExampleScenarioInstanceContainedInstance extends BackboneElemen
 }
 
 export const ExampleScenarioInstanceContainedInstanceSchema: z.ZodType<ExampleScenarioInstanceContainedInstance> = z.lazy(() =>
-  z.object({
+  BackboneElementSchema.extend({
     resourceId: z.string(),
-    _resourceId: ElementSchema.optional(),
+      _resourceId: ElementSchema.optional(),
     versionId: z.string().optional(),
-    _versionId: ElementSchema.optional(),
+      _versionId: ElementSchema.optional(),
   })
 )
 
@@ -587,7 +1053,7 @@ export const ExampleScenarioProcessStepAlternativeSchema = BackboneElementSchema
   _title: ElementSchema.optional(),
   description: z.string().optional(),
   _description: ElementSchema.optional(),
-  step: z.array(z.lazy(() => ExampleScenarioProcessStepSchema)).optional(),
+  step: z.lazy(() => z.array(ExampleScenarioProcessStepSchema)).optional(),
 })
 export type ExampleScenarioProcessStepAlternative = z.infer<typeof ExampleScenarioProcessStepAlternativeSchema>
 
@@ -603,10 +1069,10 @@ export interface ExampleScenarioProcessStep extends BackboneElement {
 }
 
 export const ExampleScenarioProcessStepSchema: z.ZodType<ExampleScenarioProcessStep> = z.lazy(() =>
-  z.object({
-    process: z.array(z.lazy(() => ExampleScenarioProcessSchema)).optional(),
+  BackboneElementSchema.extend({
+    process: z.lazy(() => z.array(ExampleScenarioProcessSchema)).optional(),
     pause: z.boolean().optional(),
-    _pause: ElementSchema.optional(),
+      _pause: ElementSchema.optional(),
     operation: ExampleScenarioProcessStepOperationSchema.optional(),
     alternative: z.array(ExampleScenarioProcessStepAlternativeSchema).optional(),
   })
@@ -628,15 +1094,15 @@ export interface ExampleScenarioProcess extends BackboneElement {
 }
 
 export const ExampleScenarioProcessSchema: z.ZodType<ExampleScenarioProcess> = z.lazy(() =>
-  z.object({
+  BackboneElementSchema.extend({
     title: z.string(),
-    _title: ElementSchema.optional(),
+      _title: ElementSchema.optional(),
     description: z.string().optional(),
-    _description: ElementSchema.optional(),
+      _description: ElementSchema.optional(),
     preConditions: z.string().optional(),
-    _preConditions: ElementSchema.optional(),
+      _preConditions: ElementSchema.optional(),
     postConditions: z.string().optional(),
-    _postConditions: ElementSchema.optional(),
+      _postConditions: ElementSchema.optional(),
     step: z.array(ExampleScenarioProcessStepSchema).optional(),
   })
 )
@@ -729,33 +1195,6 @@ export const AppointmentSchema = DomainResourceSchema.extend({
   requestedPeriod: z.array(PeriodSchema).optional(),
 })
 export type Appointment = z.infer<typeof AppointmentSchema>
-
-/**
- * Base StructureDefinition for RelatedArtifact Type: Related artifacts such as additional documentation, justification, or bibliographic references.
- */
-export const RelatedArtifactSchema = ElementSchema.extend({
-  type: z.enum(['documentation', 'justification', 'citation', 'predecessor', 'successor', 'derived-from', 'depends-on', 'composed-of']),
-  _type: ElementSchema.optional(),
-  label: z.string().optional(),
-  _label: ElementSchema.optional(),
-  display: z.string().optional(),
-  _display: ElementSchema.optional(),
-  citation: z.string().optional(),
-  _citation: ElementSchema.optional(),
-  url: z.string().optional(),
-  _url: ElementSchema.optional(),
-  document: AttachmentSchema.optional(),
-  resource: z.string().optional(),
-  _resource: ElementSchema.optional(),
-})
-export type RelatedArtifact = z.infer<typeof RelatedArtifactSchema>
-
-/**
- * Base StructureDefinition for Age Type: A duration of time during which an organism (or a process) has existed.
- */
-export const AgeSchema = QuantitySchema.extend({
-})
-export type Age = z.infer<typeof AgeSchema>
 
 /**
  * Stage/grade, usually assessed formally
@@ -868,17 +1307,6 @@ export const ChargeItemPerformerSchema = BackboneElementSchema.extend({
 export type ChargeItemPerformer = z.infer<typeof ChargeItemPerformerSchema>
 
 /**
- * Base StructureDefinition for Money Type: An amount of economic utility in some recognized currency.
- */
-export const MoneySchema = ElementSchema.extend({
-  value: z.number().optional(),
-  _value: ElementSchema.optional(),
-  currency: z.string().optional(),
-  _currency: ElementSchema.optional(),
-})
-export type Money = z.infer<typeof MoneySchema>
-
-/**
  * The resource ChargeItem describes the provision of healthcare provider products for a certain patient, therefore referring not only to the product, but containing in addition details of the provision, like date, time, amounts and participating organizations and persons. Main Usage of the ChargeItem is to enable the billing process and internal cost allocation.
  */
 export const ChargeItemSchema = DomainResourceSchema.extend({
@@ -923,13 +1351,6 @@ export const ChargeItemSchema = DomainResourceSchema.extend({
 export type ChargeItem = z.infer<typeof ChargeItemSchema>
 
 /**
- * Base StructureDefinition for Count Type: A measured amount (or an amount that can potentially be measured). Note that measured amounts include amounts that are not precisely quantified, including amounts involving arbitrary units and floating currencies.
- */
-export const CountSchema = QuantitySchema.extend({
-})
-export type Count = z.infer<typeof CountSchema>
-
-/**
  * Information about the primary source(s) involved in validation
  */
 export const VerificationResultPrimarySourceSchema = BackboneElementSchema.extend({
@@ -943,24 +1364,6 @@ export const VerificationResultPrimarySourceSchema = BackboneElementSchema.exten
   pushTypeAvailable: z.array(CodeableConceptSchema).optional(),
 })
 export type VerificationResultPrimarySource = z.infer<typeof VerificationResultPrimarySourceSchema>
-
-/**
- * Base StructureDefinition for Signature Type: A signature along with supporting context. The signature may be a digital signature that is cryptographic in nature, or some other signature acceptable to the domain. This other signature may be as simple as a graphical image representing a hand-written signature, or a signature ceremony Different signature approaches have different utilities.
- */
-export const SignatureSchema = ElementSchema.extend({
-  type: z.array(CodingSchema),
-  when: z.string(),
-  _when: ElementSchema.optional(),
-  who: ReferenceSchema,
-  onBehalfOf: ReferenceSchema.optional(),
-  targetFormat: z.string().optional(),
-  _targetFormat: ElementSchema.optional(),
-  sigFormat: z.string().optional(),
-  _sigFormat: ElementSchema.optional(),
-  data: z.string().optional(),
-  _data: ElementSchema.optional(),
-})
-export type Signature = z.infer<typeof SignatureSchema>
 
 /**
  * Information about the entity attesting to information
@@ -1044,15 +1447,6 @@ export const MedicinalProductUndesirableEffectSchema = DomainResourceSchema.exte
 export type MedicinalProductUndesirableEffect = z.infer<typeof MedicinalProductUndesirableEffectSchema>
 
 /**
- * Base StructureDefinition for uri Type: String of characters used to identify a name or a resource
- */
-export const uriSchema = ElementSchema.extend({
-  value: z.string().optional(),
-  _value: ElementSchema.optional(),
-})
-export type uri = z.infer<typeof uriSchema>
-
-/**
  * A photo, video, or audio recording acquired or used in healthcare. The actual content may be inline or provided by direct reference.
  */
 export const MediaSchema = DomainResourceSchema.extend({
@@ -1090,6 +1484,15 @@ export const MediaSchema = DomainResourceSchema.extend({
   note: z.array(AnnotationSchema).optional(),
 })
 export type Media = z.infer<typeof MediaSchema>
+
+/**
+ * Base StructureDefinition for string Type: A sequence of Unicode characters
+ */
+export const stringSchema = ElementSchema.extend({
+  value: z.string().optional(),
+  _value: ElementSchema.optional(),
+})
+export type string = z.infer<typeof stringSchema>
 
 /**
  * Base StructureDefinition for id type: Any combination of letters, numerals, "-" and ".", with a length limit of 64 characters.  (This might be an integer, an unprefixed OID, UUID or any other identifier pattern that meets these constraints.)  Ids are case-insensitive.
@@ -1174,17 +1577,6 @@ export const CompositionEventSchema = BackboneElementSchema.extend({
 export type CompositionEvent = z.infer<typeof CompositionEventSchema>
 
 /**
- * Base StructureDefinition for Narrative Type: A human-readable summary of the resource conveying the essential clinical and business information for the resource.
- */
-export const NarrativeSchema = ElementSchema.extend({
-  status: z.enum(['generated', 'extensions', 'additional', 'empty']),
-  _status: ElementSchema.optional(),
-  div: z.string(),
-  _div: ElementSchema.optional(),
-})
-export type Narrative = z.infer<typeof NarrativeSchema>
-
-/**
  * Composition is broken into sections
  * The root of the sections that make up the composition.
  */
@@ -1204,19 +1596,19 @@ export interface CompositionSection extends BackboneElement {
 }
 
 export const CompositionSectionSchema: z.ZodType<CompositionSection> = z.lazy(() =>
-  z.object({
+  BackboneElementSchema.extend({
     title: z.string().optional(),
-    _title: ElementSchema.optional(),
+      _title: ElementSchema.optional(),
     code: CodeableConceptSchema.optional(),
     author: z.array(ReferenceSchema).optional(),
     focus: ReferenceSchema.optional(),
     text: NarrativeSchema.optional(),
     mode: z.enum(['working', 'snapshot', 'changes']).optional(),
-    _mode: ElementSchema.optional(),
+      _mode: ElementSchema.optional(),
     orderedBy: CodeableConceptSchema.optional(),
     entry: z.array(ReferenceSchema).optional(),
     emptyReason: CodeableConceptSchema.optional(),
-    section: z.array(z.lazy(() => CompositionSectionSchema)).optional(),
+    section: z.lazy(() => z.array(CompositionSectionSchema)).optional(),
   })
 )
 
@@ -1561,32 +1953,6 @@ export const ClaimInsuranceSchema = BackboneElementSchema.extend({
 export type ClaimInsurance = z.infer<typeof ClaimInsuranceSchema>
 
 /**
- * Base StructureDefinition for Address Type: An address expressed using postal conventions (as opposed to GPS or other location definition formats).  This data type may be used to convey addresses for use in delivering mail as well as for visiting locations which might not be valid for mail delivery.  There are a variety of postal address formats defined around the world.
- */
-export const AddressSchema = ElementSchema.extend({
-  use: z.enum(['home', 'work', 'temp', 'old', 'billing']).optional(),
-  _use: ElementSchema.optional(),
-  type: z.enum(['postal', 'physical', 'both']).optional(),
-  _type: ElementSchema.optional(),
-  text: z.string().optional(),
-  _text: ElementSchema.optional(),
-  line: z.array(z.string()).optional(),
-  _line: ElementSchema.optional(),
-  city: z.string().optional(),
-  _city: ElementSchema.optional(),
-  district: z.string().optional(),
-  _district: ElementSchema.optional(),
-  state: z.string().optional(),
-  _state: ElementSchema.optional(),
-  postalCode: z.string().optional(),
-  _postalCode: ElementSchema.optional(),
-  country: z.string().optional(),
-  _country: ElementSchema.optional(),
-  period: PeriodSchema.optional(),
-})
-export type Address = z.infer<typeof AddressSchema>
-
-/**
  * Details of the event
  * Details of an accident which resulted in injuries which required the products and services listed in the claim.
  */
@@ -1815,242 +2181,6 @@ export const ElementDefinitionTypeSchema = BackboneElementSchema.extend({
   _versioning: ElementSchema.optional(),
 })
 export type ElementDefinitionType = z.infer<typeof ElementDefinitionTypeSchema>
-
-/**
- * Base StructureDefinition for Distance Type: A length - a value with a unit that is a physical distance.
- */
-export const DistanceSchema = QuantitySchema.extend({
-})
-export type Distance = z.infer<typeof DistanceSchema>
-
-/**
- * Base StructureDefinition for HumanName Type: A human's name with the ability to identify parts and usage.
- */
-export const HumanNameSchema = ElementSchema.extend({
-  use: z.enum(['usual', 'official', 'temp', 'nickname', 'anonymous', 'old', 'maiden']).optional(),
-  _use: ElementSchema.optional(),
-  text: z.string().optional(),
-  _text: ElementSchema.optional(),
-  family: z.string().optional(),
-  _family: ElementSchema.optional(),
-  given: z.array(z.string()).optional(),
-  _given: ElementSchema.optional(),
-  prefix: z.array(z.string()).optional(),
-  _prefix: ElementSchema.optional(),
-  suffix: z.array(z.string()).optional(),
-  _suffix: ElementSchema.optional(),
-  period: PeriodSchema.optional(),
-})
-export type HumanName = z.infer<typeof HumanNameSchema>
-
-/**
- * Base StructureDefinition for SampledData Type: A series of measurements taken by a device, with upper and lower limits. There may be more than one dimension in the data.
- */
-export const SampledDataSchema = ElementSchema.extend({
-  origin: QuantitySchema,
-  period: z.number(),
-  _period: ElementSchema.optional(),
-  factor: z.number().optional(),
-  _factor: ElementSchema.optional(),
-  lowerLimit: z.number().optional(),
-  _lowerLimit: ElementSchema.optional(),
-  upperLimit: z.number().optional(),
-  _upperLimit: ElementSchema.optional(),
-  dimensions: z.number(),
-  _dimensions: ElementSchema.optional(),
-  data: z.string().optional(),
-  _data: ElementSchema.optional(),
-})
-export type SampledData = z.infer<typeof SampledDataSchema>
-
-/**
- * Base StructureDefinition for Contributor Type: A contributor to the content of a knowledge asset, including authors, editors, reviewers, and endorsers.
- */
-export const ContributorSchema = ElementSchema.extend({
-  type: z.enum(['author', 'editor', 'reviewer', 'endorser']),
-  _type: ElementSchema.optional(),
-  name: z.string(),
-  _name: ElementSchema.optional(),
-  contact: z.array(ContactDetailSchema).optional(),
-})
-export type Contributor = z.infer<typeof ContributorSchema>
-
-/**
- * What codes are expected
- * Code filters specify additional constraints on the data, specifying the value set of interest for a particular element of the data. Each code filter defines an additional constraint on the data, i.e. code filters are AND'ed, not OR'ed.
- */
-export const DataRequirementCodeFilterSchema = BackboneElementSchema.extend({
-  path: z.string().optional(),
-  _path: ElementSchema.optional(),
-  searchParam: z.string().optional(),
-  _searchParam: ElementSchema.optional(),
-  valueSet: z.string().optional(),
-  _valueSet: ElementSchema.optional(),
-  code: z.array(CodingSchema).optional(),
-})
-export type DataRequirementCodeFilter = z.infer<typeof DataRequirementCodeFilterSchema>
-
-/**
- * What dates/date ranges are expected
- * Date filters specify additional constraints on the data in terms of the applicable date range for specific elements. Each date filter specifies an additional constraint on the data, i.e. date filters are AND'ed, not OR'ed.
- */
-export const DataRequirementDateFilterSchema = BackboneElementSchema.extend({
-  path: z.string().optional(),
-  _path: ElementSchema.optional(),
-  searchParam: z.string().optional(),
-  _searchParam: ElementSchema.optional(),
-  valueDateTime: z.string().optional(),
-  _valueDateTime: ElementSchema.optional(),
-  valuePeriod: PeriodSchema.optional(),
-  valueDuration: DurationSchema.optional(),
-})
-export type DataRequirementDateFilter = z.infer<typeof DataRequirementDateFilterSchema>
-
-/**
- * Order of the results
- * Specifies the order of the results to be returned.
- * This element can be used in combination with the sort element to specify quota requirements such as "the most recent 5" or "the highest 5". When multiple sorts are specified, they are applied in the order they appear in the resource.
- */
-export const DataRequirementSortSchema = BackboneElementSchema.extend({
-  path: z.string(),
-  _path: ElementSchema.optional(),
-  direction: z.enum(['ascending', 'descending']),
-  _direction: ElementSchema.optional(),
-})
-export type DataRequirementSort = z.infer<typeof DataRequirementSortSchema>
-
-/**
- * Base StructureDefinition for DataRequirement Type: Describes a required data item for evaluation in terms of the type of data, and optional code or date-based filters of the data.
- */
-export const DataRequirementSchema = ElementSchema.extend({
-  type: z.enum(['Address', 'Age', 'Annotation', 'Attachment', 'BackboneElement', 'CodeableConcept', 'Coding', 'ContactDetail', 'ContactPoint', 'Contributor', 'Count', 'DataRequirement', 'Distance', 'Dosage', 'Duration', 'Element', 'ElementDefinition', 'Expression', 'Extension', 'HumanName', 'Identifier', 'MarketingStatus', 'Meta', 'Money', 'MoneyQuantity', 'Narrative', 'ParameterDefinition', 'Period', 'Population', 'ProdCharacteristic', 'ProductShelfLife', 'Quantity', 'Range', 'Ratio', 'Reference', 'RelatedArtifact', 'SampledData', 'Signature', 'SimpleQuantity', 'SubstanceAmount', 'Timing', 'TriggerDefinition', 'UsageContext', 'base64Binary', 'boolean', 'canonical', 'code', 'date', 'dateTime', 'decimal', 'id', 'instant', 'integer', 'markdown', 'oid', 'positiveInt', 'string', 'time', 'unsignedInt', 'uri', 'url', 'uuid', 'xhtml', 'Account', 'ActivityDefinition', 'AdverseEvent', 'AllergyIntolerance', 'Appointment', 'AppointmentResponse', 'AuditEvent', 'Basic', 'Binary', 'BiologicallyDerivedProduct', 'BodyStructure', 'Bundle', 'CapabilityStatement', 'CarePlan', 'CareTeam', 'CatalogEntry', 'ChargeItem', 'ChargeItemDefinition', 'Claim', 'ClaimResponse', 'ClinicalImpression', 'CodeSystem', 'Communication', 'CommunicationRequest', 'CompartmentDefinition', 'Composition', 'ConceptMap', 'Condition', 'Consent', 'Contract', 'Coverage', 'CoverageEligibilityRequest', 'CoverageEligibilityResponse', 'DetectedIssue', 'Device', 'DeviceDefinition', 'DeviceMetric', 'DeviceRequest', 'DeviceUseStatement', 'DiagnosticReport', 'DocumentManifest', 'DocumentReference', 'DomainResource', 'EffectEvidenceSynthesis', 'Encounter', 'Endpoint', 'EnrollmentRequest', 'EnrollmentResponse', 'EpisodeOfCare', 'EventDefinition', 'Evidence', 'EvidenceVariable', 'ExampleScenario', 'ExplanationOfBenefit', 'FamilyMemberHistory', 'Flag', 'Goal', 'GraphDefinition', 'Group', 'GuidanceResponse', 'HealthcareService', 'ImagingStudy', 'Immunization', 'ImmunizationEvaluation', 'ImmunizationRecommendation', 'ImplementationGuide', 'InsurancePlan', 'Invoice', 'Library', 'Linkage', 'List', 'Location', 'Measure', 'MeasureReport', 'Media', 'Medication', 'MedicationAdministration', 'MedicationDispense', 'MedicationKnowledge', 'MedicationRequest', 'MedicationStatement', 'MedicinalProduct', 'MedicinalProductAuthorization', 'MedicinalProductContraindication', 'MedicinalProductIndication', 'MedicinalProductIngredient', 'MedicinalProductInteraction', 'MedicinalProductManufactured', 'MedicinalProductPackaged', 'MedicinalProductPharmaceutical', 'MedicinalProductUndesirableEffect', 'MessageDefinition', 'MessageHeader', 'MolecularSequence', 'NamingSystem', 'NutritionOrder', 'Observation', 'ObservationDefinition', 'OperationDefinition', 'OperationOutcome', 'Organization', 'OrganizationAffiliation', 'Parameters', 'Patient', 'PaymentNotice', 'PaymentReconciliation', 'Person', 'PlanDefinition', 'Practitioner', 'PractitionerRole', 'Procedure', 'Provenance', 'Questionnaire', 'QuestionnaireResponse', 'RelatedPerson', 'RequestGroup', 'ResearchDefinition', 'ResearchElementDefinition', 'ResearchStudy', 'ResearchSubject', 'Resource', 'RiskAssessment', 'RiskEvidenceSynthesis', 'Schedule', 'SearchParameter', 'ServiceRequest', 'Slot', 'Specimen', 'SpecimenDefinition', 'StructureDefinition', 'StructureMap', 'Subscription', 'Substance', 'SubstanceNucleicAcid', 'SubstancePolymer', 'SubstanceProtein', 'SubstanceReferenceInformation', 'SubstanceSourceMaterial', 'SubstanceSpecification', 'SupplyDelivery', 'SupplyRequest', 'Task', 'TerminologyCapabilities', 'TestReport', 'TestScript', 'ValueSet', 'VerificationResult', 'VisionPrescription', 'Type', 'Any']),
-  _type: ElementSchema.optional(),
-  profile: z.array(z.string()).optional(),
-  _profile: ElementSchema.optional(),
-  subjectCodeableConcept: CodeableConceptSchema.optional(),
-  subjectReference: ReferenceSchema.optional(),
-  mustSupport: z.array(z.string()).optional(),
-  _mustSupport: ElementSchema.optional(),
-  codeFilter: z.array(DataRequirementCodeFilterSchema).optional(),
-  dateFilter: z.array(DataRequirementDateFilterSchema).optional(),
-  limit: z.number().optional(),
-  _limit: ElementSchema.optional(),
-  sort: z.array(DataRequirementSortSchema).optional(),
-})
-export type DataRequirement = z.infer<typeof DataRequirementSchema>
-
-/**
- * Base StructureDefinition for Expression Type: A expression that is evaluated in a specified context and returns a value. The context of use of the expression must specify the context in which the expression is evaluated, and how the result of the expression is used.
- */
-export const ExpressionSchema = ElementSchema.extend({
-  description: z.string().optional(),
-  _description: ElementSchema.optional(),
-  name: z.string().optional(),
-  _name: ElementSchema.optional(),
-  language: z.string(),
-  _language: ElementSchema.optional(),
-  expression: z.string().optional(),
-  _expression: ElementSchema.optional(),
-  reference: z.string().optional(),
-  _reference: ElementSchema.optional(),
-})
-export type Expression = z.infer<typeof ExpressionSchema>
-
-/**
- * Base StructureDefinition for ParameterDefinition Type: The parameters to the module. This collection specifies both the input and output parameters. Input parameters are provided by the caller as part of the $evaluate operation. Output parameters are included in the GuidanceResponse.
- */
-export const ParameterDefinitionSchema = ElementSchema.extend({
-  name: z.string().optional(),
-  _name: ElementSchema.optional(),
-  use: z.enum(['in', 'out']),
-  _use: ElementSchema.optional(),
-  min: z.number().optional(),
-  _min: ElementSchema.optional(),
-  max: z.string().optional(),
-  _max: ElementSchema.optional(),
-  documentation: z.string().optional(),
-  _documentation: ElementSchema.optional(),
-  type: z.enum(['Address', 'Age', 'Annotation', 'Attachment', 'BackboneElement', 'CodeableConcept', 'Coding', 'ContactDetail', 'ContactPoint', 'Contributor', 'Count', 'DataRequirement', 'Distance', 'Dosage', 'Duration', 'Element', 'ElementDefinition', 'Expression', 'Extension', 'HumanName', 'Identifier', 'MarketingStatus', 'Meta', 'Money', 'MoneyQuantity', 'Narrative', 'ParameterDefinition', 'Period', 'Population', 'ProdCharacteristic', 'ProductShelfLife', 'Quantity', 'Range', 'Ratio', 'Reference', 'RelatedArtifact', 'SampledData', 'Signature', 'SimpleQuantity', 'SubstanceAmount', 'Timing', 'TriggerDefinition', 'UsageContext', 'base64Binary', 'boolean', 'canonical', 'code', 'date', 'dateTime', 'decimal', 'id', 'instant', 'integer', 'markdown', 'oid', 'positiveInt', 'string', 'time', 'unsignedInt', 'uri', 'url', 'uuid', 'xhtml', 'Account', 'ActivityDefinition', 'AdverseEvent', 'AllergyIntolerance', 'Appointment', 'AppointmentResponse', 'AuditEvent', 'Basic', 'Binary', 'BiologicallyDerivedProduct', 'BodyStructure', 'Bundle', 'CapabilityStatement', 'CarePlan', 'CareTeam', 'CatalogEntry', 'ChargeItem', 'ChargeItemDefinition', 'Claim', 'ClaimResponse', 'ClinicalImpression', 'CodeSystem', 'Communication', 'CommunicationRequest', 'CompartmentDefinition', 'Composition', 'ConceptMap', 'Condition', 'Consent', 'Contract', 'Coverage', 'CoverageEligibilityRequest', 'CoverageEligibilityResponse', 'DetectedIssue', 'Device', 'DeviceDefinition', 'DeviceMetric', 'DeviceRequest', 'DeviceUseStatement', 'DiagnosticReport', 'DocumentManifest', 'DocumentReference', 'DomainResource', 'EffectEvidenceSynthesis', 'Encounter', 'Endpoint', 'EnrollmentRequest', 'EnrollmentResponse', 'EpisodeOfCare', 'EventDefinition', 'Evidence', 'EvidenceVariable', 'ExampleScenario', 'ExplanationOfBenefit', 'FamilyMemberHistory', 'Flag', 'Goal', 'GraphDefinition', 'Group', 'GuidanceResponse', 'HealthcareService', 'ImagingStudy', 'Immunization', 'ImmunizationEvaluation', 'ImmunizationRecommendation', 'ImplementationGuide', 'InsurancePlan', 'Invoice', 'Library', 'Linkage', 'List', 'Location', 'Measure', 'MeasureReport', 'Media', 'Medication', 'MedicationAdministration', 'MedicationDispense', 'MedicationKnowledge', 'MedicationRequest', 'MedicationStatement', 'MedicinalProduct', 'MedicinalProductAuthorization', 'MedicinalProductContraindication', 'MedicinalProductIndication', 'MedicinalProductIngredient', 'MedicinalProductInteraction', 'MedicinalProductManufactured', 'MedicinalProductPackaged', 'MedicinalProductPharmaceutical', 'MedicinalProductUndesirableEffect', 'MessageDefinition', 'MessageHeader', 'MolecularSequence', 'NamingSystem', 'NutritionOrder', 'Observation', 'ObservationDefinition', 'OperationDefinition', 'OperationOutcome', 'Organization', 'OrganizationAffiliation', 'Parameters', 'Patient', 'PaymentNotice', 'PaymentReconciliation', 'Person', 'PlanDefinition', 'Practitioner', 'PractitionerRole', 'Procedure', 'Provenance', 'Questionnaire', 'QuestionnaireResponse', 'RelatedPerson', 'RequestGroup', 'ResearchDefinition', 'ResearchElementDefinition', 'ResearchStudy', 'ResearchSubject', 'Resource', 'RiskAssessment', 'RiskEvidenceSynthesis', 'Schedule', 'SearchParameter', 'ServiceRequest', 'Slot', 'Specimen', 'SpecimenDefinition', 'StructureDefinition', 'StructureMap', 'Subscription', 'Substance', 'SubstanceNucleicAcid', 'SubstancePolymer', 'SubstanceProtein', 'SubstanceReferenceInformation', 'SubstanceSourceMaterial', 'SubstanceSpecification', 'SupplyDelivery', 'SupplyRequest', 'Task', 'TerminologyCapabilities', 'TestReport', 'TestScript', 'ValueSet', 'VerificationResult', 'VisionPrescription', 'Type', 'Any']),
-  _type: ElementSchema.optional(),
-  profile: z.string().optional(),
-  _profile: ElementSchema.optional(),
-})
-export type ParameterDefinition = z.infer<typeof ParameterDefinitionSchema>
-
-/**
- * Base StructureDefinition for TriggerDefinition Type: A description of a triggering event. Triggering events can be named events, data events, or periodic, as determined by the type element.
- */
-export const TriggerDefinitionSchema = ElementSchema.extend({
-  type: z.enum(['named-event', 'periodic', 'data-changed', 'data-added', 'data-modified', 'data-removed', 'data-accessed', 'data-access-ended']),
-  _type: ElementSchema.optional(),
-  name: z.string().optional(),
-  _name: ElementSchema.optional(),
-  timingTiming: TimingSchema.optional(),
-  timingReference: ReferenceSchema.optional(),
-  timingDate: z.string().optional(),
-  _timingDate: ElementSchema.optional(),
-  timingDateTime: z.string().optional(),
-  _timingDateTime: ElementSchema.optional(),
-  data: z.array(DataRequirementSchema).optional(),
-  condition: ExpressionSchema.optional(),
-})
-export type TriggerDefinition = z.infer<typeof TriggerDefinitionSchema>
-
-/**
- * Amount of medication administered
- * The amount of medication administered.
- */
-export const DosageDoseAndRateSchema = BackboneElementSchema.extend({
-  type: CodeableConceptSchema.optional(),
-  doseRange: RangeSchema.optional(),
-  doseQuantity: QuantitySchema.optional(),
-  rateRatio: RatioSchema.optional(),
-  rateRange: RangeSchema.optional(),
-  rateQuantity: QuantitySchema.optional(),
-})
-export type DosageDoseAndRate = z.infer<typeof DosageDoseAndRateSchema>
-
-/**
- * Base StructureDefinition for Dosage Type: Indicates how the medication is/was taken or should be taken by the patient.
- */
-export const DosageSchema = BackboneElementSchema.extend({
-  sequence: z.number().optional(),
-  _sequence: ElementSchema.optional(),
-  text: z.string().optional(),
-  _text: ElementSchema.optional(),
-  additionalInstruction: z.array(CodeableConceptSchema).optional(),
-  patientInstruction: z.string().optional(),
-  _patientInstruction: ElementSchema.optional(),
-  timing: TimingSchema.optional(),
-  asNeededBoolean: z.boolean().optional(),
-  _asNeededBoolean: ElementSchema.optional(),
-  asNeededCodeableConcept: CodeableConceptSchema.optional(),
-  site: CodeableConceptSchema.optional(),
-  route: CodeableConceptSchema.optional(),
-  method: CodeableConceptSchema.optional(),
-  doseAndRate: z.array(DosageDoseAndRateSchema).optional(),
-  maxDosePerPeriod: RatioSchema.optional(),
-  maxDosePerAdministration: QuantitySchema.optional(),
-  maxDosePerLifetime: QuantitySchema.optional(),
-})
-export type Dosage = z.infer<typeof DosageSchema>
-
-/**
- * Base StructureDefinition for Meta Type: The metadata about a resource. This is content in the resource that is maintained by the infrastructure. Changes to the content might not always be associated with version changes to the resource.
- */
-export const MetaSchema = ElementSchema.extend({
-  versionId: z.string().optional(),
-  _versionId: ElementSchema.optional(),
-  lastUpdated: z.string().optional(),
-  _lastUpdated: ElementSchema.optional(),
-  source: z.string().optional(),
-  _source: ElementSchema.optional(),
-  profile: z.array(z.string()).optional(),
-  _profile: ElementSchema.optional(),
-  security: z.array(CodingSchema).optional(),
-  tag: z.array(CodingSchema).optional(),
-})
-export type Meta = z.infer<typeof MetaSchema>
 
 /**
  * Example value (as defined for type)
@@ -2953,7 +3083,7 @@ export const QuestionnaireResponseItemAnswerSchema = BackboneElementSchema.exten
   valueCoding: CodingSchema.optional(),
   valueQuantity: QuantitySchema.optional(),
   valueReference: ReferenceSchema.optional(),
-  item: z.array(z.lazy(() => QuestionnaireResponseItemSchema)).optional(),
+  item: z.lazy(() => z.array(QuestionnaireResponseItemSchema)).optional(),
 })
 export type QuestionnaireResponseItemAnswer = z.infer<typeof QuestionnaireResponseItemAnswerSchema>
 
@@ -2974,15 +3104,15 @@ export interface QuestionnaireResponseItem extends BackboneElement {
 }
 
 export const QuestionnaireResponseItemSchema: z.ZodType<QuestionnaireResponseItem> = z.lazy(() =>
-  z.object({
+  BackboneElementSchema.extend({
     linkId: z.string(),
-    _linkId: ElementSchema.optional(),
+      _linkId: ElementSchema.optional(),
     definition: z.string().optional(),
-    _definition: ElementSchema.optional(),
+      _definition: ElementSchema.optional(),
     text: z.string().optional(),
-    _text: ElementSchema.optional(),
+      _text: ElementSchema.optional(),
     answer: z.array(QuestionnaireResponseItemAnswerSchema).optional(),
-    item: z.array(z.lazy(() => QuestionnaireResponseItemSchema)).optional(),
+    item: z.lazy(() => z.array(QuestionnaireResponseItemSchema)).optional(),
   })
 )
 
@@ -3644,101 +3774,6 @@ export const EpisodeOfCareSchema = DomainResourceSchema.extend({
 export type EpisodeOfCare = z.infer<typeof EpisodeOfCareSchema>
 
 /**
- * Base StructureDefinition for string Type: A sequence of Unicode characters
- */
-export const stringSchema = ElementSchema.extend({
-  value: z.string().optional(),
-  _value: ElementSchema.optional(),
-})
-export type string = z.infer<typeof stringSchema>
-
-/**
- * Base StructureDefinition for Extension Type: Optional Extension Element - found in all resources.
- */
-export const ExtensionSchema = ElementSchema.extend({
-  url: z.string(),
-  _url: ElementSchema.optional(),
-  valueBase64Binary: z.string().optional(),
-  _valueBase64Binary: ElementSchema.optional(),
-  valueBoolean: z.boolean().optional(),
-  _valueBoolean: ElementSchema.optional(),
-  valueCanonical: z.string().optional(),
-  _valueCanonical: ElementSchema.optional(),
-  valueCode: z.string().optional(),
-  _valueCode: ElementSchema.optional(),
-  valueDate: z.string().optional(),
-  _valueDate: ElementSchema.optional(),
-  valueDateTime: z.string().optional(),
-  _valueDateTime: ElementSchema.optional(),
-  valueDecimal: z.number().optional(),
-  _valueDecimal: ElementSchema.optional(),
-  valueId: z.string().optional(),
-  _valueId: ElementSchema.optional(),
-  valueInstant: z.string().optional(),
-  _valueInstant: ElementSchema.optional(),
-  valueInteger: z.number().optional(),
-  _valueInteger: ElementSchema.optional(),
-  valueMarkdown: z.string().optional(),
-  _valueMarkdown: ElementSchema.optional(),
-  valueOid: z.string().optional(),
-  _valueOid: ElementSchema.optional(),
-  valuePositiveInt: z.number().optional(),
-  _valuePositiveInt: ElementSchema.optional(),
-  valueString: z.string().optional(),
-  _valueString: ElementSchema.optional(),
-  valueTime: z.string().optional(),
-  _valueTime: ElementSchema.optional(),
-  valueUnsignedInt: z.number().optional(),
-  _valueUnsignedInt: ElementSchema.optional(),
-  valueUri: z.string().optional(),
-  _valueUri: ElementSchema.optional(),
-  valueUrl: z.string().optional(),
-  _valueUrl: ElementSchema.optional(),
-  valueUuid: z.string().optional(),
-  _valueUuid: ElementSchema.optional(),
-  valueAddress: AddressSchema.optional(),
-  valueAge: AgeSchema.optional(),
-  valueAnnotation: AnnotationSchema.optional(),
-  valueAttachment: AttachmentSchema.optional(),
-  valueCodeableConcept: CodeableConceptSchema.optional(),
-  valueCoding: CodingSchema.optional(),
-  valueContactPoint: ContactPointSchema.optional(),
-  valueCount: CountSchema.optional(),
-  valueDistance: DistanceSchema.optional(),
-  valueDuration: DurationSchema.optional(),
-  valueHumanName: HumanNameSchema.optional(),
-  valueIdentifier: IdentifierSchema.optional(),
-  valueMoney: MoneySchema.optional(),
-  valuePeriod: PeriodSchema.optional(),
-  valueQuantity: QuantitySchema.optional(),
-  valueRange: RangeSchema.optional(),
-  valueRatio: RatioSchema.optional(),
-  valueReference: ReferenceSchema.optional(),
-  valueSampledData: SampledDataSchema.optional(),
-  valueSignature: SignatureSchema.optional(),
-  valueTiming: TimingSchema.optional(),
-  valueContactDetail: ContactDetailSchema.optional(),
-  valueContributor: ContributorSchema.optional(),
-  valueDataRequirement: DataRequirementSchema.optional(),
-  valueExpression: ExpressionSchema.optional(),
-  valueParameterDefinition: ParameterDefinitionSchema.optional(),
-  valueRelatedArtifact: RelatedArtifactSchema.optional(),
-  valueTriggerDefinition: TriggerDefinitionSchema.optional(),
-  valueUsageContext: UsageContextSchema.optional(),
-  valueDosage: DosageSchema.optional(),
-  valueMeta: MetaSchema.optional(),
-})
-export type Extension = z.infer<typeof ExtensionSchema>
-
-/**
- * Base StructureDefinition for BackboneElement Type: Base definition for all elements that are defined inside a resource - but not those in a data type.
- */
-export const BackboneElementSchema = ElementSchema.extend({
-  modifierExtension: z.array(ExtensionSchema).optional(),
-})
-export type BackboneElement = z.infer<typeof BackboneElementSchema>
-
-/**
  * Device details
  * Specific parameters for the ordered item.  For example, the prism value for lenses.
  */
@@ -3909,15 +3944,15 @@ export interface CapabilityStatementRestResourceSearchParam extends BackboneElem
 }
 
 export const CapabilityStatementRestResourceSearchParamSchema: z.ZodType<CapabilityStatementRestResourceSearchParam> = z.lazy(() =>
-  z.object({
+  BackboneElementSchema.extend({
     name: z.string(),
-    _name: ElementSchema.optional(),
+      _name: ElementSchema.optional(),
     definition: z.string().optional(),
-    _definition: ElementSchema.optional(),
+      _definition: ElementSchema.optional(),
     type: z.enum(['number', 'date', 'string', 'token', 'reference', 'composite', 'quantity', 'uri', 'special']),
-    _type: ElementSchema.optional(),
+      _type: ElementSchema.optional(),
     documentation: z.string().optional(),
-    _documentation: ElementSchema.optional(),
+      _documentation: ElementSchema.optional(),
   })
 )
 
@@ -3936,13 +3971,13 @@ export interface CapabilityStatementRestResourceOperation extends BackboneElemen
 }
 
 export const CapabilityStatementRestResourceOperationSchema: z.ZodType<CapabilityStatementRestResourceOperation> = z.lazy(() =>
-  z.object({
+  BackboneElementSchema.extend({
     name: z.string(),
-    _name: ElementSchema.optional(),
+      _name: ElementSchema.optional(),
     definition: z.string(),
-    _definition: ElementSchema.optional(),
+      _definition: ElementSchema.optional(),
     documentation: z.string().optional(),
-    _documentation: ElementSchema.optional(),
+      _documentation: ElementSchema.optional(),
   })
 )
 
@@ -4011,8 +4046,8 @@ export const CapabilityStatementRestSchema = BackboneElementSchema.extend({
   security: CapabilityStatementRestSecuritySchema.optional(),
   resource: z.array(CapabilityStatementRestResourceSchema).optional(),
   interaction: z.array(CapabilityStatementRestInteractionSchema).optional(),
-  searchParam: z.array(z.lazy(() => CapabilityStatementRestResourceSearchParamSchema)).optional(),
-  operation: z.array(z.lazy(() => CapabilityStatementRestResourceOperationSchema)).optional(),
+  searchParam: z.lazy(() => z.array(CapabilityStatementRestResourceSearchParamSchema)).optional(),
+  operation: z.lazy(() => z.array(CapabilityStatementRestResourceOperationSchema)).optional(),
   compartment: z.array(z.string()).optional(),
   _compartment: ElementSchema.optional(),
 })
@@ -4775,13 +4810,13 @@ export interface ChargeItemDefinitionApplicability extends BackboneElement {
 }
 
 export const ChargeItemDefinitionApplicabilitySchema: z.ZodType<ChargeItemDefinitionApplicability> = z.lazy(() =>
-  z.object({
+  BackboneElementSchema.extend({
     description: z.string().optional(),
-    _description: ElementSchema.optional(),
+      _description: ElementSchema.optional(),
     language: z.string().optional(),
-    _language: ElementSchema.optional(),
+      _language: ElementSchema.optional(),
     expression: z.string().optional(),
-    _expression: ElementSchema.optional(),
+      _expression: ElementSchema.optional(),
   })
 )
 
@@ -4804,7 +4839,7 @@ export type ChargeItemDefinitionPropertyGroupPriceComponent = z.infer<typeof Cha
  * Group of properties which are applicable under the same conditions. If no applicability rules are established for the group, then all properties always apply.
  */
 export const ChargeItemDefinitionPropertyGroupSchema = BackboneElementSchema.extend({
-  applicability: z.array(z.lazy(() => ChargeItemDefinitionApplicabilitySchema)).optional(),
+  applicability: z.lazy(() => z.array(ChargeItemDefinitionApplicabilitySchema)).optional(),
   priceComponent: z.array(ChargeItemDefinitionPropertyGroupPriceComponentSchema).optional(),
 })
 export type ChargeItemDefinitionPropertyGroup = z.infer<typeof ChargeItemDefinitionPropertyGroupSchema>
@@ -4970,34 +5005,34 @@ export interface QuestionnaireItem extends BackboneElement {
 }
 
 export const QuestionnaireItemSchema: z.ZodType<QuestionnaireItem> = z.lazy(() =>
-  z.object({
+  BackboneElementSchema.extend({
     linkId: z.string(),
-    _linkId: ElementSchema.optional(),
+      _linkId: ElementSchema.optional(),
     definition: z.string().optional(),
-    _definition: ElementSchema.optional(),
+      _definition: ElementSchema.optional(),
     code: z.array(CodingSchema).optional(),
     prefix: z.string().optional(),
-    _prefix: ElementSchema.optional(),
+      _prefix: ElementSchema.optional(),
     text: z.string().optional(),
-    _text: ElementSchema.optional(),
+      _text: ElementSchema.optional(),
     type: z.enum(['group', 'display', 'question', 'boolean', 'decimal', 'integer', 'date', 'dateTime', 'time', 'string', 'text', 'url', 'choice', 'open-choice', 'attachment', 'reference', 'quantity']),
-    _type: ElementSchema.optional(),
+      _type: ElementSchema.optional(),
     enableWhen: z.array(QuestionnaireItemEnableWhenSchema).optional(),
     enableBehavior: z.enum(['all', 'any']).optional(),
-    _enableBehavior: ElementSchema.optional(),
+      _enableBehavior: ElementSchema.optional(),
     required: z.boolean().optional(),
-    _required: ElementSchema.optional(),
+      _required: ElementSchema.optional(),
     repeats: z.boolean().optional(),
-    _repeats: ElementSchema.optional(),
+      _repeats: ElementSchema.optional(),
     readOnly: z.boolean().optional(),
-    _readOnly: ElementSchema.optional(),
+      _readOnly: ElementSchema.optional(),
     maxLength: z.number().optional(),
-    _maxLength: ElementSchema.optional(),
+      _maxLength: ElementSchema.optional(),
     answerValueSet: z.string().optional(),
-    _answerValueSet: ElementSchema.optional(),
+      _answerValueSet: ElementSchema.optional(),
     answerOption: z.array(QuestionnaireItemAnswerOptionSchema).optional(),
     initial: z.array(QuestionnaireItemInitialSchema).optional(),
-    item: z.array(z.lazy(() => QuestionnaireItemSchema)).optional(),
+    item: z.lazy(() => z.array(QuestionnaireItemSchema)).optional(),
   })
 )
 
@@ -5206,39 +5241,39 @@ export interface TestScriptSetupActionOperation extends BackboneElement {
 }
 
 export const TestScriptSetupActionOperationSchema: z.ZodType<TestScriptSetupActionOperation> = z.lazy(() =>
-  z.object({
+  BackboneElementSchema.extend({
     type: CodingSchema.optional(),
     resource: z.enum(['Address', 'Age', 'Annotation', 'Attachment', 'BackboneElement', 'CodeableConcept', 'Coding', 'ContactDetail', 'ContactPoint', 'Contributor', 'Count', 'DataRequirement', 'Distance', 'Dosage', 'Duration', 'Element', 'ElementDefinition', 'Expression', 'Extension', 'HumanName', 'Identifier', 'MarketingStatus', 'Meta', 'Money', 'MoneyQuantity', 'Narrative', 'ParameterDefinition', 'Period', 'Population', 'ProdCharacteristic', 'ProductShelfLife', 'Quantity', 'Range', 'Ratio', 'Reference', 'RelatedArtifact', 'SampledData', 'Signature', 'SimpleQuantity', 'SubstanceAmount', 'Timing', 'TriggerDefinition', 'UsageContext', 'base64Binary', 'boolean', 'canonical', 'code', 'date', 'dateTime', 'decimal', 'id', 'instant', 'integer', 'markdown', 'oid', 'positiveInt', 'string', 'time', 'unsignedInt', 'uri', 'url', 'uuid', 'xhtml', 'Account', 'ActivityDefinition', 'AdverseEvent', 'AllergyIntolerance', 'Appointment', 'AppointmentResponse', 'AuditEvent', 'Basic', 'Binary', 'BiologicallyDerivedProduct', 'BodyStructure', 'Bundle', 'CapabilityStatement', 'CarePlan', 'CareTeam', 'CatalogEntry', 'ChargeItem', 'ChargeItemDefinition', 'Claim', 'ClaimResponse', 'ClinicalImpression', 'CodeSystem', 'Communication', 'CommunicationRequest', 'CompartmentDefinition', 'Composition', 'ConceptMap', 'Condition', 'Consent', 'Contract', 'Coverage', 'CoverageEligibilityRequest', 'CoverageEligibilityResponse', 'DetectedIssue', 'Device', 'DeviceDefinition', 'DeviceMetric', 'DeviceRequest', 'DeviceUseStatement', 'DiagnosticReport', 'DocumentManifest', 'DocumentReference', 'DomainResource', 'EffectEvidenceSynthesis', 'Encounter', 'Endpoint', 'EnrollmentRequest', 'EnrollmentResponse', 'EpisodeOfCare', 'EventDefinition', 'Evidence', 'EvidenceVariable', 'ExampleScenario', 'ExplanationOfBenefit', 'FamilyMemberHistory', 'Flag', 'Goal', 'GraphDefinition', 'Group', 'GuidanceResponse', 'HealthcareService', 'ImagingStudy', 'Immunization', 'ImmunizationEvaluation', 'ImmunizationRecommendation', 'ImplementationGuide', 'InsurancePlan', 'Invoice', 'Library', 'Linkage', 'List', 'Location', 'Measure', 'MeasureReport', 'Media', 'Medication', 'MedicationAdministration', 'MedicationDispense', 'MedicationKnowledge', 'MedicationRequest', 'MedicationStatement', 'MedicinalProduct', 'MedicinalProductAuthorization', 'MedicinalProductContraindication', 'MedicinalProductIndication', 'MedicinalProductIngredient', 'MedicinalProductInteraction', 'MedicinalProductManufactured', 'MedicinalProductPackaged', 'MedicinalProductPharmaceutical', 'MedicinalProductUndesirableEffect', 'MessageDefinition', 'MessageHeader', 'MolecularSequence', 'NamingSystem', 'NutritionOrder', 'Observation', 'ObservationDefinition', 'OperationDefinition', 'OperationOutcome', 'Organization', 'OrganizationAffiliation', 'Parameters', 'Patient', 'PaymentNotice', 'PaymentReconciliation', 'Person', 'PlanDefinition', 'Practitioner', 'PractitionerRole', 'Procedure', 'Provenance', 'Questionnaire', 'QuestionnaireResponse', 'RelatedPerson', 'RequestGroup', 'ResearchDefinition', 'ResearchElementDefinition', 'ResearchStudy', 'ResearchSubject', 'Resource', 'RiskAssessment', 'RiskEvidenceSynthesis', 'Schedule', 'SearchParameter', 'ServiceRequest', 'Slot', 'Specimen', 'SpecimenDefinition', 'StructureDefinition', 'StructureMap', 'Subscription', 'Substance', 'SubstanceNucleicAcid', 'SubstancePolymer', 'SubstanceProtein', 'SubstanceReferenceInformation', 'SubstanceSourceMaterial', 'SubstanceSpecification', 'SupplyDelivery', 'SupplyRequest', 'Task', 'TerminologyCapabilities', 'TestReport', 'TestScript', 'ValueSet', 'VerificationResult', 'VisionPrescription']).optional(),
-    _resource: ElementSchema.optional(),
+      _resource: ElementSchema.optional(),
     label: z.string().optional(),
-    _label: ElementSchema.optional(),
+      _label: ElementSchema.optional(),
     description: z.string().optional(),
-    _description: ElementSchema.optional(),
+      _description: ElementSchema.optional(),
     accept: z.string().optional(),
-    _accept: ElementSchema.optional(),
+      _accept: ElementSchema.optional(),
     contentType: z.string().optional(),
-    _contentType: ElementSchema.optional(),
+      _contentType: ElementSchema.optional(),
     destination: z.number().optional(),
-    _destination: ElementSchema.optional(),
+      _destination: ElementSchema.optional(),
     encodeRequestUrl: z.boolean(),
-    _encodeRequestUrl: ElementSchema.optional(),
+      _encodeRequestUrl: ElementSchema.optional(),
     method: z.enum(['delete', 'get', 'options', 'patch', 'post', 'put', 'head']).optional(),
-    _method: ElementSchema.optional(),
+      _method: ElementSchema.optional(),
     origin: z.number().optional(),
-    _origin: ElementSchema.optional(),
+      _origin: ElementSchema.optional(),
     params: z.string().optional(),
-    _params: ElementSchema.optional(),
+      _params: ElementSchema.optional(),
     requestHeader: z.array(TestScriptSetupActionOperationRequestHeaderSchema).optional(),
     requestId: z.string().optional(),
-    _requestId: ElementSchema.optional(),
+      _requestId: ElementSchema.optional(),
     responseId: z.string().optional(),
-    _responseId: ElementSchema.optional(),
+      _responseId: ElementSchema.optional(),
     sourceId: z.string().optional(),
-    _sourceId: ElementSchema.optional(),
+      _sourceId: ElementSchema.optional(),
     targetId: z.string().optional(),
-    _targetId: ElementSchema.optional(),
+      _targetId: ElementSchema.optional(),
     url: z.string().optional(),
-    _url: ElementSchema.optional(),
+      _url: ElementSchema.optional(),
   })
 )
 
@@ -5295,51 +5330,51 @@ export interface TestScriptSetupActionAssert extends BackboneElement {
 }
 
 export const TestScriptSetupActionAssertSchema: z.ZodType<TestScriptSetupActionAssert> = z.lazy(() =>
-  z.object({
+  BackboneElementSchema.extend({
     label: z.string().optional(),
-    _label: ElementSchema.optional(),
+      _label: ElementSchema.optional(),
     description: z.string().optional(),
-    _description: ElementSchema.optional(),
+      _description: ElementSchema.optional(),
     direction: z.enum(['response', 'request']).optional(),
-    _direction: ElementSchema.optional(),
+      _direction: ElementSchema.optional(),
     compareToSourceId: z.string().optional(),
-    _compareToSourceId: ElementSchema.optional(),
+      _compareToSourceId: ElementSchema.optional(),
     compareToSourceExpression: z.string().optional(),
-    _compareToSourceExpression: ElementSchema.optional(),
+      _compareToSourceExpression: ElementSchema.optional(),
     compareToSourcePath: z.string().optional(),
-    _compareToSourcePath: ElementSchema.optional(),
+      _compareToSourcePath: ElementSchema.optional(),
     contentType: z.string().optional(),
-    _contentType: ElementSchema.optional(),
+      _contentType: ElementSchema.optional(),
     expression: z.string().optional(),
-    _expression: ElementSchema.optional(),
+      _expression: ElementSchema.optional(),
     headerField: z.string().optional(),
-    _headerField: ElementSchema.optional(),
+      _headerField: ElementSchema.optional(),
     minimumId: z.string().optional(),
-    _minimumId: ElementSchema.optional(),
+      _minimumId: ElementSchema.optional(),
     navigationLinks: z.boolean().optional(),
-    _navigationLinks: ElementSchema.optional(),
+      _navigationLinks: ElementSchema.optional(),
     operator: z.enum(['equals', 'notEquals', 'in', 'notIn', 'greaterThan', 'lessThan', 'empty', 'notEmpty', 'contains', 'notContains', 'eval']).optional(),
-    _operator: ElementSchema.optional(),
+      _operator: ElementSchema.optional(),
     path: z.string().optional(),
-    _path: ElementSchema.optional(),
+      _path: ElementSchema.optional(),
     requestMethod: z.enum(['delete', 'get', 'options', 'patch', 'post', 'put', 'head']).optional(),
-    _requestMethod: ElementSchema.optional(),
+      _requestMethod: ElementSchema.optional(),
     requestURL: z.string().optional(),
-    _requestURL: ElementSchema.optional(),
+      _requestURL: ElementSchema.optional(),
     resource: z.enum(['Address', 'Age', 'Annotation', 'Attachment', 'BackboneElement', 'CodeableConcept', 'Coding', 'ContactDetail', 'ContactPoint', 'Contributor', 'Count', 'DataRequirement', 'Distance', 'Dosage', 'Duration', 'Element', 'ElementDefinition', 'Expression', 'Extension', 'HumanName', 'Identifier', 'MarketingStatus', 'Meta', 'Money', 'MoneyQuantity', 'Narrative', 'ParameterDefinition', 'Period', 'Population', 'ProdCharacteristic', 'ProductShelfLife', 'Quantity', 'Range', 'Ratio', 'Reference', 'RelatedArtifact', 'SampledData', 'Signature', 'SimpleQuantity', 'SubstanceAmount', 'Timing', 'TriggerDefinition', 'UsageContext', 'base64Binary', 'boolean', 'canonical', 'code', 'date', 'dateTime', 'decimal', 'id', 'instant', 'integer', 'markdown', 'oid', 'positiveInt', 'string', 'time', 'unsignedInt', 'uri', 'url', 'uuid', 'xhtml', 'Account', 'ActivityDefinition', 'AdverseEvent', 'AllergyIntolerance', 'Appointment', 'AppointmentResponse', 'AuditEvent', 'Basic', 'Binary', 'BiologicallyDerivedProduct', 'BodyStructure', 'Bundle', 'CapabilityStatement', 'CarePlan', 'CareTeam', 'CatalogEntry', 'ChargeItem', 'ChargeItemDefinition', 'Claim', 'ClaimResponse', 'ClinicalImpression', 'CodeSystem', 'Communication', 'CommunicationRequest', 'CompartmentDefinition', 'Composition', 'ConceptMap', 'Condition', 'Consent', 'Contract', 'Coverage', 'CoverageEligibilityRequest', 'CoverageEligibilityResponse', 'DetectedIssue', 'Device', 'DeviceDefinition', 'DeviceMetric', 'DeviceRequest', 'DeviceUseStatement', 'DiagnosticReport', 'DocumentManifest', 'DocumentReference', 'DomainResource', 'EffectEvidenceSynthesis', 'Encounter', 'Endpoint', 'EnrollmentRequest', 'EnrollmentResponse', 'EpisodeOfCare', 'EventDefinition', 'Evidence', 'EvidenceVariable', 'ExampleScenario', 'ExplanationOfBenefit', 'FamilyMemberHistory', 'Flag', 'Goal', 'GraphDefinition', 'Group', 'GuidanceResponse', 'HealthcareService', 'ImagingStudy', 'Immunization', 'ImmunizationEvaluation', 'ImmunizationRecommendation', 'ImplementationGuide', 'InsurancePlan', 'Invoice', 'Library', 'Linkage', 'List', 'Location', 'Measure', 'MeasureReport', 'Media', 'Medication', 'MedicationAdministration', 'MedicationDispense', 'MedicationKnowledge', 'MedicationRequest', 'MedicationStatement', 'MedicinalProduct', 'MedicinalProductAuthorization', 'MedicinalProductContraindication', 'MedicinalProductIndication', 'MedicinalProductIngredient', 'MedicinalProductInteraction', 'MedicinalProductManufactured', 'MedicinalProductPackaged', 'MedicinalProductPharmaceutical', 'MedicinalProductUndesirableEffect', 'MessageDefinition', 'MessageHeader', 'MolecularSequence', 'NamingSystem', 'NutritionOrder', 'Observation', 'ObservationDefinition', 'OperationDefinition', 'OperationOutcome', 'Organization', 'OrganizationAffiliation', 'Parameters', 'Patient', 'PaymentNotice', 'PaymentReconciliation', 'Person', 'PlanDefinition', 'Practitioner', 'PractitionerRole', 'Procedure', 'Provenance', 'Questionnaire', 'QuestionnaireResponse', 'RelatedPerson', 'RequestGroup', 'ResearchDefinition', 'ResearchElementDefinition', 'ResearchStudy', 'ResearchSubject', 'Resource', 'RiskAssessment', 'RiskEvidenceSynthesis', 'Schedule', 'SearchParameter', 'ServiceRequest', 'Slot', 'Specimen', 'SpecimenDefinition', 'StructureDefinition', 'StructureMap', 'Subscription', 'Substance', 'SubstanceNucleicAcid', 'SubstancePolymer', 'SubstanceProtein', 'SubstanceReferenceInformation', 'SubstanceSourceMaterial', 'SubstanceSpecification', 'SupplyDelivery', 'SupplyRequest', 'Task', 'TerminologyCapabilities', 'TestReport', 'TestScript', 'ValueSet', 'VerificationResult', 'VisionPrescription']).optional(),
-    _resource: ElementSchema.optional(),
+      _resource: ElementSchema.optional(),
     response: z.enum(['okay', 'created', 'noContent', 'notModified', 'bad', 'forbidden', 'notFound', 'methodNotAllowed', 'conflict', 'gone', 'preconditionFailed', 'unprocessable']).optional(),
-    _response: ElementSchema.optional(),
+      _response: ElementSchema.optional(),
     responseCode: z.string().optional(),
-    _responseCode: ElementSchema.optional(),
+      _responseCode: ElementSchema.optional(),
     sourceId: z.string().optional(),
-    _sourceId: ElementSchema.optional(),
+      _sourceId: ElementSchema.optional(),
     validateProfileId: z.string().optional(),
-    _validateProfileId: ElementSchema.optional(),
+      _validateProfileId: ElementSchema.optional(),
     value: z.string().optional(),
-    _value: ElementSchema.optional(),
+      _value: ElementSchema.optional(),
     warningOnly: z.boolean(),
-    _warningOnly: ElementSchema.optional(),
+      _warningOnly: ElementSchema.optional(),
   })
 )
 
@@ -5585,13 +5620,13 @@ export interface TestReportSetupActionOperation extends BackboneElement {
 }
 
 export const TestReportSetupActionOperationSchema: z.ZodType<TestReportSetupActionOperation> = z.lazy(() =>
-  z.object({
+  BackboneElementSchema.extend({
     result: z.enum(['pass', 'skip', 'fail', 'warning', 'error']),
-    _result: ElementSchema.optional(),
+      _result: ElementSchema.optional(),
     message: z.string().optional(),
-    _message: ElementSchema.optional(),
+      _message: ElementSchema.optional(),
     detail: z.string().optional(),
-    _detail: ElementSchema.optional(),
+      _detail: ElementSchema.optional(),
   })
 )
 
@@ -5609,13 +5644,13 @@ export interface TestReportSetupActionAssert extends BackboneElement {
 }
 
 export const TestReportSetupActionAssertSchema: z.ZodType<TestReportSetupActionAssert> = z.lazy(() =>
-  z.object({
+  BackboneElementSchema.extend({
     result: z.enum(['pass', 'skip', 'fail', 'warning', 'error']),
-    _result: ElementSchema.optional(),
+      _result: ElementSchema.optional(),
     message: z.string().optional(),
-    _message: ElementSchema.optional(),
+      _message: ElementSchema.optional(),
     detail: z.string().optional(),
-    _detail: ElementSchema.optional(),
+      _detail: ElementSchema.optional(),
   })
 )
 
@@ -5938,6 +5973,15 @@ export const SupplyRequestSchema = DomainResourceSchema.extend({
 export type SupplyRequest = z.infer<typeof SupplyRequestSchema>
 
 /**
+ * Base StructureDefinition for integer Type: A whole number
+ */
+export const integerSchema = ElementSchema.extend({
+  value: z.number().optional(),
+  _value: ElementSchema.optional(),
+})
+export type integer = z.infer<typeof integerSchema>
+
+/**
  * Base StructureDefinition for positiveInt type: An integer with a value that is positive (e.g. >0)
  */
 export const positiveIntSchema = integerSchema.extend({
@@ -5959,7 +6003,7 @@ export interface ProvenanceAgent extends BackboneElement {
 }
 
 export const ProvenanceAgentSchema: z.ZodType<ProvenanceAgent> = z.lazy(() =>
-  z.object({
+  BackboneElementSchema.extend({
     type: CodeableConceptSchema.optional(),
     role: z.array(CodeableConceptSchema).optional(),
     who: ReferenceSchema,
@@ -5974,7 +6018,7 @@ export const ProvenanceEntitySchema = BackboneElementSchema.extend({
   role: z.enum(['derivation', 'revision', 'quotation', 'source', 'removal']),
   _role: ElementSchema.optional(),
   what: ReferenceSchema,
-  agent: z.array(z.lazy(() => ProvenanceAgentSchema)).optional(),
+  agent: z.lazy(() => z.array(ProvenanceAgentSchema)).optional(),
 })
 export type ProvenanceEntity = z.infer<typeof ProvenanceEntitySchema>
 
@@ -6063,20 +6107,6 @@ export const RiskAssessmentSchema = DomainResourceSchema.extend({
 export type RiskAssessment = z.infer<typeof RiskAssessmentSchema>
 
 /**
- * This is the base resource type for everything.
- */
-export const ResourceSchema = z.object({
-  id: z.string().optional(),
-  _id: ElementSchema.optional(),
-  meta: MetaSchema.optional(),
-  implicitRules: z.string().optional(),
-  _implicitRules: ElementSchema.optional(),
-  language: z.string().optional(),
-  _language: ElementSchema.optional(),
-})
-export type Resource = z.infer<typeof ResourceSchema>
-
-/**
  * Operation Parameter
  * A parameter passed to or received from the operation.
  */
@@ -6157,47 +6187,47 @@ export interface ParametersParameter extends BackboneElement {
 }
 
 export const ParametersParameterSchema: z.ZodType<ParametersParameter> = z.lazy(() =>
-  z.object({
+  BackboneElementSchema.extend({
     name: z.string(),
-    _name: ElementSchema.optional(),
+      _name: ElementSchema.optional(),
     valueBase64Binary: z.string().optional(),
-    _valueBase64Binary: ElementSchema.optional(),
+      _valueBase64Binary: ElementSchema.optional(),
     valueBoolean: z.boolean().optional(),
-    _valueBoolean: ElementSchema.optional(),
+      _valueBoolean: ElementSchema.optional(),
     valueCanonical: z.string().optional(),
-    _valueCanonical: ElementSchema.optional(),
+      _valueCanonical: ElementSchema.optional(),
     valueCode: z.string().optional(),
-    _valueCode: ElementSchema.optional(),
+      _valueCode: ElementSchema.optional(),
     valueDate: z.string().optional(),
-    _valueDate: ElementSchema.optional(),
+      _valueDate: ElementSchema.optional(),
     valueDateTime: z.string().optional(),
-    _valueDateTime: ElementSchema.optional(),
+      _valueDateTime: ElementSchema.optional(),
     valueDecimal: z.number().optional(),
-    _valueDecimal: ElementSchema.optional(),
+      _valueDecimal: ElementSchema.optional(),
     valueId: z.string().optional(),
-    _valueId: ElementSchema.optional(),
+      _valueId: ElementSchema.optional(),
     valueInstant: z.string().optional(),
-    _valueInstant: ElementSchema.optional(),
+      _valueInstant: ElementSchema.optional(),
     valueInteger: z.number().optional(),
-    _valueInteger: ElementSchema.optional(),
+      _valueInteger: ElementSchema.optional(),
     valueMarkdown: z.string().optional(),
-    _valueMarkdown: ElementSchema.optional(),
+      _valueMarkdown: ElementSchema.optional(),
     valueOid: z.string().optional(),
-    _valueOid: ElementSchema.optional(),
+      _valueOid: ElementSchema.optional(),
     valuePositiveInt: z.number().optional(),
-    _valuePositiveInt: ElementSchema.optional(),
+      _valuePositiveInt: ElementSchema.optional(),
     valueString: z.string().optional(),
-    _valueString: ElementSchema.optional(),
+      _valueString: ElementSchema.optional(),
     valueTime: z.string().optional(),
-    _valueTime: ElementSchema.optional(),
+      _valueTime: ElementSchema.optional(),
     valueUnsignedInt: z.number().optional(),
-    _valueUnsignedInt: ElementSchema.optional(),
+      _valueUnsignedInt: ElementSchema.optional(),
     valueUri: z.string().optional(),
-    _valueUri: ElementSchema.optional(),
+      _valueUri: ElementSchema.optional(),
     valueUrl: z.string().optional(),
-    _valueUrl: ElementSchema.optional(),
+      _valueUrl: ElementSchema.optional(),
     valueUuid: z.string().optional(),
-    _valueUuid: ElementSchema.optional(),
+      _valueUuid: ElementSchema.optional(),
     valueAddress: AddressSchema.optional(),
     valueAge: AgeSchema.optional(),
     valueAnnotation: AnnotationSchema.optional(),
@@ -6230,7 +6260,7 @@ export const ParametersParameterSchema: z.ZodType<ParametersParameter> = z.lazy(
     valueDosage: DosageSchema.optional(),
     valueMeta: MetaSchema.optional(),
     resource: ResourceSchema.optional(),
-    part: z.array(z.lazy(() => ParametersParameterSchema)).optional(),
+    part: z.lazy(() => z.array(ParametersParameterSchema)).optional(),
   })
 )
 
@@ -6694,12 +6724,12 @@ export interface ExplanationOfBenefitItemAdjudication extends BackboneElement {
 }
 
 export const ExplanationOfBenefitItemAdjudicationSchema: z.ZodType<ExplanationOfBenefitItemAdjudication> = z.lazy(() =>
-  z.object({
+  BackboneElementSchema.extend({
     category: CodeableConceptSchema,
     reason: CodeableConceptSchema.optional(),
     amount: MoneySchema.optional(),
     value: z.number().optional(),
-    _value: ElementSchema.optional(),
+      _value: ElementSchema.optional(),
   })
 )
 
@@ -6723,7 +6753,7 @@ export const ExplanationOfBenefitItemDetailSubDetailSchema = BackboneElementSche
   udi: z.array(ReferenceSchema).optional(),
   noteNumber: z.array(z.number()).optional(),
   _noteNumber: ElementSchema.optional(),
-  adjudication: z.array(z.lazy(() => ExplanationOfBenefitItemAdjudicationSchema)).optional(),
+  adjudication: z.lazy(() => z.array(ExplanationOfBenefitItemAdjudicationSchema)).optional(),
 })
 export type ExplanationOfBenefitItemDetailSubDetail = z.infer<typeof ExplanationOfBenefitItemDetailSubDetailSchema>
 
@@ -6747,7 +6777,7 @@ export const ExplanationOfBenefitItemDetailSchema = BackboneElementSchema.extend
   udi: z.array(ReferenceSchema).optional(),
   noteNumber: z.array(z.number()).optional(),
   _noteNumber: ElementSchema.optional(),
-  adjudication: z.array(z.lazy(() => ExplanationOfBenefitItemAdjudicationSchema)).optional(),
+  adjudication: z.lazy(() => z.array(ExplanationOfBenefitItemAdjudicationSchema)).optional(),
   subDetail: z.array(ExplanationOfBenefitItemDetailSubDetailSchema).optional(),
 })
 export type ExplanationOfBenefitItemDetail = z.infer<typeof ExplanationOfBenefitItemDetailSchema>
@@ -6808,7 +6838,7 @@ export const ExplanationOfBenefitAddItemDetailSubDetailSchema = BackboneElementS
   net: MoneySchema.optional(),
   noteNumber: z.array(z.number()).optional(),
   _noteNumber: ElementSchema.optional(),
-  adjudication: z.array(z.lazy(() => ExplanationOfBenefitItemAdjudicationSchema)).optional(),
+  adjudication: z.lazy(() => z.array(ExplanationOfBenefitItemAdjudicationSchema)).optional(),
 })
 export type ExplanationOfBenefitAddItemDetailSubDetail = z.infer<typeof ExplanationOfBenefitAddItemDetailSubDetailSchema>
 
@@ -6826,7 +6856,7 @@ export const ExplanationOfBenefitAddItemDetailSchema = BackboneElementSchema.ext
   net: MoneySchema.optional(),
   noteNumber: z.array(z.number()).optional(),
   _noteNumber: ElementSchema.optional(),
-  adjudication: z.array(z.lazy(() => ExplanationOfBenefitItemAdjudicationSchema)).optional(),
+  adjudication: z.lazy(() => z.array(ExplanationOfBenefitItemAdjudicationSchema)).optional(),
   subDetail: z.array(ExplanationOfBenefitAddItemDetailSubDetailSchema).optional(),
 })
 export type ExplanationOfBenefitAddItemDetail = z.infer<typeof ExplanationOfBenefitAddItemDetailSchema>
@@ -6861,7 +6891,7 @@ export const ExplanationOfBenefitAddItemSchema = BackboneElementSchema.extend({
   subSite: z.array(CodeableConceptSchema).optional(),
   noteNumber: z.array(z.number()).optional(),
   _noteNumber: ElementSchema.optional(),
-  adjudication: z.array(z.lazy(() => ExplanationOfBenefitItemAdjudicationSchema)).optional(),
+  adjudication: z.lazy(() => z.array(ExplanationOfBenefitItemAdjudicationSchema)).optional(),
   detail: z.array(ExplanationOfBenefitAddItemDetailSchema).optional(),
 })
 export type ExplanationOfBenefitAddItem = z.infer<typeof ExplanationOfBenefitAddItemSchema>
@@ -6989,7 +7019,7 @@ export const ExplanationOfBenefitSchema = DomainResourceSchema.extend({
   accident: ExplanationOfBenefitAccidentSchema.optional(),
   item: z.array(ExplanationOfBenefitItemSchema).optional(),
   addItem: z.array(ExplanationOfBenefitAddItemSchema).optional(),
-  adjudication: z.array(z.lazy(() => ExplanationOfBenefitItemAdjudicationSchema)).optional(),
+  adjudication: z.lazy(() => z.array(ExplanationOfBenefitItemAdjudicationSchema)).optional(),
   total: z.array(ExplanationOfBenefitTotalSchema).optional(),
   payment: ExplanationOfBenefitPaymentSchema.optional(),
   formCode: CodeableConceptSchema.optional(),
@@ -7482,26 +7512,26 @@ export interface OperationDefinitionParameter extends BackboneElement {
 }
 
 export const OperationDefinitionParameterSchema: z.ZodType<OperationDefinitionParameter> = z.lazy(() =>
-  z.object({
+  BackboneElementSchema.extend({
     name: z.string(),
-    _name: ElementSchema.optional(),
+      _name: ElementSchema.optional(),
     use: z.enum(['in', 'out']),
-    _use: ElementSchema.optional(),
+      _use: ElementSchema.optional(),
     min: z.number(),
-    _min: ElementSchema.optional(),
+      _min: ElementSchema.optional(),
     max: z.string(),
-    _max: ElementSchema.optional(),
+      _max: ElementSchema.optional(),
     documentation: z.string().optional(),
-    _documentation: ElementSchema.optional(),
+      _documentation: ElementSchema.optional(),
     type: z.enum(['Address', 'Age', 'Annotation', 'Attachment', 'BackboneElement', 'CodeableConcept', 'Coding', 'ContactDetail', 'ContactPoint', 'Contributor', 'Count', 'DataRequirement', 'Distance', 'Dosage', 'Duration', 'Element', 'ElementDefinition', 'Expression', 'Extension', 'HumanName', 'Identifier', 'MarketingStatus', 'Meta', 'Money', 'MoneyQuantity', 'Narrative', 'ParameterDefinition', 'Period', 'Population', 'ProdCharacteristic', 'ProductShelfLife', 'Quantity', 'Range', 'Ratio', 'Reference', 'RelatedArtifact', 'SampledData', 'Signature', 'SimpleQuantity', 'SubstanceAmount', 'Timing', 'TriggerDefinition', 'UsageContext', 'base64Binary', 'boolean', 'canonical', 'code', 'date', 'dateTime', 'decimal', 'id', 'instant', 'integer', 'markdown', 'oid', 'positiveInt', 'string', 'time', 'unsignedInt', 'uri', 'url', 'uuid', 'xhtml', 'Account', 'ActivityDefinition', 'AdverseEvent', 'AllergyIntolerance', 'Appointment', 'AppointmentResponse', 'AuditEvent', 'Basic', 'Binary', 'BiologicallyDerivedProduct', 'BodyStructure', 'Bundle', 'CapabilityStatement', 'CarePlan', 'CareTeam', 'CatalogEntry', 'ChargeItem', 'ChargeItemDefinition', 'Claim', 'ClaimResponse', 'ClinicalImpression', 'CodeSystem', 'Communication', 'CommunicationRequest', 'CompartmentDefinition', 'Composition', 'ConceptMap', 'Condition', 'Consent', 'Contract', 'Coverage', 'CoverageEligibilityRequest', 'CoverageEligibilityResponse', 'DetectedIssue', 'Device', 'DeviceDefinition', 'DeviceMetric', 'DeviceRequest', 'DeviceUseStatement', 'DiagnosticReport', 'DocumentManifest', 'DocumentReference', 'DomainResource', 'EffectEvidenceSynthesis', 'Encounter', 'Endpoint', 'EnrollmentRequest', 'EnrollmentResponse', 'EpisodeOfCare', 'EventDefinition', 'Evidence', 'EvidenceVariable', 'ExampleScenario', 'ExplanationOfBenefit', 'FamilyMemberHistory', 'Flag', 'Goal', 'GraphDefinition', 'Group', 'GuidanceResponse', 'HealthcareService', 'ImagingStudy', 'Immunization', 'ImmunizationEvaluation', 'ImmunizationRecommendation', 'ImplementationGuide', 'InsurancePlan', 'Invoice', 'Library', 'Linkage', 'List', 'Location', 'Measure', 'MeasureReport', 'Media', 'Medication', 'MedicationAdministration', 'MedicationDispense', 'MedicationKnowledge', 'MedicationRequest', 'MedicationStatement', 'MedicinalProduct', 'MedicinalProductAuthorization', 'MedicinalProductContraindication', 'MedicinalProductIndication', 'MedicinalProductIngredient', 'MedicinalProductInteraction', 'MedicinalProductManufactured', 'MedicinalProductPackaged', 'MedicinalProductPharmaceutical', 'MedicinalProductUndesirableEffect', 'MessageDefinition', 'MessageHeader', 'MolecularSequence', 'NamingSystem', 'NutritionOrder', 'Observation', 'ObservationDefinition', 'OperationDefinition', 'OperationOutcome', 'Organization', 'OrganizationAffiliation', 'Parameters', 'Patient', 'PaymentNotice', 'PaymentReconciliation', 'Person', 'PlanDefinition', 'Practitioner', 'PractitionerRole', 'Procedure', 'Provenance', 'Questionnaire', 'QuestionnaireResponse', 'RelatedPerson', 'RequestGroup', 'ResearchDefinition', 'ResearchElementDefinition', 'ResearchStudy', 'ResearchSubject', 'Resource', 'RiskAssessment', 'RiskEvidenceSynthesis', 'Schedule', 'SearchParameter', 'ServiceRequest', 'Slot', 'Specimen', 'SpecimenDefinition', 'StructureDefinition', 'StructureMap', 'Subscription', 'Substance', 'SubstanceNucleicAcid', 'SubstancePolymer', 'SubstanceProtein', 'SubstanceReferenceInformation', 'SubstanceSourceMaterial', 'SubstanceSpecification', 'SupplyDelivery', 'SupplyRequest', 'Task', 'TerminologyCapabilities', 'TestReport', 'TestScript', 'ValueSet', 'VerificationResult', 'VisionPrescription', 'Type', 'Any']).optional(),
-    _type: ElementSchema.optional(),
+      _type: ElementSchema.optional(),
     targetProfile: z.array(z.string()).optional(),
-    _targetProfile: ElementSchema.optional(),
+      _targetProfile: ElementSchema.optional(),
     searchType: z.enum(['number', 'date', 'string', 'token', 'reference', 'composite', 'quantity', 'uri', 'special']).optional(),
-    _searchType: ElementSchema.optional(),
+      _searchType: ElementSchema.optional(),
     binding: OperationDefinitionParameterBindingSchema.optional(),
     referencedFrom: z.array(OperationDefinitionParameterReferencedFromSchema).optional(),
-    part: z.array(z.lazy(() => OperationDefinitionParameterSchema)).optional(),
+    part: z.lazy(() => z.array(OperationDefinitionParameterSchema)).optional(),
   })
 )
 
@@ -7628,7 +7658,7 @@ export const GraphDefinitionLinkTargetSchema = BackboneElementSchema.extend({
   profile: z.string().optional(),
   _profile: ElementSchema.optional(),
   compartment: z.array(GraphDefinitionLinkTargetCompartmentSchema).optional(),
-  link: z.array(z.lazy(() => GraphDefinitionLinkSchema)).optional(),
+  link: z.lazy(() => z.array(GraphDefinitionLinkSchema)).optional(),
 })
 export type GraphDefinitionLinkTarget = z.infer<typeof GraphDefinitionLinkTargetSchema>
 
@@ -7650,17 +7680,17 @@ export interface GraphDefinitionLink extends BackboneElement {
 }
 
 export const GraphDefinitionLinkSchema: z.ZodType<GraphDefinitionLink> = z.lazy(() =>
-  z.object({
+  BackboneElementSchema.extend({
     path: z.string().optional(),
-    _path: ElementSchema.optional(),
+      _path: ElementSchema.optional(),
     sliceName: z.string().optional(),
-    _sliceName: ElementSchema.optional(),
+      _sliceName: ElementSchema.optional(),
     min: z.number().optional(),
-    _min: ElementSchema.optional(),
+      _min: ElementSchema.optional(),
     max: z.string().optional(),
-    _max: ElementSchema.optional(),
+      _max: ElementSchema.optional(),
     description: z.string().optional(),
-    _description: ElementSchema.optional(),
+      _description: ElementSchema.optional(),
     target: z.array(GraphDefinitionLinkTargetSchema).optional(),
   })
 )
@@ -7873,23 +7903,23 @@ export interface RequestGroupAction extends BackboneElement {
 }
 
 export const RequestGroupActionSchema: z.ZodType<RequestGroupAction> = z.lazy(() =>
-  z.object({
+  BackboneElementSchema.extend({
     prefix: z.string().optional(),
-    _prefix: ElementSchema.optional(),
+      _prefix: ElementSchema.optional(),
     title: z.string().optional(),
-    _title: ElementSchema.optional(),
+      _title: ElementSchema.optional(),
     description: z.string().optional(),
-    _description: ElementSchema.optional(),
+      _description: ElementSchema.optional(),
     textEquivalent: z.string().optional(),
-    _textEquivalent: ElementSchema.optional(),
+      _textEquivalent: ElementSchema.optional(),
     priority: z.enum(['routine', 'urgent', 'asap', 'stat']).optional(),
-    _priority: ElementSchema.optional(),
+      _priority: ElementSchema.optional(),
     code: z.array(CodeableConceptSchema).optional(),
     documentation: z.array(RelatedArtifactSchema).optional(),
     condition: z.array(RequestGroupActionConditionSchema).optional(),
     relatedAction: z.array(RequestGroupActionRelatedActionSchema).optional(),
     timingDateTime: z.string().optional(),
-    _timingDateTime: ElementSchema.optional(),
+      _timingDateTime: ElementSchema.optional(),
     timingAge: AgeSchema.optional(),
     timingPeriod: PeriodSchema.optional(),
     timingDuration: DurationSchema.optional(),
@@ -7898,17 +7928,17 @@ export const RequestGroupActionSchema: z.ZodType<RequestGroupAction> = z.lazy(()
     participant: z.array(ReferenceSchema).optional(),
     type: CodeableConceptSchema.optional(),
     groupingBehavior: z.enum(['visual-group', 'logical-group', 'sentence-group']).optional(),
-    _groupingBehavior: ElementSchema.optional(),
+      _groupingBehavior: ElementSchema.optional(),
     selectionBehavior: z.enum(['any', 'all', 'all-or-none', 'exactly-one', 'at-most-one', 'one-or-more']).optional(),
-    _selectionBehavior: ElementSchema.optional(),
+      _selectionBehavior: ElementSchema.optional(),
     requiredBehavior: z.enum(['must', 'could', 'must-unless-documented']).optional(),
-    _requiredBehavior: ElementSchema.optional(),
+      _requiredBehavior: ElementSchema.optional(),
     precheckBehavior: z.enum(['yes', 'no']).optional(),
-    _precheckBehavior: ElementSchema.optional(),
+      _precheckBehavior: ElementSchema.optional(),
     cardinalityBehavior: z.enum(['single', 'multiple']).optional(),
-    _cardinalityBehavior: ElementSchema.optional(),
+      _cardinalityBehavior: ElementSchema.optional(),
     resource: ReferenceSchema.optional(),
-    action: z.array(z.lazy(() => RequestGroupActionSchema)).optional(),
+    action: z.lazy(() => z.array(RequestGroupActionSchema)).optional(),
   })
 )
 
@@ -8010,15 +8040,6 @@ export const MessageHeaderSchema = DomainResourceSchema.extend({
   _definition: ElementSchema.optional(),
 })
 export type MessageHeader = z.infer<typeof MessageHeaderSchema>
-
-/**
- * Base StructureDefinition for integer Type: A whole number
- */
-export const integerSchema = ElementSchema.extend({
-  value: z.number().optional(),
-  _value: ElementSchema.optional(),
-})
-export type integer = z.infer<typeof integerSchema>
 
 /**
  * Base StructureDefinition for xhtml Type
@@ -8371,12 +8392,12 @@ export interface ValueSetComposeIncludeConceptDesignation extends BackboneElemen
 }
 
 export const ValueSetComposeIncludeConceptDesignationSchema: z.ZodType<ValueSetComposeIncludeConceptDesignation> = z.lazy(() =>
-  z.object({
+  BackboneElementSchema.extend({
     language: z.string().optional(),
-    _language: ElementSchema.optional(),
+      _language: ElementSchema.optional(),
     use: CodingSchema.optional(),
     value: z.string(),
-    _value: ElementSchema.optional(),
+      _value: ElementSchema.optional(),
   })
 )
 
@@ -8425,15 +8446,15 @@ export interface ValueSetComposeInclude extends BackboneElement {
 }
 
 export const ValueSetComposeIncludeSchema: z.ZodType<ValueSetComposeInclude> = z.lazy(() =>
-  z.object({
+  BackboneElementSchema.extend({
     system: z.string().optional(),
-    _system: ElementSchema.optional(),
+      _system: ElementSchema.optional(),
     version: z.string().optional(),
-    _version: ElementSchema.optional(),
+      _version: ElementSchema.optional(),
     concept: z.array(ValueSetComposeIncludeConceptSchema).optional(),
     filter: z.array(ValueSetComposeIncludeFilterSchema).optional(),
     valueSet: z.array(z.string()).optional(),
-    _valueSet: ElementSchema.optional(),
+      _valueSet: ElementSchema.optional(),
   })
 )
 
@@ -8447,7 +8468,7 @@ export const ValueSetComposeSchema = BackboneElementSchema.extend({
   inactive: z.boolean().optional(),
   _inactive: ElementSchema.optional(),
   include: z.array(ValueSetComposeIncludeSchema),
-  exclude: z.array(z.lazy(() => ValueSetComposeIncludeSchema)).optional(),
+  exclude: z.lazy(() => z.array(ValueSetComposeIncludeSchema)).optional(),
 })
 export type ValueSetCompose = z.infer<typeof ValueSetComposeSchema>
 
@@ -8498,21 +8519,21 @@ export interface ValueSetExpansionContains extends BackboneElement {
 }
 
 export const ValueSetExpansionContainsSchema: z.ZodType<ValueSetExpansionContains> = z.lazy(() =>
-  z.object({
+  BackboneElementSchema.extend({
     system: z.string().optional(),
-    _system: ElementSchema.optional(),
+      _system: ElementSchema.optional(),
     abstract: z.boolean().optional(),
-    _abstract: ElementSchema.optional(),
+      _abstract: ElementSchema.optional(),
     inactive: z.boolean().optional(),
-    _inactive: ElementSchema.optional(),
+      _inactive: ElementSchema.optional(),
     version: z.string().optional(),
-    _version: ElementSchema.optional(),
+      _version: ElementSchema.optional(),
     code: z.string().optional(),
-    _code: ElementSchema.optional(),
+      _code: ElementSchema.optional(),
     display: z.string().optional(),
-    _display: ElementSchema.optional(),
-    designation: z.array(z.lazy(() => ValueSetComposeIncludeConceptDesignationSchema)).optional(),
-    contains: z.array(z.lazy(() => ValueSetExpansionContainsSchema)).optional(),
+      _display: ElementSchema.optional(),
+    designation: z.lazy(() => z.array(ValueSetComposeIncludeConceptDesignationSchema)).optional(),
+    contains: z.lazy(() => z.array(ValueSetExpansionContainsSchema)).optional(),
   })
 )
 
@@ -8586,12 +8607,12 @@ export interface ClaimResponseItemAdjudication extends BackboneElement {
 }
 
 export const ClaimResponseItemAdjudicationSchema: z.ZodType<ClaimResponseItemAdjudication> = z.lazy(() =>
-  z.object({
+  BackboneElementSchema.extend({
     category: CodeableConceptSchema,
     reason: CodeableConceptSchema.optional(),
     amount: MoneySchema.optional(),
     value: z.number().optional(),
-    _value: ElementSchema.optional(),
+      _value: ElementSchema.optional(),
   })
 )
 
@@ -8604,7 +8625,7 @@ export const ClaimResponseItemDetailSubDetailSchema = BackboneElementSchema.exte
   _subDetailSequence: ElementSchema.optional(),
   noteNumber: z.array(z.number()).optional(),
   _noteNumber: ElementSchema.optional(),
-  adjudication: z.array(z.lazy(() => ClaimResponseItemAdjudicationSchema)).optional(),
+  adjudication: z.lazy(() => z.array(ClaimResponseItemAdjudicationSchema)).optional(),
 })
 export type ClaimResponseItemDetailSubDetail = z.infer<typeof ClaimResponseItemDetailSubDetailSchema>
 
@@ -8617,7 +8638,7 @@ export const ClaimResponseItemDetailSchema = BackboneElementSchema.extend({
   _detailSequence: ElementSchema.optional(),
   noteNumber: z.array(z.number()).optional(),
   _noteNumber: ElementSchema.optional(),
-  adjudication: z.array(z.lazy(() => ClaimResponseItemAdjudicationSchema)),
+  adjudication: z.lazy(() => z.array(ClaimResponseItemAdjudicationSchema)),
   subDetail: z.array(ClaimResponseItemDetailSubDetailSchema).optional(),
 })
 export type ClaimResponseItemDetail = z.infer<typeof ClaimResponseItemDetailSchema>
@@ -8650,7 +8671,7 @@ export const ClaimResponseAddItemDetailSubDetailSchema = BackboneElementSchema.e
   net: MoneySchema.optional(),
   noteNumber: z.array(z.number()).optional(),
   _noteNumber: ElementSchema.optional(),
-  adjudication: z.array(z.lazy(() => ClaimResponseItemAdjudicationSchema)),
+  adjudication: z.lazy(() => z.array(ClaimResponseItemAdjudicationSchema)),
 })
 export type ClaimResponseAddItemDetailSubDetail = z.infer<typeof ClaimResponseAddItemDetailSubDetailSchema>
 
@@ -8668,7 +8689,7 @@ export const ClaimResponseAddItemDetailSchema = BackboneElementSchema.extend({
   net: MoneySchema.optional(),
   noteNumber: z.array(z.number()).optional(),
   _noteNumber: ElementSchema.optional(),
-  adjudication: z.array(z.lazy(() => ClaimResponseItemAdjudicationSchema)),
+  adjudication: z.lazy(() => z.array(ClaimResponseItemAdjudicationSchema)),
   subDetail: z.array(ClaimResponseAddItemDetailSubDetailSchema).optional(),
 })
 export type ClaimResponseAddItemDetail = z.infer<typeof ClaimResponseAddItemDetailSchema>
@@ -8703,7 +8724,7 @@ export const ClaimResponseAddItemSchema = BackboneElementSchema.extend({
   subSite: z.array(CodeableConceptSchema).optional(),
   noteNumber: z.array(z.number()).optional(),
   _noteNumber: ElementSchema.optional(),
-  adjudication: z.array(z.lazy(() => ClaimResponseItemAdjudicationSchema)),
+  adjudication: z.lazy(() => z.array(ClaimResponseItemAdjudicationSchema)),
   detail: z.array(ClaimResponseAddItemDetailSchema).optional(),
 })
 export type ClaimResponseAddItem = z.infer<typeof ClaimResponseAddItemSchema>
@@ -8810,7 +8831,7 @@ export const ClaimResponseSchema = DomainResourceSchema.extend({
   payeeType: CodeableConceptSchema.optional(),
   item: z.array(ClaimResponseItemSchema).optional(),
   addItem: z.array(ClaimResponseAddItemSchema).optional(),
-  adjudication: z.array(z.lazy(() => ClaimResponseItemAdjudicationSchema)).optional(),
+  adjudication: z.lazy(() => z.array(ClaimResponseItemAdjudicationSchema)).optional(),
   total: z.array(ClaimResponseTotalSchema).optional(),
   payment: ClaimResponsePaymentSchema.optional(),
   fundsReserve: CodeableConceptSchema.optional(),
@@ -8889,23 +8910,23 @@ export interface ContractTermOfferAnswer extends BackboneElement {
 }
 
 export const ContractTermOfferAnswerSchema: z.ZodType<ContractTermOfferAnswer> = z.lazy(() =>
-  z.object({
+  BackboneElementSchema.extend({
     valueBoolean: z.boolean().optional(),
-    _valueBoolean: ElementSchema.optional(),
+      _valueBoolean: ElementSchema.optional(),
     valueDecimal: z.number().optional(),
-    _valueDecimal: ElementSchema.optional(),
+      _valueDecimal: ElementSchema.optional(),
     valueInteger: z.number().optional(),
-    _valueInteger: ElementSchema.optional(),
+      _valueInteger: ElementSchema.optional(),
     valueDate: z.string().optional(),
-    _valueDate: ElementSchema.optional(),
+      _valueDate: ElementSchema.optional(),
     valueDateTime: z.string().optional(),
-    _valueDateTime: ElementSchema.optional(),
+      _valueDateTime: ElementSchema.optional(),
     valueTime: z.string().optional(),
-    _valueTime: ElementSchema.optional(),
+      _valueTime: ElementSchema.optional(),
     valueString: z.string().optional(),
-    _valueString: ElementSchema.optional(),
+      _valueString: ElementSchema.optional(),
     valueUri: z.string().optional(),
-    _valueUri: ElementSchema.optional(),
+      _valueUri: ElementSchema.optional(),
     valueAttachment: AttachmentSchema.optional(),
     valueCoding: CodingSchema.optional(),
     valueQuantity: QuantitySchema.optional(),
@@ -8993,7 +9014,7 @@ export const ContractTermAssetSchema = BackboneElementSchema.extend({
   _text: ElementSchema.optional(),
   linkId: z.array(z.string()).optional(),
   _linkId: ElementSchema.optional(),
-  answer: z.array(z.lazy(() => ContractTermOfferAnswerSchema)).optional(),
+  answer: z.lazy(() => z.array(ContractTermOfferAnswerSchema)).optional(),
   securityLabelNumber: z.array(z.number()).optional(),
   _securityLabelNumber: ElementSchema.optional(),
   valuedItem: z.array(ContractTermAssetValuedItemSchema).optional(),
@@ -9073,22 +9094,22 @@ export interface ContractTerm extends BackboneElement {
 }
 
 export const ContractTermSchema: z.ZodType<ContractTerm> = z.lazy(() =>
-  z.object({
+  BackboneElementSchema.extend({
     identifier: IdentifierSchema.optional(),
     issued: z.string().optional(),
-    _issued: ElementSchema.optional(),
+      _issued: ElementSchema.optional(),
     applies: PeriodSchema.optional(),
     topicCodeableConcept: CodeableConceptSchema.optional(),
     topicReference: ReferenceSchema.optional(),
     type: CodeableConceptSchema.optional(),
     subType: CodeableConceptSchema.optional(),
     text: z.string().optional(),
-    _text: ElementSchema.optional(),
+      _text: ElementSchema.optional(),
     securityLabel: z.array(ContractTermSecurityLabelSchema).optional(),
     offer: ContractTermOfferSchema,
     asset: z.array(ContractTermAssetSchema).optional(),
     action: z.array(ContractTermActionSchema).optional(),
-    group: z.array(z.lazy(() => ContractTermSchema)).optional(),
+    group: z.lazy(() => z.array(ContractTermSchema)).optional(),
   })
 )
 
@@ -9185,16 +9206,6 @@ export const ContractSchema = DomainResourceSchema.extend({
   legallyBindingReference: ReferenceSchema.optional(),
 })
 export type Contract = z.infer<typeof ContractSchema>
-
-/**
- * Base StructureDefinition for Element Type: Base definition for all elements in a resource.
- */
-export const ElementSchema = z.object({
-  id: z.string().optional(),
-  _id: ElementSchema.optional(),
-  extension: z.array(ExtensionSchema).optional(),
-})
-export type Element = z.infer<typeof ElementSchema>
 
 /**
  * How this product was collected
@@ -9556,13 +9567,13 @@ export interface MedicinalProductIngredientSpecifiedSubstanceStrength extends Ba
 }
 
 export const MedicinalProductIngredientSpecifiedSubstanceStrengthSchema: z.ZodType<MedicinalProductIngredientSpecifiedSubstanceStrength> = z.lazy(() =>
-  z.object({
+  BackboneElementSchema.extend({
     presentation: RatioSchema,
     presentationLowLimit: RatioSchema.optional(),
     concentration: RatioSchema.optional(),
     concentrationLowLimit: RatioSchema.optional(),
     measurementPoint: z.string().optional(),
-    _measurementPoint: ElementSchema.optional(),
+      _measurementPoint: ElementSchema.optional(),
     country: z.array(CodeableConceptSchema).optional(),
     referenceStrength: z.array(MedicinalProductIngredientSpecifiedSubstanceStrengthReferenceStrengthSchema).optional(),
   })
@@ -9584,7 +9595,7 @@ export type MedicinalProductIngredientSpecifiedSubstance = z.infer<typeof Medici
  */
 export const MedicinalProductIngredientSubstanceSchema = BackboneElementSchema.extend({
   code: CodeableConceptSchema,
-  strength: z.array(z.lazy(() => MedicinalProductIngredientSpecifiedSubstanceStrengthSchema)).optional(),
+  strength: z.lazy(() => z.array(MedicinalProductIngredientSpecifiedSubstanceStrengthSchema)).optional(),
 })
 export type MedicinalProductIngredientSubstance = z.infer<typeof MedicinalProductIngredientSubstanceSchema>
 
@@ -9619,15 +9630,15 @@ export interface ConceptMapGroupElementTargetDependsOn extends BackboneElement {
 }
 
 export const ConceptMapGroupElementTargetDependsOnSchema: z.ZodType<ConceptMapGroupElementTargetDependsOn> = z.lazy(() =>
-  z.object({
+  BackboneElementSchema.extend({
     property: z.string(),
-    _property: ElementSchema.optional(),
+      _property: ElementSchema.optional(),
     system: z.string().optional(),
-    _system: ElementSchema.optional(),
+      _system: ElementSchema.optional(),
     value: z.string(),
-    _value: ElementSchema.optional(),
+      _value: ElementSchema.optional(),
     display: z.string().optional(),
-    _display: ElementSchema.optional(),
+      _display: ElementSchema.optional(),
   })
 )
 
@@ -9646,7 +9657,7 @@ export const ConceptMapGroupElementTargetSchema = BackboneElementSchema.extend({
   comment: z.string().optional(),
   _comment: ElementSchema.optional(),
   dependsOn: z.array(ConceptMapGroupElementTargetDependsOnSchema).optional(),
-  product: z.array(z.lazy(() => ConceptMapGroupElementTargetDependsOnSchema)).optional(),
+  product: z.lazy(() => z.array(ConceptMapGroupElementTargetDependsOnSchema)).optional(),
 })
 export type ConceptMapGroupElementTarget = z.infer<typeof ConceptMapGroupElementTargetSchema>
 
@@ -9766,12 +9777,12 @@ export interface InvoiceLineItemPriceComponent extends BackboneElement {
 }
 
 export const InvoiceLineItemPriceComponentSchema: z.ZodType<InvoiceLineItemPriceComponent> = z.lazy(() =>
-  z.object({
+  BackboneElementSchema.extend({
     type: z.enum(['base', 'surcharge', 'deduction', 'discount', 'tax', 'informational']),
-    _type: ElementSchema.optional(),
+      _type: ElementSchema.optional(),
     code: CodeableConceptSchema.optional(),
     factor: z.number().optional(),
-    _factor: ElementSchema.optional(),
+      _factor: ElementSchema.optional(),
     amount: MoneySchema.optional(),
   })
 )
@@ -9808,7 +9819,7 @@ export const InvoiceSchema = DomainResourceSchema.extend({
   issuer: ReferenceSchema.optional(),
   account: ReferenceSchema.optional(),
   lineItem: z.array(InvoiceLineItemSchema).optional(),
-  totalPriceComponent: z.array(z.lazy(() => InvoiceLineItemPriceComponentSchema)).optional(),
+  totalPriceComponent: z.lazy(() => z.array(InvoiceLineItemPriceComponentSchema)).optional(),
   totalNet: MoneySchema.optional(),
   totalGross: MoneySchema.optional(),
   paymentTerms: z.string().optional(),
@@ -10198,7 +10209,7 @@ export interface MedicinalProductPackagedPackageItem extends BackboneElement {
 }
 
 export const MedicinalProductPackagedPackageItemSchema: z.ZodType<MedicinalProductPackagedPackageItem> = z.lazy(() =>
-  z.object({
+  BackboneElementSchema.extend({
     identifier: z.array(IdentifierSchema).optional(),
     type: CodeableConceptSchema,
     quantity: QuantitySchema,
@@ -10206,7 +10217,7 @@ export const MedicinalProductPackagedPackageItemSchema: z.ZodType<MedicinalProdu
     alternateMaterial: z.array(CodeableConceptSchema).optional(),
     device: z.array(ReferenceSchema).optional(),
     manufacturedItem: z.array(ReferenceSchema).optional(),
-    packageItem: z.array(z.lazy(() => MedicinalProductPackagedPackageItemSchema)).optional(),
+    packageItem: z.lazy(() => z.array(MedicinalProductPackagedPackageItemSchema)).optional(),
     physicalCharacteristics: ProdCharacteristicSchema.optional(),
     otherCharacteristics: z.array(CodeableConceptSchema).optional(),
     shelfLifeStorage: z.array(ProductShelfLifeSchema).optional(),
@@ -10499,11 +10510,11 @@ export interface BundleLink extends BackboneElement {
 }
 
 export const BundleLinkSchema: z.ZodType<BundleLink> = z.lazy(() =>
-  z.object({
+  BackboneElementSchema.extend({
     relation: z.string(),
-    _relation: ElementSchema.optional(),
+      _relation: ElementSchema.optional(),
     url: z.string(),
-    _url: ElementSchema.optional(),
+      _url: ElementSchema.optional(),
   })
 )
 
@@ -10561,7 +10572,7 @@ export type BundleEntryResponse = z.infer<typeof BundleEntryResponseSchema>
  * An entry in a bundle resource - will either contain a resource or information about a resource (transactions and history only).
  */
 export const BundleEntrySchema = BackboneElementSchema.extend({
-  link: z.array(z.lazy(() => BundleLinkSchema)).optional(),
+  link: z.lazy(() => z.array(BundleLinkSchema)).optional(),
   fullUrl: z.string().optional(),
   _fullUrl: ElementSchema.optional(),
   resource: ResourceSchema.optional(),
@@ -10747,15 +10758,15 @@ export interface ImplementationGuideDefinitionPage extends BackboneElement {
 }
 
 export const ImplementationGuideDefinitionPageSchema: z.ZodType<ImplementationGuideDefinitionPage> = z.lazy(() =>
-  z.object({
+  BackboneElementSchema.extend({
     nameUrl: z.string().optional(),
-    _nameUrl: ElementSchema.optional(),
+      _nameUrl: ElementSchema.optional(),
     nameReference: ReferenceSchema.optional(),
     title: z.string(),
-    _title: ElementSchema.optional(),
+      _title: ElementSchema.optional(),
     generation: z.enum(['html', 'markdown', 'xml', 'generated']),
-    _generation: ElementSchema.optional(),
-    page: z.array(z.lazy(() => ImplementationGuideDefinitionPageSchema)).optional(),
+      _generation: ElementSchema.optional(),
+    page: z.lazy(() => z.array(ImplementationGuideDefinitionPageSchema)).optional(),
   })
 )
 
@@ -11189,16 +11200,16 @@ export interface CodeSystemConcept extends BackboneElement {
 }
 
 export const CodeSystemConceptSchema: z.ZodType<CodeSystemConcept> = z.lazy(() =>
-  z.object({
+  BackboneElementSchema.extend({
     code: z.string(),
-    _code: ElementSchema.optional(),
+      _code: ElementSchema.optional(),
     display: z.string().optional(),
-    _display: ElementSchema.optional(),
+      _display: ElementSchema.optional(),
     definition: z.string().optional(),
-    _definition: ElementSchema.optional(),
+      _definition: ElementSchema.optional(),
     designation: z.array(CodeSystemConceptDesignationSchema).optional(),
     property: z.array(CodeSystemConceptPropertySchema).optional(),
-    concept: z.array(z.lazy(() => CodeSystemConceptSchema)).optional(),
+    concept: z.lazy(() => z.array(CodeSystemConceptSchema)).optional(),
   })
 )
 
@@ -11395,17 +11406,6 @@ export const ImmunizationRecommendationSchema = DomainResourceSchema.extend({
   recommendation: z.array(ImmunizationRecommendationRecommendationSchema),
 })
 export type ImmunizationRecommendation = z.infer<typeof ImmunizationRecommendationSchema>
-
-/**
- * A resource that includes narrative, extensions, and contained resources.
- */
-export const DomainResourceSchema = ResourceSchema.extend({
-  text: NarrativeSchema.optional(),
-  contained: z.array(ResourceSchema).optional(),
-  extension: z.array(ExtensionSchema).optional(),
-  modifierExtension: z.array(ExtensionSchema).optional(),
-})
-export type DomainResource = z.infer<typeof DomainResourceSchema>
 
 /**
  * A slot of time on a schedule that may be available for booking appointments.
@@ -12248,22 +12248,22 @@ export interface PlanDefinitionAction extends BackboneElement {
 }
 
 export const PlanDefinitionActionSchema: z.ZodType<PlanDefinitionAction> = z.lazy(() =>
-  z.object({
+  BackboneElementSchema.extend({
     prefix: z.string().optional(),
-    _prefix: ElementSchema.optional(),
+      _prefix: ElementSchema.optional(),
     title: z.string().optional(),
-    _title: ElementSchema.optional(),
+      _title: ElementSchema.optional(),
     description: z.string().optional(),
-    _description: ElementSchema.optional(),
+      _description: ElementSchema.optional(),
     textEquivalent: z.string().optional(),
-    _textEquivalent: ElementSchema.optional(),
+      _textEquivalent: ElementSchema.optional(),
     priority: z.enum(['routine', 'urgent', 'asap', 'stat']).optional(),
-    _priority: ElementSchema.optional(),
+      _priority: ElementSchema.optional(),
     code: z.array(CodeableConceptSchema).optional(),
     reason: z.array(CodeableConceptSchema).optional(),
     documentation: z.array(RelatedArtifactSchema).optional(),
     goalId: z.array(z.string()).optional(),
-    _goalId: ElementSchema.optional(),
+      _goalId: ElementSchema.optional(),
     subjectCodeableConcept: CodeableConceptSchema.optional(),
     subjectReference: ReferenceSchema.optional(),
     trigger: z.array(TriggerDefinitionSchema).optional(),
@@ -12272,7 +12272,7 @@ export const PlanDefinitionActionSchema: z.ZodType<PlanDefinitionAction> = z.laz
     output: z.array(DataRequirementSchema).optional(),
     relatedAction: z.array(PlanDefinitionActionRelatedActionSchema).optional(),
     timingDateTime: z.string().optional(),
-    _timingDateTime: ElementSchema.optional(),
+      _timingDateTime: ElementSchema.optional(),
     timingAge: AgeSchema.optional(),
     timingPeriod: PeriodSchema.optional(),
     timingDuration: DurationSchema.optional(),
@@ -12281,23 +12281,23 @@ export const PlanDefinitionActionSchema: z.ZodType<PlanDefinitionAction> = z.laz
     participant: z.array(PlanDefinitionActionParticipantSchema).optional(),
     type: CodeableConceptSchema.optional(),
     groupingBehavior: z.enum(['visual-group', 'logical-group', 'sentence-group']).optional(),
-    _groupingBehavior: ElementSchema.optional(),
+      _groupingBehavior: ElementSchema.optional(),
     selectionBehavior: z.enum(['any', 'all', 'all-or-none', 'exactly-one', 'at-most-one', 'one-or-more']).optional(),
-    _selectionBehavior: ElementSchema.optional(),
+      _selectionBehavior: ElementSchema.optional(),
     requiredBehavior: z.enum(['must', 'could', 'must-unless-documented']).optional(),
-    _requiredBehavior: ElementSchema.optional(),
+      _requiredBehavior: ElementSchema.optional(),
     precheckBehavior: z.enum(['yes', 'no']).optional(),
-    _precheckBehavior: ElementSchema.optional(),
+      _precheckBehavior: ElementSchema.optional(),
     cardinalityBehavior: z.enum(['single', 'multiple']).optional(),
-    _cardinalityBehavior: ElementSchema.optional(),
+      _cardinalityBehavior: ElementSchema.optional(),
     definitionCanonical: z.string().optional(),
-    _definitionCanonical: ElementSchema.optional(),
+      _definitionCanonical: ElementSchema.optional(),
     definitionUri: z.string().optional(),
-    _definitionUri: ElementSchema.optional(),
+      _definitionUri: ElementSchema.optional(),
     transform: z.string().optional(),
-    _transform: ElementSchema.optional(),
+      _transform: ElementSchema.optional(),
     dynamicValue: z.array(PlanDefinitionActionDynamicValueSchema).optional(),
-    action: z.array(z.lazy(() => PlanDefinitionActionSchema)).optional(),
+    action: z.lazy(() => z.array(PlanDefinitionActionSchema)).optional(),
   })
 )
 
@@ -12696,9 +12696,9 @@ export interface ConsentProvision extends BackboneElement {
 }
 
 export const ConsentProvisionSchema: z.ZodType<ConsentProvision> = z.lazy(() =>
-  z.object({
+  BackboneElementSchema.extend({
     type: z.enum(['deny', 'permit']).optional(),
-    _type: ElementSchema.optional(),
+      _type: ElementSchema.optional(),
     period: PeriodSchema.optional(),
     actor: z.array(ConsentProvisionActorSchema).optional(),
     action: z.array(CodeableConceptSchema).optional(),
@@ -12708,7 +12708,7 @@ export const ConsentProvisionSchema: z.ZodType<ConsentProvision> = z.lazy(() =>
     code: z.array(CodeableConceptSchema).optional(),
     dataPeriod: PeriodSchema.optional(),
     data: z.array(ConsentProvisionDataSchema).optional(),
-    provision: z.array(z.lazy(() => ConsentProvisionSchema)).optional(),
+    provision: z.lazy(() => z.array(ConsentProvisionSchema)).optional(),
   })
 )
 
@@ -13035,15 +13035,15 @@ export interface StructureMapGroupRule extends BackboneElement {
 }
 
 export const StructureMapGroupRuleSchema: z.ZodType<StructureMapGroupRule> = z.lazy(() =>
-  z.object({
+  BackboneElementSchema.extend({
     name: z.string(),
-    _name: ElementSchema.optional(),
+      _name: ElementSchema.optional(),
     source: z.array(StructureMapGroupRuleSourceSchema),
     target: z.array(StructureMapGroupRuleTargetSchema).optional(),
-    rule: z.array(z.lazy(() => StructureMapGroupRuleSchema)).optional(),
+    rule: z.lazy(() => z.array(StructureMapGroupRuleSchema)).optional(),
     dependent: z.array(StructureMapGroupRuleDependentSchema).optional(),
     documentation: z.string().optional(),
-    _documentation: ElementSchema.optional(),
+      _documentation: ElementSchema.optional(),
   })
 )
 
@@ -13392,14 +13392,14 @@ export interface ObservationReferenceRange extends BackboneElement {
 }
 
 export const ObservationReferenceRangeSchema: z.ZodType<ObservationReferenceRange> = z.lazy(() =>
-  z.object({
+  BackboneElementSchema.extend({
     low: QuantitySchema.optional(),
     high: QuantitySchema.optional(),
     type: CodeableConceptSchema.optional(),
     appliesTo: z.array(CodeableConceptSchema).optional(),
     age: RangeSchema.optional(),
     text: z.string().optional(),
-    _text: ElementSchema.optional(),
+      _text: ElementSchema.optional(),
   })
 )
 
@@ -13428,7 +13428,7 @@ export const ObservationComponentSchema = BackboneElementSchema.extend({
   valuePeriod: PeriodSchema.optional(),
   dataAbsentReason: CodeableConceptSchema.optional(),
   interpretation: z.array(CodeableConceptSchema).optional(),
-  referenceRange: z.array(z.lazy(() => ObservationReferenceRangeSchema)).optional(),
+  referenceRange: z.lazy(() => z.array(ObservationReferenceRangeSchema)).optional(),
 })
 export type ObservationComponent = z.infer<typeof ObservationComponentSchema>
 
@@ -13811,13 +13811,13 @@ export interface MedicinalProductAuthorizationProcedure extends BackboneElement 
 }
 
 export const MedicinalProductAuthorizationProcedureSchema: z.ZodType<MedicinalProductAuthorizationProcedure> = z.lazy(() =>
-  z.object({
+  BackboneElementSchema.extend({
     identifier: IdentifierSchema.optional(),
     type: CodeableConceptSchema,
     datePeriod: PeriodSchema.optional(),
     dateDateTime: z.string().optional(),
-    _dateDateTime: ElementSchema.optional(),
-    application: z.array(z.lazy(() => MedicinalProductAuthorizationProcedureSchema)).optional(),
+      _dateDateTime: ElementSchema.optional(),
+    application: z.lazy(() => z.array(MedicinalProductAuthorizationProcedureSchema)).optional(),
   })
 )
 

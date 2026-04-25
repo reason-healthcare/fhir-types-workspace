@@ -84,6 +84,11 @@ function topoSort(interfaces: IrInterface[]): IrInterface[] {
         // Strip array/optional wrappers — tsType is already just the name
         visit(field.tsType, stack);
       }
+      // _field: ElementSchema.optional() is emitted for every primitive extension —
+      // make the dependency explicit so Element is always sorted first.
+      if (field.hasPrimitiveExtension) {
+        visit("Element", stack);
+      }
     }
     stack.delete(name);
     visited.add(name);

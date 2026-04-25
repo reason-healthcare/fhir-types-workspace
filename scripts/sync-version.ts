@@ -15,7 +15,7 @@ function readJson(path: string): Record<string, unknown> {
 }
 
 function writeJson(path: string, data: Record<string, unknown>): void {
-  writeFileSync(path, JSON.stringify(data, null, 2) + "\n");
+  writeFileSync(path, `${JSON.stringify(data, null, 2)}\n`);
 }
 
 const rootPkg = readJson(join(root, "package.json"));

@@ -32,8 +32,13 @@ function forwardRefs(src: string): string[] {
   const seen = new Set<string>();
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i] ?? "";
-    if (/= z\.lazy\(/.test(line)) { inLazy = true; }
-    if (inLazy && /^\)$/.test(line.trim())) { inLazy = false; continue; }
+    if (/= z\.lazy\(/.test(line)) {
+      inLazy = true;
+    }
+    if (inLazy && /^\)$/.test(line.trim())) {
+      inLazy = false;
+      continue;
+    }
     if (inLazy) continue;
 
     for (const use of line.matchAll(/\b(\w+Schema)\b/g)) {
@@ -58,7 +63,7 @@ function execModule(src: string): Record<string, unknown> {
     .replace(/^export type [^\n]+\n/gm, "")
     .replace(/: z\.ZodType<[^>]+>/g, "")
     // Remove multi-line export interface blocks
-    .replace(/export interface \w[^\n]*\n(?:  [^\n]*\n)*\}\n/g, "")
+    .replace(/export interface \w[^\n]*\n(?: {2}[^\n]*\n)*\}\n/g, "")
     .replace(/^export /gm, "");
   const constNames = [...code.matchAll(/^const (\w+)/gm)].map((m) => m[1] as string);
   const body = `${code}\nreturn { ${constNames.join(", ")} };`;
@@ -117,7 +122,13 @@ const primitiveExtensionModel: IrModel = {
     {
       name: "Element",
       fields: [
-        { name: "id", tsType: "string", required: false, isArray: false, hasPrimitiveExtension: false },
+        {
+          name: "id",
+          tsType: "string",
+          required: false,
+          isArray: false,
+          hasPrimitiveExtension: false,
+        },
       ],
     },
   ],
@@ -132,14 +143,26 @@ const extendsModel: IrModel = {
       name: "Coding",
       extends: "Element", // SchemaName.extend({}) — not lazy
       fields: [
-        { name: "code", tsType: "string", required: false, isArray: false, hasPrimitiveExtension: false },
+        {
+          name: "code",
+          tsType: "string",
+          required: false,
+          isArray: false,
+          hasPrimitiveExtension: false,
+        },
       ],
     },
     // Element declared AFTER Coding — triggers TDZ without the fix
     {
       name: "Element",
       fields: [
-        { name: "id", tsType: "string", required: false, isArray: false, hasPrimitiveExtension: false },
+        {
+          name: "id",
+          tsType: "string",
+          required: false,
+          isArray: false,
+          hasPrimitiveExtension: false,
+        },
       ],
     },
   ],
@@ -182,7 +205,13 @@ describe("zod emitter — topoSort forward references", () => {
           name: "Patient",
           extends: "DomainResource",
           fields: [
-            { name: "birthDate", tsType: "string", required: false, isArray: false, hasPrimitiveExtension: true },
+            {
+              name: "birthDate",
+              tsType: "string",
+              required: false,
+              isArray: false,
+              hasPrimitiveExtension: true,
+            },
           ],
         },
         {
@@ -193,13 +222,25 @@ describe("zod emitter — topoSort forward references", () => {
         {
           name: "Resource",
           fields: [
-            { name: "id", tsType: "string", required: false, isArray: false, hasPrimitiveExtension: true },
+            {
+              name: "id",
+              tsType: "string",
+              required: false,
+              isArray: false,
+              hasPrimitiveExtension: true,
+            },
           ],
         },
         {
           name: "Element",
           fields: [
-            { name: "id", tsType: "string", required: false, isArray: false, hasPrimitiveExtension: false },
+            {
+              name: "id",
+              tsType: "string",
+              required: false,
+              isArray: false,
+              hasPrimitiveExtension: false,
+            },
           ],
         },
       ],
@@ -217,14 +258,26 @@ describe("zod emitter — topoSort forward references", () => {
           name: "Reference",
           extends: "Element",
           fields: [
-            { name: "identifier", tsType: "Identifier", required: false, isArray: false, hasPrimitiveExtension: false },
+            {
+              name: "identifier",
+              tsType: "Identifier",
+              required: false,
+              isArray: false,
+              hasPrimitiveExtension: false,
+            },
           ],
         },
         {
           name: "Identifier",
           extends: "Element",
           fields: [
-            { name: "assigner", tsType: "Reference", required: false, isArray: false, hasPrimitiveExtension: false },
+            {
+              name: "assigner",
+              tsType: "Reference",
+              required: false,
+              isArray: false,
+              hasPrimitiveExtension: false,
+            },
           ],
         },
       ],
@@ -243,7 +296,13 @@ describe("zod emitter — topoSort forward references", () => {
         {
           name: "Element",
           fields: [
-            { name: "extension", tsType: "Extension", required: false, isArray: true, hasPrimitiveExtension: false },
+            {
+              name: "extension",
+              tsType: "Extension",
+              required: false,
+              isArray: true,
+              hasPrimitiveExtension: false,
+            },
           ],
         },
         {
@@ -265,7 +324,14 @@ describe("zod emitter — topoSort forward references", () => {
         {
           name: "QuestionnaireItem",
           fields: [
-            { name: "item", tsType: "QuestionnaireItem", required: false, isArray: true, hasPrimitiveExtension: false, isLazy: true },
+            {
+              name: "item",
+              tsType: "QuestionnaireItem",
+              required: false,
+              isArray: true,
+              hasPrimitiveExtension: false,
+              isLazy: true,
+            },
           ],
         },
       ],
@@ -281,9 +347,44 @@ describe("zod emitter — topoSort forward references", () => {
     const model: IrModel = {
       version: "r4",
       interfaces: [
-        { name: "C", extends: "B", fields: [{ name: "c", tsType: "string", required: false, isArray: false, hasPrimitiveExtension: false }] },
-        { name: "B", extends: "A", fields: [{ name: "b", tsType: "string", required: false, isArray: false, hasPrimitiveExtension: false }] },
-        { name: "A", fields: [{ name: "a", tsType: "string", required: false, isArray: false, hasPrimitiveExtension: false }] },
+        {
+          name: "C",
+          extends: "B",
+          fields: [
+            {
+              name: "c",
+              tsType: "string",
+              required: false,
+              isArray: false,
+              hasPrimitiveExtension: false,
+            },
+          ],
+        },
+        {
+          name: "B",
+          extends: "A",
+          fields: [
+            {
+              name: "b",
+              tsType: "string",
+              required: false,
+              isArray: false,
+              hasPrimitiveExtension: false,
+            },
+          ],
+        },
+        {
+          name: "A",
+          fields: [
+            {
+              name: "a",
+              tsType: "string",
+              required: false,
+              isArray: false,
+              hasPrimitiveExtension: false,
+            },
+          ],
+        },
       ],
     };
     const output = emitZod(model);
@@ -359,7 +460,14 @@ describe("field expression mapping", () => {
         {
           name: "Item",
           fields: [
-            { name: "item", tsType: "Item", required: false, isArray: false, hasPrimitiveExtension: false, isLazy: true },
+            {
+              name: "item",
+              tsType: "Item",
+              required: false,
+              isArray: false,
+              hasPrimitiveExtension: false,
+              isLazy: true,
+            },
           ],
         },
       ],
@@ -374,7 +482,14 @@ describe("field expression mapping", () => {
         {
           name: "Item",
           fields: [
-            { name: "item", tsType: "Item", required: false, isArray: true, hasPrimitiveExtension: false, isLazy: true },
+            {
+              name: "item",
+              tsType: "Item",
+              required: false,
+              isArray: true,
+              hasPrimitiveExtension: false,
+              isLazy: true,
+            },
           ],
         },
       ],
@@ -392,7 +507,13 @@ describe("hasPrimitiveExtension", () => {
         {
           name: "Patient",
           fields: [
-            { name: "birthDate", tsType: "string", required: false, isArray: false, hasPrimitiveExtension: true },
+            {
+              name: "birthDate",
+              tsType: "string",
+              required: false,
+              isArray: false,
+              hasPrimitiveExtension: true,
+            },
           ],
         },
       ],
@@ -409,7 +530,13 @@ describe("hasPrimitiveExtension", () => {
         {
           name: "Element",
           fields: [
-            { name: "id", tsType: "string", required: false, isArray: false, hasPrimitiveExtension: true },
+            {
+              name: "id",
+              tsType: "string",
+              required: false,
+              isArray: false,
+              hasPrimitiveExtension: true,
+            },
           ],
         },
       ],
@@ -425,7 +552,13 @@ describe("hasPrimitiveExtension", () => {
         {
           name: "Patient",
           fields: [
-            { name: "name", tsType: "string", required: false, isArray: false, hasPrimitiveExtension: true },
+            {
+              name: "name",
+              tsType: "string",
+              required: false,
+              isArray: false,
+              hasPrimitiveExtension: true,
+            },
           ],
         },
       ],
@@ -453,9 +586,7 @@ describe("extends / base type", () => {
   it("type with extends whose base is NOT in the model → generates z.object({", () => {
     const model: IrModel = {
       version: "r4",
-      interfaces: [
-        { name: "Child", extends: "UnknownBase", fields: [] },
-      ],
+      interfaces: [{ name: "Child", extends: "UnknownBase", fields: [] }],
     };
     expect(emitZod(model)).toContain("export const ChildSchema = z.object({");
     expect(emitZod(model)).not.toContain("UnknownBaseSchema");
@@ -466,9 +597,7 @@ describe("JSDoc description", () => {
   it("iface with description → emits /** ... */ block before schema", () => {
     const model: IrModel = {
       version: "r4",
-      interfaces: [
-        { name: "Foo", description: "A test type for Foo", fields: [] },
-      ],
+      interfaces: [{ name: "Foo", description: "A test type for Foo", fields: [] }],
     };
     const output = emitZod(model);
     expect(output).toContain("/**");
@@ -493,7 +622,14 @@ describe("lazyTargets — z.ZodType<T> path", () => {
         {
           name: "Item",
           fields: [
-            { name: "item", tsType: "Item", required: false, isArray: true, hasPrimitiveExtension: false, isLazy: true },
+            {
+              name: "item",
+              tsType: "Item",
+              required: false,
+              isArray: true,
+              hasPrimitiveExtension: false,
+              isLazy: true,
+            },
           ],
         },
       ],
@@ -512,7 +648,14 @@ describe("lazyTargets — z.ZodType<T> path", () => {
           name: "Child",
           extends: "Base",
           fields: [
-            { name: "child", tsType: "Child", required: false, isArray: true, hasPrimitiveExtension: false, isLazy: true },
+            {
+              name: "child",
+              tsType: "Child",
+              required: false,
+              isArray: true,
+              hasPrimitiveExtension: false,
+              isLazy: true,
+            },
           ],
         },
       ],
@@ -529,7 +672,14 @@ describe("lazyTargets — z.ZodType<T> path", () => {
         {
           name: "Item",
           fields: [
-            { name: "item", tsType: "Item", required: false, isArray: true, hasPrimitiveExtension: false, isLazy: true },
+            {
+              name: "item",
+              tsType: "Item",
+              required: false,
+              isArray: true,
+              hasPrimitiveExtension: false,
+              isLazy: true,
+            },
           ],
         },
       ],
@@ -548,62 +698,153 @@ describe("runtime — Zod parsing", () => {
       {
         name: "Element",
         fields: [
-          { name: "id", tsType: "string", required: false, isArray: false, hasPrimitiveExtension: true },
-          { name: "extension", tsType: "Extension", required: false, isArray: true, hasPrimitiveExtension: false },
+          {
+            name: "id",
+            tsType: "string",
+            required: false,
+            isArray: false,
+            hasPrimitiveExtension: true,
+          },
+          {
+            name: "extension",
+            tsType: "Extension",
+            required: false,
+            isArray: true,
+            hasPrimitiveExtension: false,
+          },
         ],
       },
       {
         name: "Extension",
         extends: "Element",
         fields: [
-          { name: "url", tsType: "string", required: false, isArray: false, hasPrimitiveExtension: false },
+          {
+            name: "url",
+            tsType: "string",
+            required: false,
+            isArray: false,
+            hasPrimitiveExtension: false,
+          },
         ],
       },
       {
         name: "Coding",
         extends: "Element",
         fields: [
-          { name: "code", tsType: "string", required: false, isArray: false, hasPrimitiveExtension: false },
-          { name: "display", tsType: "string", required: false, isArray: false, hasPrimitiveExtension: false },
+          {
+            name: "code",
+            tsType: "string",
+            required: false,
+            isArray: false,
+            hasPrimitiveExtension: false,
+          },
+          {
+            name: "display",
+            tsType: "string",
+            required: false,
+            isArray: false,
+            hasPrimitiveExtension: false,
+          },
         ],
       },
       {
         name: "Narrative",
         extends: "Element",
         fields: [
-          { name: "status", tsType: "('generated'|'extensions'|'additional'|'empty')", required: true, isArray: false, hasPrimitiveExtension: false },
-          { name: "div", tsType: "string", required: true, isArray: false, hasPrimitiveExtension: false },
+          {
+            name: "status",
+            tsType: "('generated'|'extensions'|'additional'|'empty')",
+            required: true,
+            isArray: false,
+            hasPrimitiveExtension: false,
+          },
+          {
+            name: "div",
+            tsType: "string",
+            required: true,
+            isArray: false,
+            hasPrimitiveExtension: false,
+          },
         ],
       },
       {
         name: "Reference",
         extends: "Element",
         fields: [
-          { name: "reference", tsType: "string", required: false, isArray: false, hasPrimitiveExtension: false },
-          { name: "identifier", tsType: "Identifier", required: false, isArray: false, hasPrimitiveExtension: false },
+          {
+            name: "reference",
+            tsType: "string",
+            required: false,
+            isArray: false,
+            hasPrimitiveExtension: false,
+          },
+          {
+            name: "identifier",
+            tsType: "Identifier",
+            required: false,
+            isArray: false,
+            hasPrimitiveExtension: false,
+          },
         ],
       },
       {
         name: "Identifier",
         extends: "Element",
         fields: [
-          { name: "system", tsType: "string", required: false, isArray: false, hasPrimitiveExtension: false },
-          { name: "assigner", tsType: "Reference", required: false, isArray: false, hasPrimitiveExtension: false },
+          {
+            name: "system",
+            tsType: "string",
+            required: false,
+            isArray: false,
+            hasPrimitiveExtension: false,
+          },
+          {
+            name: "assigner",
+            tsType: "Reference",
+            required: false,
+            isArray: false,
+            hasPrimitiveExtension: false,
+          },
         ],
       },
       {
         name: "Patient",
         extends: "Element",
         fields: [
-          { name: "resourceType", tsType: "'Patient'", required: true, isArray: false, hasPrimitiveExtension: false },
-          { name: "birthDate", tsType: "string", required: false, isArray: false, hasPrimitiveExtension: false },
+          {
+            name: "resourceType",
+            tsType: "'Patient'",
+            required: true,
+            isArray: false,
+            hasPrimitiveExtension: false,
+          },
+          {
+            name: "birthDate",
+            tsType: "string",
+            required: false,
+            isArray: false,
+            hasPrimitiveExtension: false,
+          },
         ],
       },
       {
         name: "QuestionnaireItem",
         fields: [
-          { name: "linkId", tsType: "string", required: true, isArray: false, hasPrimitiveExtension: false },
-          { name: "item", tsType: "QuestionnaireItem", required: false, isArray: true, hasPrimitiveExtension: false, isLazy: true },
+          {
+            name: "linkId",
+            tsType: "string",
+            required: true,
+            isArray: false,
+            hasPrimitiveExtension: false,
+          },
+          {
+            name: "item",
+            tsType: "QuestionnaireItem",
+            required: false,
+            isArray: true,
+            hasPrimitiveExtension: false,
+            isLazy: true,
+          },
         ],
       },
     ],

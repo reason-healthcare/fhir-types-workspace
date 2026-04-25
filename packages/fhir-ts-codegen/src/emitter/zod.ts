@@ -187,7 +187,11 @@ function renderSchemaFields(iface: IrInterface, forceLazy: Set<string>): string[
     const fieldKey = `${iface.name}.${field.name}`;
     const lazy = field.isLazy === true || forceLazy.has(fieldKey);
     lines.push(
-      renderField(field.name, field.tsType, { isArray: field.isArray, required: field.required, lazy }),
+      renderField(field.name, field.tsType, {
+        isArray: field.isArray,
+        required: field.required,
+        lazy,
+      }),
     );
     if (field.hasPrimitiveExtension) {
       const extKey = `${iface.name}._${field.name}`;

@@ -1,6 +1,6 @@
 {
   "name": "@reasonhealth/fhir-zod",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Zod schemas for FHIR R4, R4B, R5",
   "type": "module",
   "license": "MIT",

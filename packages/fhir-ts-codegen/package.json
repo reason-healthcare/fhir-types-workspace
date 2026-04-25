@@ -1,6 +1,6 @@
 {
   "name": "@reasonhealth/fhir-ts-codegen",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "General-purpose FHIR StructureDefinition → TypeScript declarations + Zod schemas",
   "type": "module",
   "license": "MIT",

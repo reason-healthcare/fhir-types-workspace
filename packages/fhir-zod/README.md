@@ -146,3 +146,17 @@ bun run generate
 ```
 
 Requires `@reasonhealth/fhir-ts-codegen` to be available (installed via workspace). FHIR packages are downloaded automatically on first run and cached in `.fhir-cache/`.
+
+## Supported By
+
+This project is proudly supported by [Vermonster](https://vermonster.com) / [ReasonHealth](https://reason.health).
+
+<p>
+  <span style="padding: 0 20px; display: inline-block;">
+    <a href="https://vermonster.com"><img src="https://www.vermonster.com/images/vermonster-logo.svg" alt="Vermonster Logo" height="20px"></a>
+  </span>
+  <span>&nbsp;&nbsp;&nbsp;</span>
+  <span style="padding: 0 20px; display: inline-block;">
+    <a href="https://reason.health"><img src="https://www.vermonster.com/images/reasonhub-logo-full-color-rgb.svg" alt="ReasonHealth Logo" height="20px"></a>
+  </span>
+</p>

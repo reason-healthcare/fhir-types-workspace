@@ -1,7 +1,7 @@
-import type { IrModel, IrInterface, IrField } from "../ir.ts";
+import type { IrModel, IrInterface } from "../ir.ts";
 
 // ---------------------------------------------------------------------------
-// Type mapping: IR tsType → Zod expression
+// Type mapping: IR tsType → bare Zod expression (no array/optional wrapping)
 // ---------------------------------------------------------------------------
 
 const PRIMITIVE_ZOD: Record<string, string> = {
@@ -11,11 +11,11 @@ const PRIMITIVE_ZOD: Record<string, string> = {
 };
 
 /**
- * Convert an IR tsType string to a Zod schema expression.
+ * Convert an IR tsType string to a bare Zod schema expression.
  * Inline enum types like `('male'|'female'|'other'|'unknown')` are converted
  * to `z.enum([...])`.
  */
-function tsTypeToZod(tsType: string, isLazy?: boolean): string {
+function zodAtom(tsType: string, lazy?: boolean): string {
   // Inline enum: ('a'|'b'|'c')
   const enumMatch = tsType.match(/^\(([^)]+)\)$/);
   if (enumMatch) {
@@ -31,11 +31,9 @@ function tsTypeToZod(tsType: string, isLazy?: boolean): string {
   // TypeScript primitives
   if (tsType in PRIMITIVE_ZOD) return PRIMITIVE_ZOD[tsType] as string;
 
-  // Complex type reference — wrap in z.lazy() if flagged or always for complex types
+  // Complex type reference
   const schemaName = `${tsType}Schema`;
-  if (isLazy) {
-    return `z.lazy(() => ${schemaName})`;
-  }
+  if (lazy) return `z.lazy(() => ${schemaName})`;
   return schemaName;
 }
 
@@ -76,7 +74,7 @@ function topoSort(interfaces: IrInterface[]): {
    * currently in the DFS stack. This means visiting typeName as a non-lazy
    * field dep would cause typeName to sort before one of its own base types.
    */
-  function extendsInStack(typeName: string, stack: Set<string>): boolean {
+  function ancestorInStack(typeName: string, stack: Set<string>): boolean {
     let current = nameToIface.get(typeName)?.extends;
     const seen = new Set<string>();
     while (current && !seen.has(current)) {
@@ -101,7 +99,7 @@ function topoSort(interfaces: IrInterface[]): {
 
     for (const field of iface.fields) {
       if (!field.isLazy && field.tsType && !(field.tsType in PRIMITIVE_ZOD)) {
-        if (stack.has(field.tsType) || extendsInStack(field.tsType, stack)) {
+        if (stack.has(field.tsType) || ancestorInStack(field.tsType, stack)) {
           // Soft field edge would violate a hard extends constraint → defer via lazy.
           forceLazy.add(`${name}.${field.name}`);
         } else {
@@ -145,7 +143,7 @@ function topoSort(interfaces: IrInterface[]): {
  * turns it into a ZodLazy which loses the `.extend()` method needed by all
  * derived FHIR types.
  */
-function buildLazySet(interfaces: IrInterface[]): Set<string> {
+function buildLazyTargets(interfaces: IrInterface[]): Set<string> {
   const lazy = new Set<string>();
   for (const iface of interfaces) {
     for (const field of iface.fields) {
@@ -159,35 +157,54 @@ function buildLazySet(interfaces: IrInterface[]): Set<string> {
 // Field rendering
 // ---------------------------------------------------------------------------
 
-function renderZodField(field: IrField, forceLazyField?: boolean): string {
-  const lazy = field.isLazy || forceLazyField;
-  let zodExpr = tsTypeToZod(field.tsType, lazy);
+/**
+ * Render a single Zod field line at 2-space indent.
+ * Takes primitives (not IrField) to keep it pure and testable.
+ */
+function renderField(
+  name: string,
+  tsType: string,
+  opts: { isArray: boolean; required: boolean; lazy: boolean },
+): string {
+  const { isArray, required, lazy } = opts;
+  let expr: string;
+  if (isArray) {
+    expr = lazy ? `z.lazy(() => z.array(${zodAtom(tsType)}))` : `z.array(${zodAtom(tsType)})`;
+  } else {
+    expr = zodAtom(tsType, lazy);
+  }
+  if (!required) expr = `${expr}.optional()`;
+  return `  ${name}: ${expr},`;
+}
 
-  if (field.isArray) {
-    if (lazy) {
-      // z.lazy(() => Schema) already wraps the inner schema; wrap array outside lazy
-      zodExpr = `z.lazy(() => z.array(${tsTypeToZod(field.tsType)}))`;
-    } else {
-      zodExpr = `z.array(${zodExpr})`;
+/**
+ * Render all schema body lines for an interface at 2-space indent.
+ * Includes both field lines and hasPrimitiveExtension shadow lines.
+ */
+function renderSchemaFields(iface: IrInterface, forceLazy: Set<string>): string[] {
+  const lines: string[] = [];
+  for (const field of iface.fields) {
+    const fieldKey = `${iface.name}.${field.name}`;
+    const lazy = field.isLazy === true || forceLazy.has(fieldKey);
+    lines.push(
+      renderField(field.name, field.tsType, { isArray: field.isArray, required: field.required, lazy }),
+    );
+    if (field.hasPrimitiveExtension) {
+      const extKey = `${iface.name}._${field.name}`;
+      if (forceLazy.has(extKey)) {
+        lines.push(`  _${field.name}: z.lazy(() => ElementSchema).optional(),`);
+      } else {
+        lines.push(`  _${field.name}: ElementSchema.optional(),`);
+      }
     }
   }
-
-  if (!field.required) {
-    zodExpr = `${zodExpr}.optional()`;
-  }
-
-  return `  ${field.name}: ${zodExpr},`;
+  return lines;
 }
 
 // ---------------------------------------------------------------------------
 // Interface rendering
 // ---------------------------------------------------------------------------
 
-/**
- * Determines if a schema needs to be declared with an explicit TypeScript type
- * annotation (required when the schema name appears in a z.lazy() somewhere,
- * because TypeScript can't infer the type of a recursive z.lazy() call).
- */
 function renderSchema(
   iface: IrInterface,
   lazyTargets: Set<string>,
@@ -206,14 +223,7 @@ function renderSchema(
     lines.push(" */");
   }
 
-  /** Render the primitive-extension shadow field for a given field name. */
-  const renderPrimExt = (fieldName: string) => {
-    const key = `${iface.name}._${fieldName}`;
-    if (forceLazy.has(key)) {
-      return `  _${fieldName}: z.lazy(() => ElementSchema).optional(),`;
-    }
-    return `  _${fieldName}: ElementSchema.optional(),`;
-  };
+  const fieldLines = renderSchemaFields(iface, forceLazy);
 
   if (needsTypeAnnotation) {
     // Emit a TypeScript interface declaration so we can annotate the schema type.
@@ -235,9 +245,7 @@ function renderSchema(
     // Schema with explicit type annotation, wrapped in z.lazy.
     // Preserve extends at the Zod level too when applicable.
     const extZod =
-      iface.extends && allNames.has(iface.extends)
-        ? `${iface.extends}Schema.extend`
-        : null;
+      iface.extends && allNames.has(iface.extends) ? `${iface.extends}Schema.extend` : null;
 
     lines.push(`export const ${schemaName}: z.ZodType<${iface.name}> = z.lazy(() =>`);
     if (extZod) {
@@ -245,12 +253,10 @@ function renderSchema(
     } else {
       lines.push("  z.object({");
     }
-    for (const field of iface.fields) {
-      const fieldKey = `${iface.name}.${field.name}`;
-      lines.push(`  ${renderZodField(field, forceLazy.has(fieldKey))}`);
-      if (field.hasPrimitiveExtension) {
-        lines.push(`    ${renderPrimExt(field.name)}`);
-      }
+    // The lazyTargets branch adds extra indent; shadow fields (_field) get one
+    // additional level to match the current output format.
+    for (const fl of fieldLines) {
+      lines.push(fl.startsWith("  _") ? `    ${fl}` : `  ${fl}`);
     }
     lines.push("  })");
     lines.push(")");
@@ -264,12 +270,8 @@ function renderSchema(
     } else {
       lines.push(`export const ${schemaName} = z.object({`);
     }
-    for (const field of iface.fields) {
-      const fieldKey = `${iface.name}.${field.name}`;
-      lines.push(renderZodField(field, forceLazy.has(fieldKey)));
-      if (field.hasPrimitiveExtension) {
-        lines.push(renderPrimExt(field.name));
-      }
+    for (const fl of fieldLines) {
+      lines.push(fl);
     }
     lines.push("})");
     lines.push(`export type ${iface.name} = z.infer<typeof ${schemaName}>`);
@@ -289,22 +291,14 @@ function renderSchema(
  * per FHIR type along with an inferred TypeScript type alias.
  */
 export function emitZod(model: IrModel): string {
-  const parts: string[] = [];
-
-  parts.push(`import { z } from 'zod'`);
-  parts.push("");
-
   const { sorted, forceLazy } = topoSort(model.interfaces);
-  const lazyTargets = buildLazySet(model.interfaces);
+  const lazyTargets = buildLazyTargets(model.interfaces);
   const allNames = new Set(model.interfaces.map((i) => i.name));
 
-  for (const iface of sorted) {
-    parts.push(renderSchema(iface, lazyTargets, allNames, forceLazy));
-    parts.push("");
-  }
+  const parts = [
+    `import { z } from 'zod'`,
+    ...sorted.map((iface) => renderSchema(iface, lazyTargets, allNames, forceLazy)),
+  ];
 
-  // Remove trailing blank line
-  while (parts[parts.length - 1] === "") parts.pop();
-
-  return `${parts.join("\n")}\n`;
+  return `${parts.join("\n\n")}\n`;
 }

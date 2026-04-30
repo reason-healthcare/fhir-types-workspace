@@ -9676,6 +9676,13 @@ export const MedicationSchema = DomainResourceSchema.extend({
 export type Medication = z.infer<typeof MedicationSchema>
 
 /**
+ * A fixed quantity (no comparator)
+ */
+export const SimpleQuantitySchema = QuantitySchema.extend({
+})
+export type SimpleQuantity = z.infer<typeof SimpleQuantitySchema>
+
+/**
  * Additional information supporting the diagnostic report
  * This backbone element contains supporting information that was used in the creation of the report not included in the results already included in the report.
  */
@@ -16993,6 +17000,13 @@ export const PractitionerSchema = DomainResourceSchema.extend({
   communication: z.array(PractitionerCommunicationSchema).optional(),
 })
 export type Practitioner = z.infer<typeof PractitionerSchema>
+
+/**
+ * An amount of money. With regard to precision, see [Decimal Precision](datatypes.html#precision)
+ */
+export const MoneyQuantitySchema = QuantitySchema.extend({
+})
+export type MoneyQuantity = z.infer<typeof MoneyQuantitySchema>
 
 /**
  * An organization that manufactures this ingredient

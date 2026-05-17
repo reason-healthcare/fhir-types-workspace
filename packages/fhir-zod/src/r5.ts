@@ -10,17 +10,28 @@ export type Base = z.infer<typeof BaseSchema>
 /**
  * Element Type: Base definition for all elements in a resource.
  */
-export const ElementSchema = BaseSchema.extend({
+export interface Element extends Base {
+  id?: string | undefined
+  _id?: Element | undefined
+  extension?: Extension[] | undefined
+}
+
+const _ElementBase: z.ZodObject<{
+  id: z.ZodOptional<z.ZodString>;
+  _id: z.ZodOptional<z.ZodTypeAny>;
+  extension: z.ZodOptional<z.ZodArray<z.ZodTypeAny>>;
+}> = BaseSchema.extend({
   id: z.string().optional(),
-  _id: z.lazy(() => ElementSchema).optional(),
-  extension: z.lazy(() => z.array(ExtensionSchema)).optional(),
+  _id: (z.lazy(() => ElementSchema) as z.ZodTypeAny).optional(),
+  extension: (z.lazy(() => z.array(ExtensionSchema)) as unknown as z.ZodArray<z.ZodTypeAny>).optional(),
 })
-export type Element = z.infer<typeof ElementSchema>
+
+export const ElementSchema: z.ZodType<Element> = _ElementBase
 
 /**
  * DataType Type: The base class for all re-useable types defined as part of the FHIR Specification.
  */
-export const DataTypeSchema = ElementSchema.extend({
+export const DataTypeSchema = _ElementBase.extend({
 })
 export type DataType = z.infer<typeof DataTypeSchema>
 
@@ -158,7 +169,19 @@ export type CodeableConcept = z.infer<typeof CodeableConceptSchema>
 /**
  * Identifier Type: An identifier - identifies some entity uniquely and unambiguously. Typically this is used for business identifiers.
  */
-export const IdentifierSchema = DataTypeSchema.extend({
+export interface Identifier extends DataType {
+  use?: ('usual'|'official'|'temp'|'secondary'|'old') | undefined
+  _use?: Element | undefined
+  type?: CodeableConcept | undefined
+  system?: string | undefined
+  _system?: Element | undefined
+  value?: string | undefined
+  _value?: Element | undefined
+  period?: Period | undefined
+  assigner?: Reference | undefined
+}
+
+export const IdentifierSchema: z.ZodType<Identifier> = DataTypeSchema.extend({
   use: z.enum(['usual', 'official', 'temp', 'secondary', 'old']).optional(),
   _use: ElementSchema.optional(),
   type: CodeableConceptSchema.optional(),
@@ -167,9 +190,8 @@ export const IdentifierSchema = DataTypeSchema.extend({
   value: z.string().optional(),
   _value: ElementSchema.optional(),
   period: PeriodSchema.optional(),
-  assigner: z.lazy(() => ReferenceSchema).optional(),
+  assigner: (z.lazy(() => ReferenceSchema) as z.ZodTypeAny).optional(),
 })
-export type Identifier = z.infer<typeof IdentifierSchema>
 
 /**
  * Reference Type: A reference from one resource to another.
@@ -384,24 +406,41 @@ export type Signature = z.infer<typeof SignatureSchema>
 /**
  * BackboneType Type: Base definition for the few data types that are allowed to carry modifier extensions.
  */
-export const BackboneTypeSchema = DataTypeSchema.extend({
-  modifierExtension: z.lazy(() => z.array(ExtensionSchema)).optional(),
+export interface BackboneType extends DataType {
+  modifierExtension?: Extension[] | undefined
+}
+
+const _BackboneTypeBase: z.ZodObject<{
+  modifierExtension: z.ZodOptional<z.ZodArray<z.ZodTypeAny>>;
+}> = DataTypeSchema.extend({
+  modifierExtension: (z.lazy(() => z.array(ExtensionSchema)) as unknown as z.ZodArray<z.ZodTypeAny>).optional(),
 })
-export type BackboneType = z.infer<typeof BackboneTypeSchema>
+
+export const BackboneTypeSchema: z.ZodType<BackboneType> = _BackboneTypeBase
 
 /**
  * BackboneElement Type: Base definition for all elements that are defined inside a resource - but not those in a data type.
  */
-export const BackboneElementSchema = ElementSchema.extend({
-  modifierExtension: z.lazy(() => z.array(ExtensionSchema)).optional(),
+export interface BackboneElement extends Element {
+  modifierExtension?: Extension[] | undefined
+}
+
+const _BackboneElementBase: z.ZodObject<{
+  id: z.ZodOptional<z.ZodString>;
+  _id: z.ZodOptional<z.ZodTypeAny>;
+  extension: z.ZodOptional<z.ZodArray<z.ZodTypeAny>>;
+  modifierExtension: z.ZodOptional<z.ZodArray<z.ZodTypeAny>>;
+}> = _ElementBase.extend({
+  modifierExtension: (z.lazy(() => z.array(ExtensionSchema)) as unknown as z.ZodArray<z.ZodTypeAny>).optional(),
 })
-export type BackboneElement = z.infer<typeof BackboneElementSchema>
+
+export const BackboneElementSchema: z.ZodType<BackboneElement> = _BackboneElementBase
 
 /**
  * When the event is to occur
  * A set of rules that describe when the event is scheduled.
  */
-export const TimingRepeatSchema = BackboneElementSchema.extend({
+export const TimingRepeatSchema = _BackboneElementBase.extend({
   boundsDuration: DurationSchema.optional(),
   boundsRange: RangeSchema.optional(),
   boundsPeriod: PeriodSchema.optional(),
@@ -439,7 +478,7 @@ export type TimingRepeat = z.infer<typeof TimingRepeatSchema>
 /**
  * Timing Type: Specifies an event that may occur multiple times. Timing schedules are used to record when things are planned, expected or requested to occur. The most common usage is in dosage instructions for medications. They are also used when planning care of various kinds, and may be used for reporting the schedule to which past regular activities were carried out.
  */
-export const TimingSchema = BackboneTypeSchema.extend({
+export const TimingSchema = _BackboneTypeBase.extend({
   event: z.array(z.string()).optional(),
   _event: ElementSchema.optional(),
   repeat: TimingRepeatSchema.optional(),
@@ -461,7 +500,7 @@ export type ContactDetail = z.infer<typeof ContactDetailSchema>
  * What codes are expected
  * Code filters specify additional constraints on the data, specifying the value set of interest for a particular element of the data. Each code filter defines an additional constraint on the data, i.e. code filters are AND'ed, not OR'ed.
  */
-export const DataRequirementCodeFilterSchema = BackboneElementSchema.extend({
+export const DataRequirementCodeFilterSchema = _BackboneElementBase.extend({
   path: z.string().optional(),
   _path: ElementSchema.optional(),
   searchParam: z.string().optional(),
@@ -476,7 +515,7 @@ export type DataRequirementCodeFilter = z.infer<typeof DataRequirementCodeFilter
  * What dates/date ranges are expected
  * Date filters specify additional constraints on the data in terms of the applicable date range for specific elements. Each date filter specifies an additional constraint on the data, i.e. date filters are AND'ed, not OR'ed.
  */
-export const DataRequirementDateFilterSchema = BackboneElementSchema.extend({
+export const DataRequirementDateFilterSchema = _BackboneElementBase.extend({
   path: z.string().optional(),
   _path: ElementSchema.optional(),
   searchParam: z.string().optional(),
@@ -492,7 +531,7 @@ export type DataRequirementDateFilter = z.infer<typeof DataRequirementDateFilter
  * What values are expected
  * Value filters specify additional constraints on the data for elements other than code-valued or date-valued. Each value filter specifies an additional constraint on the data (i.e. valueFilters are AND'ed, not OR'ed).
  */
-export const DataRequirementValueFilterSchema = BackboneElementSchema.extend({
+export const DataRequirementValueFilterSchema = _BackboneElementBase.extend({
   path: z.string().optional(),
   _path: ElementSchema.optional(),
   searchParam: z.string().optional(),
@@ -511,7 +550,7 @@ export type DataRequirementValueFilter = z.infer<typeof DataRequirementValueFilt
  * Specifies the order of the results to be returned.
  * This element can be used in combination with the sort element to specify quota requirements such as "the most recent 5" or "the highest 5". When multiple sorts are specified, they are applied in the order they appear in the resource.
  */
-export const DataRequirementSortSchema = BackboneElementSchema.extend({
+export const DataRequirementSortSchema = _BackboneElementBase.extend({
   path: z.string(),
   _path: ElementSchema.optional(),
   direction: z.enum(['ascending', 'descending']),
@@ -639,7 +678,7 @@ export type UsageContext = z.infer<typeof UsageContextSchema>
 /**
  * Times the {item} is available
  */
-export const AvailabilityAvailableTimeSchema = BackboneElementSchema.extend({
+export const AvailabilityAvailableTimeSchema = _BackboneElementBase.extend({
   daysOfWeek: z.array(z.enum(['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'])).optional(),
   _daysOfWeek: ElementSchema.optional(),
   allDay: z.boolean().optional(),
@@ -654,7 +693,7 @@ export type AvailabilityAvailableTime = z.infer<typeof AvailabilityAvailableTime
 /**
  * Not available during this time due to provided reason
  */
-export const AvailabilityNotAvailableTimeSchema = BackboneElementSchema.extend({
+export const AvailabilityNotAvailableTimeSchema = _BackboneElementBase.extend({
   description: z.string().optional(),
   _description: ElementSchema.optional(),
   during: PeriodSchema.optional(),
@@ -687,7 +726,7 @@ export type ExtendedContactDetail = z.infer<typeof ExtendedContactDetailSchema>
  * Amount of medication administered, to be administered or typical amount to be administered
  * Depending on the resource,this is the amount of medication administered, to  be administered or typical amount to be administered.
  */
-export const DosageDoseAndRateSchema = BackboneElementSchema.extend({
+export const DosageDoseAndRateSchema = _BackboneElementBase.extend({
   type: CodeableConceptSchema.optional(),
   doseRange: RangeSchema.optional(),
   doseQuantity: QuantitySchema.optional(),
@@ -700,7 +739,7 @@ export type DosageDoseAndRate = z.infer<typeof DosageDoseAndRateSchema>
 /**
  * Dosage Type: Indicates how the medication is/was taken or should be taken by the patient.
  */
-export const DosageSchema = BackboneTypeSchema.extend({
+export const DosageSchema = _BackboneTypeBase.extend({
   sequence: z.number().optional(),
   _sequence: ElementSchema.optional(),
   text: z.string().optional(),
@@ -820,7 +859,7 @@ export type DomainResource = z.infer<typeof DomainResourceSchema>
  * Query based trigger rule
  * The FHIR query based rules that the server should use to determine when to trigger a notification for this subscription topic.
  */
-export const SubscriptionTopicResourceTriggerQueryCriteriaSchema = BackboneElementSchema.extend({
+export const SubscriptionTopicResourceTriggerQueryCriteriaSchema = _BackboneElementBase.extend({
   previous: z.string().optional(),
   _previous: ElementSchema.optional(),
   resultForCreate: z.enum(['test-passes', 'test-fails']).optional(),
@@ -838,7 +877,7 @@ export type SubscriptionTopicResourceTriggerQueryCriteria = z.infer<typeof Subsc
  * Definition of a resource-based trigger for the subscription topic
  * A definition of a resource-based event that triggers a notification based on the SubscriptionTopic. The criteria may be just a human readable description and/or a full FHIR search string or FHIRPath expression. Multiple triggers are considered OR joined (e.g., a resource update matching ANY of the definitions will trigger a notification).
  */
-export const SubscriptionTopicResourceTriggerSchema = BackboneElementSchema.extend({
+export const SubscriptionTopicResourceTriggerSchema = _BackboneElementBase.extend({
   description: z.string().optional(),
   _description: ElementSchema.optional(),
   resource: z.string(),
@@ -855,7 +894,7 @@ export type SubscriptionTopicResourceTrigger = z.infer<typeof SubscriptionTopicR
  * Event definitions the SubscriptionTopic
  * Event definition which can be used to trigger the SubscriptionTopic.
  */
-export const SubscriptionTopicEventTriggerSchema = BackboneElementSchema.extend({
+export const SubscriptionTopicEventTriggerSchema = _BackboneElementBase.extend({
   description: z.string().optional(),
   _description: ElementSchema.optional(),
   event: CodeableConceptSchema,
@@ -868,7 +907,7 @@ export type SubscriptionTopicEventTrigger = z.infer<typeof SubscriptionTopicEven
  * Properties by which a Subscription can filter notifications from the SubscriptionTopic
  * List of properties by which Subscriptions on the SubscriptionTopic can be filtered. May be defined Search Parameters (e.g., Encounter.patient) or parameters defined within this SubscriptionTopic context (e.g., hub.event).
  */
-export const SubscriptionTopicCanFilterBySchema = BackboneElementSchema.extend({
+export const SubscriptionTopicCanFilterBySchema = _BackboneElementBase.extend({
   description: z.string().optional(),
   _description: ElementSchema.optional(),
   resource: z.string().optional(),
@@ -888,7 +927,7 @@ export type SubscriptionTopicCanFilterBy = z.infer<typeof SubscriptionTopicCanFi
  * Properties for describing the shape of notifications generated by this topic
  * List of properties to describe the shape (e.g., resources) included in notifications from this Subscription Topic.
  */
-export const SubscriptionTopicNotificationShapeSchema = BackboneElementSchema.extend({
+export const SubscriptionTopicNotificationShapeSchema = _BackboneElementBase.extend({
   resource: z.string(),
   _resource: ElementSchema.optional(),
   include: z.array(z.string()).optional(),
@@ -956,29 +995,11 @@ export const PrimitiveTypeSchema = DataTypeSchema.extend({
 export type PrimitiveType = z.infer<typeof PrimitiveTypeSchema>
 
 /**
- * uri Type: String of characters used to identify a name or a resource
- */
-export const uriSchema = PrimitiveTypeSchema.extend({
-  value: z.string().optional(),
-  _value: ElementSchema.optional(),
-})
-export type uri = z.infer<typeof uriSchema>
-
-/**
- * oid type: An OID represented as a URI
- */
-export const oidSchema = uriSchema.extend({
-  value: z.string().optional(),
-  _value: ElementSchema.optional(),
-})
-export type oid = z.infer<typeof oidSchema>
-
-/**
  * Whether or not the action is applicable
  * An expression that describes applicability criteria, or start/stop conditions for the action.
  * When multiple conditions of the same kind are present, the effects are combined using AND semantics, so the overall condition is true only if all of the conditions are true.
  */
-export const RequestOrchestrationActionConditionSchema = BackboneElementSchema.extend({
+export const RequestOrchestrationActionConditionSchema = _BackboneElementBase.extend({
   kind: z.enum(['applicability', 'start', 'stop']),
   _kind: ElementSchema.optional(),
   expression: ExpressionSchema.optional(),
@@ -989,7 +1010,7 @@ export type RequestOrchestrationActionCondition = z.infer<typeof RequestOrchestr
  * Input data requirements
  * Defines input data requirements for the action.
  */
-export const RequestOrchestrationActionInputSchema = BackboneElementSchema.extend({
+export const RequestOrchestrationActionInputSchema = _BackboneElementBase.extend({
   title: z.string().optional(),
   _title: ElementSchema.optional(),
   requirement: DataRequirementSchema.optional(),
@@ -1002,7 +1023,7 @@ export type RequestOrchestrationActionInput = z.infer<typeof RequestOrchestratio
  * Output data definition
  * Defines the outputs of the action, if any.
  */
-export const RequestOrchestrationActionOutputSchema = BackboneElementSchema.extend({
+export const RequestOrchestrationActionOutputSchema = _BackboneElementBase.extend({
   title: z.string().optional(),
   _title: ElementSchema.optional(),
   requirement: DataRequirementSchema.optional(),
@@ -1015,7 +1036,7 @@ export type RequestOrchestrationActionOutput = z.infer<typeof RequestOrchestrati
  * Relationship to another action
  * A relationship to another action such as "before" or "30-60 minutes after start of".
  */
-export const RequestOrchestrationActionRelatedActionSchema = BackboneElementSchema.extend({
+export const RequestOrchestrationActionRelatedActionSchema = _BackboneElementBase.extend({
   targetId: z.string(),
   _targetId: ElementSchema.optional(),
   relationship: z.enum(['before', 'before-start', 'before-end', 'concurrent', 'concurrent-with-start', 'concurrent-with-end', 'after', 'after-start', 'after-end']),
@@ -1032,7 +1053,7 @@ export type RequestOrchestrationActionRelatedAction = z.infer<typeof RequestOrch
  * The participant that should perform or be responsible for this action.
  * Because request orchestrations represent potential options for performing activities, some specific participants may still be unknown, so this element allows for both definitional participants (in the same way they are specified in ActivityDefinition and PlanDefinition resources) as well as identifying specific participants when they are known.
  */
-export const RequestOrchestrationActionParticipantSchema = BackboneElementSchema.extend({
+export const RequestOrchestrationActionParticipantSchema = _BackboneElementBase.extend({
   type: z.enum(['careteam', 'device', 'group', 'healthcareservice', 'location', 'organization', 'patient', 'practitioner', 'practitionerrole', 'relatedperson']).optional(),
   _type: ElementSchema.optional(),
   typeCanonical: z.string().optional(),
@@ -1051,7 +1072,7 @@ export type RequestOrchestrationActionParticipant = z.infer<typeof RequestOrches
  * Customizations that should be applied to the statically defined resource. For example, if the dosage of a medication must be computed based on the patient's weight, a customization would be used to specify an expression that calculated the weight, and the path on the resource that would contain the result.
  * Dynamic values are applied in the order in which they are defined in the RequestOrchestration resource. Note that when dynamic values are also specified by a referenced ActivityDefinition, the dynamicValues from the ActivityDefinition are applied first, followed by the dynamicValues specified here. In addition, if both a transform and dynamic values are specific, the dynamic values are applied to the result of the transform.
  */
-export const RequestOrchestrationActionDynamicValueSchema = BackboneElementSchema.extend({
+export const RequestOrchestrationActionDynamicValueSchema = _BackboneElementBase.extend({
   path: z.string().optional(),
   _path: ElementSchema.optional(),
   expression: ExpressionSchema.optional(),
@@ -1114,19 +1135,19 @@ export interface RequestOrchestrationAction extends BackboneElement {
 }
 
 export const RequestOrchestrationActionSchema: z.ZodType<RequestOrchestrationAction> = z.lazy(() =>
-  BackboneElementSchema.extend({
+  _BackboneElementBase.extend({
     linkId: z.string().optional(),
-      _linkId: ElementSchema.optional(),
+    _linkId: ElementSchema.optional(),
     prefix: z.string().optional(),
-      _prefix: ElementSchema.optional(),
+    _prefix: ElementSchema.optional(),
     title: z.string().optional(),
-      _title: ElementSchema.optional(),
+    _title: ElementSchema.optional(),
     description: z.string().optional(),
-      _description: ElementSchema.optional(),
+    _description: ElementSchema.optional(),
     textEquivalent: z.string().optional(),
-      _textEquivalent: ElementSchema.optional(),
+    _textEquivalent: ElementSchema.optional(),
     priority: z.enum(['routine', 'urgent', 'asap', 'stat']).optional(),
-      _priority: ElementSchema.optional(),
+    _priority: ElementSchema.optional(),
     code: z.array(CodeableConceptSchema).optional(),
     documentation: z.array(RelatedArtifactSchema).optional(),
     goal: z.array(ReferenceSchema).optional(),
@@ -1135,7 +1156,7 @@ export const RequestOrchestrationActionSchema: z.ZodType<RequestOrchestrationAct
     output: z.array(RequestOrchestrationActionOutputSchema).optional(),
     relatedAction: z.array(RequestOrchestrationActionRelatedActionSchema).optional(),
     timingDateTime: z.string().optional(),
-      _timingDateTime: ElementSchema.optional(),
+    _timingDateTime: ElementSchema.optional(),
     timingAge: AgeSchema.optional(),
     timingPeriod: PeriodSchema.optional(),
     timingDuration: DurationSchema.optional(),
@@ -1145,24 +1166,24 @@ export const RequestOrchestrationActionSchema: z.ZodType<RequestOrchestrationAct
     participant: z.array(RequestOrchestrationActionParticipantSchema).optional(),
     type: CodeableConceptSchema.optional(),
     groupingBehavior: z.enum(['visual-group', 'logical-group', 'sentence-group']).optional(),
-      _groupingBehavior: ElementSchema.optional(),
+    _groupingBehavior: ElementSchema.optional(),
     selectionBehavior: z.enum(['any', 'all', 'all-or-none', 'exactly-one', 'at-most-one', 'one-or-more']).optional(),
-      _selectionBehavior: ElementSchema.optional(),
+    _selectionBehavior: ElementSchema.optional(),
     requiredBehavior: z.enum(['must', 'could', 'must-unless-documented']).optional(),
-      _requiredBehavior: ElementSchema.optional(),
+    _requiredBehavior: ElementSchema.optional(),
     precheckBehavior: z.enum(['yes', 'no']).optional(),
-      _precheckBehavior: ElementSchema.optional(),
+    _precheckBehavior: ElementSchema.optional(),
     cardinalityBehavior: z.enum(['single', 'multiple']).optional(),
-      _cardinalityBehavior: ElementSchema.optional(),
+    _cardinalityBehavior: ElementSchema.optional(),
     resource: ReferenceSchema.optional(),
     definitionCanonical: z.string().optional(),
-      _definitionCanonical: ElementSchema.optional(),
+    _definitionCanonical: ElementSchema.optional(),
     definitionUri: z.string().optional(),
-      _definitionUri: ElementSchema.optional(),
+    _definitionUri: ElementSchema.optional(),
     transform: z.string().optional(),
-      _transform: ElementSchema.optional(),
+    _transform: ElementSchema.optional(),
     dynamicValue: z.array(RequestOrchestrationActionDynamicValueSchema).optional(),
-    action: z.lazy(() => z.array(RequestOrchestrationActionSchema)).optional(),
+    action: (z.lazy(() => z.array(RequestOrchestrationActionSchema)) as unknown as z.ZodArray<z.ZodTypeAny>).optional(),
   })
 )
 
@@ -1202,7 +1223,7 @@ export type RequestOrchestration = z.infer<typeof RequestOrchestrationSchema>
  * Landmark relative location
  * The distance in centimeters a certain observation is made from a body landmark.
  */
-export const BodyStructureIncludedStructureBodyLandmarkOrientationDistanceFromLandmarkSchema = BackboneElementSchema.extend({
+export const BodyStructureIncludedStructureBodyLandmarkOrientationDistanceFromLandmarkSchema = _BackboneElementBase.extend({
   device: z.array(CodeableReferenceSchema).optional(),
   value: z.array(QuantitySchema).optional(),
 })
@@ -1212,7 +1233,7 @@ export type BodyStructureIncludedStructureBodyLandmarkOrientationDistanceFromLan
  * Landmark relative location
  * Body locations in relation to a specific body landmark (tatoo, scar, other body structure).
  */
-export const BodyStructureIncludedStructureBodyLandmarkOrientationSchema = BackboneElementSchema.extend({
+export const BodyStructureIncludedStructureBodyLandmarkOrientationSchema = _BackboneElementBase.extend({
   landmarkDescription: z.array(CodeableConceptSchema).optional(),
   clockFacePosition: z.array(CodeableConceptSchema).optional(),
   distanceFromLandmark: z.array(BodyStructureIncludedStructureBodyLandmarkOrientationDistanceFromLandmarkSchema).optional(),
@@ -1233,7 +1254,7 @@ export interface BodyStructureIncludedStructure extends BackboneElement {
 }
 
 export const BodyStructureIncludedStructureSchema: z.ZodType<BodyStructureIncludedStructure> = z.lazy(() =>
-  BackboneElementSchema.extend({
+  _BackboneElementBase.extend({
     structure: CodeableConceptSchema,
     laterality: CodeableConceptSchema.optional(),
     bodyLandmarkOrientation: z.array(BodyStructureIncludedStructureBodyLandmarkOrientationSchema).optional(),
@@ -1252,7 +1273,7 @@ export const BodyStructureSchema = DomainResourceSchema.extend({
   _active: ElementSchema.optional(),
   morphology: CodeableConceptSchema.optional(),
   includedStructure: z.array(BodyStructureIncludedStructureSchema),
-  excludedStructure: z.lazy(() => z.array(BodyStructureIncludedStructureSchema)).optional(),
+  excludedStructure: (z.lazy(() => z.array(BodyStructureIncludedStructureSchema)) as unknown as z.ZodArray<z.ZodTypeAny>).optional(),
   description: z.string().optional(),
   _description: ElementSchema.optional(),
   image: z.array(AttachmentSchema).optional(),
@@ -1282,21 +1303,21 @@ export interface ArtifactAssessmentContent extends BackboneElement {
 }
 
 export const ArtifactAssessmentContentSchema: z.ZodType<ArtifactAssessmentContent> = z.lazy(() =>
-  BackboneElementSchema.extend({
+  _BackboneElementBase.extend({
     informationType: z.enum(['comment', 'classifier', 'rating', 'container', 'response', 'change-request']).optional(),
-      _informationType: ElementSchema.optional(),
+    _informationType: ElementSchema.optional(),
     summary: z.string().optional(),
-      _summary: ElementSchema.optional(),
+    _summary: ElementSchema.optional(),
     type: CodeableConceptSchema.optional(),
     classifier: z.array(CodeableConceptSchema).optional(),
     quantity: QuantitySchema.optional(),
     author: ReferenceSchema.optional(),
     path: z.array(z.string()).optional(),
-      _path: ElementSchema.optional(),
+    _path: ElementSchema.optional(),
     relatedArtifact: z.array(RelatedArtifactSchema).optional(),
     freeToShare: z.boolean().optional(),
-      _freeToShare: ElementSchema.optional(),
-    component: z.lazy(() => z.array(ArtifactAssessmentContentSchema)).optional(),
+    _freeToShare: ElementSchema.optional(),
+    component: (z.lazy(() => z.array(ArtifactAssessmentContentSchema)) as unknown as z.ZodArray<z.ZodTypeAny>).optional(),
   })
 )
 
@@ -1336,7 +1357,7 @@ export type ArtifactAssessment = z.infer<typeof ArtifactAssessmentSchema>
  * Individual involved in exchange
  * A system or person who shares or receives an instance within the scenario.
  */
-export const ExampleScenarioActorSchema = BackboneElementSchema.extend({
+export const ExampleScenarioActorSchema = _BackboneElementBase.extend({
   key: z.string(),
   _key: ElementSchema.optional(),
   type: z.enum(['person', 'system']),
@@ -1353,7 +1374,7 @@ export type ExampleScenarioActor = z.infer<typeof ExampleScenarioActorSchema>
  * Represents the instance as it was at a specific time-point.
  * Not used if an instance doesn't change
  */
-export const ExampleScenarioInstanceVersionSchema = BackboneElementSchema.extend({
+export const ExampleScenarioInstanceVersionSchema = _BackboneElementBase.extend({
   key: z.string(),
   _key: ElementSchema.optional(),
   title: z.string(),
@@ -1376,11 +1397,11 @@ export interface ExampleScenarioInstanceContainedInstance extends BackboneElemen
 }
 
 export const ExampleScenarioInstanceContainedInstanceSchema: z.ZodType<ExampleScenarioInstanceContainedInstance> = z.lazy(() =>
-  BackboneElementSchema.extend({
+  _BackboneElementBase.extend({
     instanceReference: z.string(),
-      _instanceReference: ElementSchema.optional(),
+    _instanceReference: ElementSchema.optional(),
     versionReference: z.string().optional(),
-      _versionReference: ElementSchema.optional(),
+    _versionReference: ElementSchema.optional(),
   })
 )
 
@@ -1388,7 +1409,7 @@ export const ExampleScenarioInstanceContainedInstanceSchema: z.ZodType<ExampleSc
  * Data used in the scenario
  * A single data collection that is shared as part of the scenario.
  */
-export const ExampleScenarioInstanceSchema = BackboneElementSchema.extend({
+export const ExampleScenarioInstanceSchema = _BackboneElementBase.extend({
   key: z.string(),
   _key: ElementSchema.optional(),
   structureType: CodingSchema,
@@ -1412,7 +1433,7 @@ export type ExampleScenarioInstance = z.infer<typeof ExampleScenarioInstanceSche
  * Step is simple action
  * The step represents a single operation invoked on receiver by sender.
  */
-export const ExampleScenarioProcessStepOperationSchema = BackboneElementSchema.extend({
+export const ExampleScenarioProcessStepOperationSchema = _BackboneElementBase.extend({
   type: CodingSchema.optional(),
   title: z.string(),
   _title: ElementSchema.optional(),
@@ -1426,8 +1447,8 @@ export const ExampleScenarioProcessStepOperationSchema = BackboneElementSchema.e
   _initiatorActive: ElementSchema.optional(),
   receiverActive: z.boolean().optional(),
   _receiverActive: ElementSchema.optional(),
-  request: z.lazy(() => ExampleScenarioInstanceContainedInstanceSchema).optional(),
-  response: z.lazy(() => ExampleScenarioInstanceContainedInstanceSchema).optional(),
+  request: (z.lazy(() => ExampleScenarioInstanceContainedInstanceSchema) as z.ZodTypeAny).optional(),
+  response: (z.lazy(() => ExampleScenarioInstanceContainedInstanceSchema) as z.ZodTypeAny).optional(),
 })
 export type ExampleScenarioProcessStepOperation = z.infer<typeof ExampleScenarioProcessStepOperationSchema>
 
@@ -1435,12 +1456,12 @@ export type ExampleScenarioProcessStepOperation = z.infer<typeof ExampleScenario
  * Alternate non-typical step action
  * Indicates an alternative step that can be taken instead of the sub-process, scenario or operation.  E.g. to represent non-happy-path/exceptional/atypical circumstances.
  */
-export const ExampleScenarioProcessStepAlternativeSchema = BackboneElementSchema.extend({
+export const ExampleScenarioProcessStepAlternativeSchema = _BackboneElementBase.extend({
   title: z.string(),
   _title: ElementSchema.optional(),
   description: z.string().optional(),
   _description: ElementSchema.optional(),
-  step: z.lazy(() => z.array(ExampleScenarioProcessStepSchema)).optional(),
+  step: (z.lazy(() => z.array(ExampleScenarioProcessStepSchema)) as unknown as z.ZodArray<z.ZodTypeAny>).optional(),
 })
 export type ExampleScenarioProcessStepAlternative = z.infer<typeof ExampleScenarioProcessStepAlternativeSchema>
 
@@ -1461,16 +1482,16 @@ export interface ExampleScenarioProcessStep extends BackboneElement {
 }
 
 export const ExampleScenarioProcessStepSchema: z.ZodType<ExampleScenarioProcessStep> = z.lazy(() =>
-  BackboneElementSchema.extend({
+  _BackboneElementBase.extend({
     number: z.string().optional(),
-      _number: ElementSchema.optional(),
-    process: z.lazy(() => ExampleScenarioProcessSchema).optional(),
+    _number: ElementSchema.optional(),
+    process: (z.lazy(() => ExampleScenarioProcessSchema) as z.ZodTypeAny).optional(),
     workflow: z.string().optional(),
-      _workflow: ElementSchema.optional(),
+    _workflow: ElementSchema.optional(),
     operation: ExampleScenarioProcessStepOperationSchema.optional(),
     alternative: z.array(ExampleScenarioProcessStepAlternativeSchema).optional(),
     pause: z.boolean().optional(),
-      _pause: ElementSchema.optional(),
+    _pause: ElementSchema.optional(),
   })
 )
 
@@ -1492,15 +1513,15 @@ export interface ExampleScenarioProcess extends BackboneElement {
 }
 
 export const ExampleScenarioProcessSchema: z.ZodType<ExampleScenarioProcess> = z.lazy(() =>
-  BackboneElementSchema.extend({
+  _BackboneElementBase.extend({
     title: z.string(),
-      _title: ElementSchema.optional(),
+    _title: ElementSchema.optional(),
     description: z.string().optional(),
-      _description: ElementSchema.optional(),
+    _description: ElementSchema.optional(),
     preConditions: z.string().optional(),
-      _preConditions: ElementSchema.optional(),
+    _preConditions: ElementSchema.optional(),
     postConditions: z.string().optional(),
-      _postConditions: ElementSchema.optional(),
+    _postConditions: ElementSchema.optional(),
     step: z.array(ExampleScenarioProcessStepSchema).optional(),
   })
 )
@@ -1571,7 +1592,7 @@ export type VirtualServiceDetail = z.infer<typeof VirtualServiceDetailSchema>
  * Participants involved in appointment
  * List of participants involved in the appointment.
  */
-export const AppointmentParticipantSchema = BackboneElementSchema.extend({
+export const AppointmentParticipantSchema = _BackboneElementBase.extend({
   type: z.array(CodeableConceptSchema).optional(),
   period: PeriodSchema.optional(),
   actor: ReferenceSchema.optional(),
@@ -1585,7 +1606,7 @@ export type AppointmentParticipant = z.infer<typeof AppointmentParticipantSchema
 /**
  * Information about weekly recurring appointments
  */
-export const AppointmentRecurrenceTemplateWeeklyTemplateSchema = BackboneElementSchema.extend({
+export const AppointmentRecurrenceTemplateWeeklyTemplateSchema = _BackboneElementBase.extend({
   monday: z.boolean().optional(),
   _monday: ElementSchema.optional(),
   tuesday: z.boolean().optional(),
@@ -1608,7 +1629,7 @@ export type AppointmentRecurrenceTemplateWeeklyTemplate = z.infer<typeof Appoint
 /**
  * Information about monthly recurring appointments
  */
-export const AppointmentRecurrenceTemplateMonthlyTemplateSchema = BackboneElementSchema.extend({
+export const AppointmentRecurrenceTemplateMonthlyTemplateSchema = _BackboneElementBase.extend({
   dayOfMonth: z.number().optional(),
   _dayOfMonth: ElementSchema.optional(),
   nthWeekOfMonth: CodingSchema.optional(),
@@ -1621,7 +1642,7 @@ export type AppointmentRecurrenceTemplateMonthlyTemplate = z.infer<typeof Appoin
 /**
  * Information about yearly recurring appointments
  */
-export const AppointmentRecurrenceTemplateYearlyTemplateSchema = BackboneElementSchema.extend({
+export const AppointmentRecurrenceTemplateYearlyTemplateSchema = _BackboneElementBase.extend({
   yearInterval: z.number(),
   _yearInterval: ElementSchema.optional(),
 })
@@ -1631,7 +1652,7 @@ export type AppointmentRecurrenceTemplateYearlyTemplate = z.infer<typeof Appoint
  * Details of the recurrence pattern/template used to generate occurrences
  * The details of the recurrence pattern or template that is used to generate recurring appointments.
  */
-export const AppointmentRecurrenceTemplateSchema = BackboneElementSchema.extend({
+export const AppointmentRecurrenceTemplateSchema = _BackboneElementBase.extend({
   timezone: CodeableConceptSchema.optional(),
   recurrenceType: CodeableConceptSchema,
   lastOccurrenceDate: z.string().optional(),
@@ -1752,7 +1773,7 @@ export type ActorDefinition = z.infer<typeof ActorDefinitionSchema>
  * Who or what participated in the activities related to the condition and how they were involved
  * Indicates who or what participated in the activities related to the condition and how they were involved.
  */
-export const ConditionParticipantSchema = BackboneElementSchema.extend({
+export const ConditionParticipantSchema = _BackboneElementBase.extend({
   function: CodeableConceptSchema.optional(),
   actor: ReferenceSchema,
 })
@@ -1762,7 +1783,7 @@ export type ConditionParticipant = z.infer<typeof ConditionParticipantSchema>
  * Stage/grade, usually assessed formally
  * A simple summary of the stage such as "Stage 3" or "Early Onset". The determination of the stage is disease-specific, such as cancer, retinopathy of prematurity, kidney diseases, Alzheimer's, or Parkinson disease.
  */
-export const ConditionStageSchema = BackboneElementSchema.extend({
+export const ConditionStageSchema = _BackboneElementBase.extend({
   summary: CodeableConceptSchema.optional(),
   assessment: z.array(ReferenceSchema).optional(),
   type: CodeableConceptSchema.optional(),
@@ -1811,7 +1832,7 @@ export type Condition = z.infer<typeof ConditionSchema>
  * Entries in this list.
  * If there are no entries in the list, an emptyReason SHOULD be provided.
  */
-export const ListEntrySchema = BackboneElementSchema.extend({
+export const ListEntrySchema = _BackboneElementBase.extend({
   flag: CodeableConceptSchema.optional(),
   deleted: z.boolean().optional(),
   _deleted: ElementSchema.optional(),
@@ -1850,7 +1871,7 @@ export type List = z.infer<typeof ListSchema>
  * Who performed charged service
  * Indicates who or what performed or participated in the charged service.
  */
-export const ChargeItemPerformerSchema = BackboneElementSchema.extend({
+export const ChargeItemPerformerSchema = _BackboneElementBase.extend({
   function: CodeableConceptSchema.optional(),
   actor: ReferenceSchema,
 })
@@ -1913,7 +1934,7 @@ export type ChargeItem = z.infer<typeof ChargeItemSchema>
 /**
  * The asserted justification for using the data
  */
-export const PermissionJustificationSchema = BackboneElementSchema.extend({
+export const PermissionJustificationSchema = _BackboneElementBase.extend({
   basis: z.array(CodeableConceptSchema).optional(),
   evidence: z.array(ReferenceSchema).optional(),
 })
@@ -1922,7 +1943,7 @@ export type PermissionJustification = z.infer<typeof PermissionJustificationSche
 /**
  * Explicit FHIR Resource references
  */
-export const PermissionRuleDataResourceSchema = BackboneElementSchema.extend({
+export const PermissionRuleDataResourceSchema = _BackboneElementBase.extend({
   meaning: z.enum(['instance', 'related', 'dependents', 'authoredby']),
   _meaning: ElementSchema.optional(),
   reference: ReferenceSchema,
@@ -1933,7 +1954,7 @@ export type PermissionRuleDataResource = z.infer<typeof PermissionRuleDataResour
  * The selection criteria to identify data that is within scope of this provision
  * A description or definition of which activities are allowed to be done on the data.
  */
-export const PermissionRuleDataSchema = BackboneElementSchema.extend({
+export const PermissionRuleDataSchema = _BackboneElementBase.extend({
   resource: z.array(PermissionRuleDataResourceSchema).optional(),
   security: z.array(CodingSchema).optional(),
   period: z.array(PeriodSchema).optional(),
@@ -1944,7 +1965,7 @@ export type PermissionRuleData = z.infer<typeof PermissionRuleDataSchema>
 /**
  * A description or definition of which activities are allowed to be done on the data
  */
-export const PermissionRuleActivitySchema = BackboneElementSchema.extend({
+export const PermissionRuleActivitySchema = _BackboneElementBase.extend({
   actor: z.array(ReferenceSchema).optional(),
   action: z.array(CodeableConceptSchema).optional(),
   purpose: z.array(CodeableConceptSchema).optional(),
@@ -1955,7 +1976,7 @@ export type PermissionRuleActivity = z.infer<typeof PermissionRuleActivitySchema
  * Constraints to the Permission
  * A set of rules.
  */
-export const PermissionRuleSchema = BackboneElementSchema.extend({
+export const PermissionRuleSchema = _BackboneElementBase.extend({
   type: z.enum(['deny', 'permit']).optional(),
   _type: ElementSchema.optional(),
   data: z.array(PermissionRuleDataSchema).optional(),
@@ -1985,7 +2006,7 @@ export type Permission = z.infer<typeof PermissionSchema>
 /**
  * Indicates who or what performed an action
  */
-export const BiologicallyDerivedProductDispensePerformerSchema = BackboneElementSchema.extend({
+export const BiologicallyDerivedProductDispensePerformerSchema = _BackboneElementBase.extend({
   function: CodeableConceptSchema.optional(),
   actor: ReferenceSchema,
 })
@@ -2022,7 +2043,7 @@ export type BiologicallyDerivedProductDispense = z.infer<typeof BiologicallyDeri
 /**
  * Information about the primary source(s) involved in validation
  */
-export const VerificationResultPrimarySourceSchema = BackboneElementSchema.extend({
+export const VerificationResultPrimarySourceSchema = _BackboneElementBase.extend({
   who: ReferenceSchema.optional(),
   type: z.array(CodeableConceptSchema).optional(),
   communicationMethod: z.array(CodeableConceptSchema).optional(),
@@ -2037,7 +2058,7 @@ export type VerificationResultPrimarySource = z.infer<typeof VerificationResultP
 /**
  * Information about the entity attesting to information
  */
-export const VerificationResultAttestationSchema = BackboneElementSchema.extend({
+export const VerificationResultAttestationSchema = _BackboneElementBase.extend({
   who: ReferenceSchema.optional(),
   onBehalfOf: ReferenceSchema.optional(),
   communicationMethod: CodeableConceptSchema.optional(),
@@ -2055,7 +2076,7 @@ export type VerificationResultAttestation = z.infer<typeof VerificationResultAtt
 /**
  * Information about the entity validating information
  */
-export const VerificationResultValidatorSchema = BackboneElementSchema.extend({
+export const VerificationResultValidatorSchema = _BackboneElementBase.extend({
   organization: ReferenceSchema,
   identityCertificate: z.string().optional(),
   _identityCertificate: ElementSchema.optional(),
@@ -2091,28 +2112,10 @@ export const VerificationResultSchema = DomainResourceSchema.extend({
 export type VerificationResult = z.infer<typeof VerificationResultSchema>
 
 /**
- * string Type: A sequence of Unicode characters
- */
-export const stringSchema = PrimitiveTypeSchema.extend({
-  value: z.string().optional(),
-  _value: ElementSchema.optional(),
-})
-export type string = z.infer<typeof stringSchema>
-
-/**
- * id type: Any combination of letters, numerals, "-" and ".", with a length limit of 64 characters.  (This might be an integer, an unprefixed OID, UUID or any other identifier pattern that meets these constraints.)  Ids are case-insensitive.
- */
-export const idSchema = stringSchema.extend({
-  value: z.string().optional(),
-  _value: ElementSchema.optional(),
-})
-export type id = z.infer<typeof idSchema>
-
-/**
  * The item that is delivered or supplied
  * The item that is being delivered or has been supplied.
  */
-export const SupplyDeliverySuppliedItemSchema = BackboneElementSchema.extend({
+export const SupplyDeliverySuppliedItemSchema = _BackboneElementBase.extend({
   quantity: QuantitySchema.optional(),
   itemCodeableConcept: CodeableConceptSchema.optional(),
   itemReference: ReferenceSchema.optional(),
@@ -2147,7 +2150,7 @@ export type SupplyDelivery = z.infer<typeof SupplyDeliverySchema>
  * A participant who has attested to the accuracy of the composition/document.
  * Only list each attester once.
  */
-export const CompositionAttesterSchema = BackboneElementSchema.extend({
+export const CompositionAttesterSchema = _BackboneElementBase.extend({
   mode: CodeableConceptSchema,
   time: z.string().optional(),
   _time: ElementSchema.optional(),
@@ -2160,7 +2163,7 @@ export type CompositionAttester = z.infer<typeof CompositionAttesterSchema>
  * The clinical service, such as a colonoscopy or an appendectomy, being documented.
  * The event needs to be consistent with the type element, though can provide further information if desired.
  */
-export const CompositionEventSchema = BackboneElementSchema.extend({
+export const CompositionEventSchema = _BackboneElementBase.extend({
   period: PeriodSchema.optional(),
   detail: z.array(CodeableReferenceSchema).optional(),
 })
@@ -2184,9 +2187,9 @@ export interface CompositionSection extends BackboneElement {
 }
 
 export const CompositionSectionSchema: z.ZodType<CompositionSection> = z.lazy(() =>
-  BackboneElementSchema.extend({
+  _BackboneElementBase.extend({
     title: z.string().optional(),
-      _title: ElementSchema.optional(),
+    _title: ElementSchema.optional(),
     code: CodeableConceptSchema.optional(),
     author: z.array(ReferenceSchema).optional(),
     focus: ReferenceSchema.optional(),
@@ -2194,7 +2197,7 @@ export const CompositionSectionSchema: z.ZodType<CompositionSection> = z.lazy(()
     orderedBy: CodeableConceptSchema.optional(),
     entry: z.array(ReferenceSchema).optional(),
     emptyReason: CodeableConceptSchema.optional(),
-    section: z.lazy(() => z.array(CompositionSectionSchema)).optional(),
+    section: (z.lazy(() => z.array(CompositionSectionSchema)) as unknown as z.ZodArray<z.ZodTypeAny>).optional(),
   })
 )
 
@@ -2236,7 +2239,7 @@ export type Composition = z.infer<typeof CompositionSchema>
  * The list of people responsible for providing the service.
  * Any Patient or Group present in the participation.actor must also be the subject, though the subject may be absent from the participation.actor for cases where the patient (or group) is not present, such as during a case review conference.
  */
-export const EncounterParticipantSchema = BackboneElementSchema.extend({
+export const EncounterParticipantSchema = _BackboneElementBase.extend({
   type: z.array(CodeableConceptSchema).optional(),
   period: PeriodSchema.optional(),
   actor: ReferenceSchema.optional(),
@@ -2247,7 +2250,7 @@ export type EncounterParticipant = z.infer<typeof EncounterParticipantSchema>
  * The list of medical reasons that are expected to be addressed during the episode of care
  * The reason communicates what medical problem the patient has that should be addressed during the episode of care.  This reason could be patient reported complaint, a clinical indication that was determined in a previous encounter or episode of care, or some planned care such as an immunization recommendation.  In the case where you have a primary reason, but are expecting to also address other problems, you can list the primary reason with a use code of 'Chief Complaint', while the other problems being addressed would have a use code of 'Reason for Visit'.Examples: * pregnancy would use HealthcareService or a coding as the reason * patient home monitoring could use Condition as the reason
  */
-export const EncounterReasonSchema = BackboneElementSchema.extend({
+export const EncounterReasonSchema = _BackboneElementBase.extend({
   use: z.array(CodeableConceptSchema).optional(),
   value: z.array(CodeableReferenceSchema).optional(),
 })
@@ -2257,7 +2260,7 @@ export type EncounterReason = z.infer<typeof EncounterReasonSchema>
  * The list of diagnosis relevant to this encounter
  * Also note that for the purpose of billing, the diagnoses are recorded in the account where they can be ranked appropriately for how the invoicing/claiming documentation needs to be prepared.
  */
-export const EncounterDiagnosisSchema = BackboneElementSchema.extend({
+export const EncounterDiagnosisSchema = _BackboneElementBase.extend({
   condition: z.array(CodeableReferenceSchema).optional(),
   use: z.array(CodeableConceptSchema).optional(),
 })
@@ -2268,7 +2271,7 @@ export type EncounterDiagnosis = z.infer<typeof EncounterDiagnosisSchema>
  * Details about the stay during which a healthcare service is provided.This does not describe the event of admitting the patient, but rather any information that is relevant from the time of admittance until the time of discharge.
  * An Encounter may cover more than just the inpatient stay. Contexts such as outpatients, community clinics, and aged care facilities are also included.The duration recorded in the period of this encounter covers the entire scope of this admission record.
  */
-export const EncounterAdmissionSchema = BackboneElementSchema.extend({
+export const EncounterAdmissionSchema = _BackboneElementBase.extend({
   preAdmissionIdentifier: IdentifierSchema.optional(),
   origin: ReferenceSchema.optional(),
   admitSource: CodeableConceptSchema.optional(),
@@ -2283,7 +2286,7 @@ export type EncounterAdmission = z.infer<typeof EncounterAdmissionSchema>
  * List of locations where  the patient has been during this encounter.
  * Virtual encounters can be recorded in the Encounter by specifying a location reference to a location of type "kind" such as "client's home" and an encounter.class = "virtual".
  */
-export const EncounterLocationSchema = BackboneElementSchema.extend({
+export const EncounterLocationSchema = _BackboneElementBase.extend({
   location: ReferenceSchema,
   status: z.enum(['planned', 'active', 'reserved', 'completed']).optional(),
   _status: ElementSchema.optional(),
@@ -2335,7 +2338,7 @@ export type Encounter = z.infer<typeof EncounterSchema>
  * Who or what performed the medication administration and what type of performance they did
  * The performer of the medication treatment.  For devices this is the device that performed the administration of the medication.  An IV Pump would be an example of a device that is performing the administration. Both the IV Pump and the practitioner that set the rate or bolus on the pump can be listed as performers.
  */
-export const MedicationAdministrationPerformerSchema = BackboneElementSchema.extend({
+export const MedicationAdministrationPerformerSchema = _BackboneElementBase.extend({
   function: CodeableConceptSchema.optional(),
   actor: CodeableReferenceSchema,
 })
@@ -2345,7 +2348,7 @@ export type MedicationAdministrationPerformer = z.infer<typeof MedicationAdminis
  * Details of how medication was taken
  * Describes the medication dosage information details e.g. dose, rate, site, route, etc.
  */
-export const MedicationAdministrationDosageSchema = BackboneElementSchema.extend({
+export const MedicationAdministrationDosageSchema = _BackboneElementBase.extend({
   text: z.string().optional(),
   _text: ElementSchema.optional(),
   site: CodeableConceptSchema.optional(),
@@ -2397,7 +2400,7 @@ export type MedicationAdministration = z.infer<typeof MedicationAdministrationSc
  * Other claims which are related to this claim such as prior submissions or claims for related services or for the same event.
  * For example,  for the original treatment and follow-up exams.
  */
-export const ClaimRelatedSchema = BackboneElementSchema.extend({
+export const ClaimRelatedSchema = _BackboneElementBase.extend({
   claim: ReferenceSchema.optional(),
   relationship: CodeableConceptSchema.optional(),
   reference: IdentifierSchema.optional(),
@@ -2409,7 +2412,7 @@ export type ClaimRelated = z.infer<typeof ClaimRelatedSchema>
  * The party to be reimbursed for cost of the products and services according to the terms of the policy.
  * Often providers agree to receive the benefits payable to reduce the near-term costs to the patient. The insurer may decline to pay the provider and choose to pay the subscriber instead.
  */
-export const ClaimPayeeSchema = BackboneElementSchema.extend({
+export const ClaimPayeeSchema = _BackboneElementBase.extend({
   type: CodeableConceptSchema,
   party: ReferenceSchema.optional(),
 })
@@ -2419,7 +2422,7 @@ export type ClaimPayee = z.infer<typeof ClaimPayeeSchema>
  * Event information
  * Information code for an event with a corresponding date or period.
  */
-export const ClaimEventSchema = BackboneElementSchema.extend({
+export const ClaimEventSchema = _BackboneElementBase.extend({
   type: CodeableConceptSchema,
   whenDateTime: z.string().optional(),
   _whenDateTime: ElementSchema.optional(),
@@ -2431,7 +2434,7 @@ export type ClaimEvent = z.infer<typeof ClaimEventSchema>
  * Members of the care team
  * The members of the team who provided the products and services.
  */
-export const ClaimCareTeamSchema = BackboneElementSchema.extend({
+export const ClaimCareTeamSchema = _BackboneElementBase.extend({
   sequence: z.number(),
   _sequence: ElementSchema.optional(),
   provider: ReferenceSchema,
@@ -2447,7 +2450,7 @@ export type ClaimCareTeam = z.infer<typeof ClaimCareTeamSchema>
  * Additional information codes regarding exceptions, special considerations, the condition, situation, prior or concurrent issues.
  * Often there are multiple jurisdiction specific valuesets which are required.
  */
-export const ClaimSupportingInfoSchema = BackboneElementSchema.extend({
+export const ClaimSupportingInfoSchema = _BackboneElementBase.extend({
   sequence: z.number(),
   _sequence: ElementSchema.optional(),
   category: CodeableConceptSchema,
@@ -2471,7 +2474,7 @@ export type ClaimSupportingInfo = z.infer<typeof ClaimSupportingInfoSchema>
  * Pertinent diagnosis information
  * Information about diagnoses relevant to the claim items.
  */
-export const ClaimDiagnosisSchema = BackboneElementSchema.extend({
+export const ClaimDiagnosisSchema = _BackboneElementBase.extend({
   sequence: z.number(),
   _sequence: ElementSchema.optional(),
   diagnosisCodeableConcept: CodeableConceptSchema.optional(),
@@ -2485,7 +2488,7 @@ export type ClaimDiagnosis = z.infer<typeof ClaimDiagnosisSchema>
  * Clinical procedures performed
  * Procedures performed on the patient relevant to the billing items with the claim.
  */
-export const ClaimProcedureSchema = BackboneElementSchema.extend({
+export const ClaimProcedureSchema = _BackboneElementBase.extend({
   sequence: z.number(),
   _sequence: ElementSchema.optional(),
   type: z.array(CodeableConceptSchema).optional(),
@@ -2502,7 +2505,7 @@ export type ClaimProcedure = z.infer<typeof ClaimProcedureSchema>
  * Financial instruments for reimbursement for the health care products and services specified on the claim.
  * All insurance coverages for the patient which may be applicable for reimbursement, of the products and services listed in the claim, are typically provided in the claim to allow insurers to confirm the ordering of the insurance coverages relative to local 'coordination of benefit' rules. One coverage (and only one) with 'focal=true' is to be used in the adjudication of this claim. Coverages appearing before the focal Coverage in the list, and where 'Coverage.subrogation=false', should provide a reference to the ClaimResponse containing the adjudication results of the prior claim.
  */
-export const ClaimInsuranceSchema = BackboneElementSchema.extend({
+export const ClaimInsuranceSchema = _BackboneElementBase.extend({
   sequence: z.number(),
   _sequence: ElementSchema.optional(),
   focal: z.boolean(),
@@ -2521,7 +2524,7 @@ export type ClaimInsurance = z.infer<typeof ClaimInsuranceSchema>
  * Details of the event
  * Details of an accident which resulted in injuries which required the products and services listed in the claim.
  */
-export const ClaimAccidentSchema = BackboneElementSchema.extend({
+export const ClaimAccidentSchema = _BackboneElementBase.extend({
   date: z.string(),
   _date: ElementSchema.optional(),
   type: CodeableConceptSchema.optional(),
@@ -2534,7 +2537,7 @@ export type ClaimAccident = z.infer<typeof ClaimAccidentSchema>
  * Anatomical location
  * Physical location where the service is performed or applies.
  */
-export const ClaimItemBodySiteSchema = BackboneElementSchema.extend({
+export const ClaimItemBodySiteSchema = _BackboneElementBase.extend({
   site: z.array(CodeableReferenceSchema),
   subSite: z.array(CodeableConceptSchema).optional(),
 })
@@ -2544,7 +2547,7 @@ export type ClaimItemBodySite = z.infer<typeof ClaimItemBodySiteSchema>
  * Product or service provided
  * A claim detail line. Either a simple (a product or service) or a 'group' of sub-details which are simple items.
  */
-export const ClaimItemDetailSubDetailSchema = BackboneElementSchema.extend({
+export const ClaimItemDetailSubDetailSchema = _BackboneElementBase.extend({
   sequence: z.number(),
   _sequence: ElementSchema.optional(),
   traceNumber: z.array(IdentifierSchema).optional(),
@@ -2569,7 +2572,7 @@ export type ClaimItemDetailSubDetail = z.infer<typeof ClaimItemDetailSubDetailSc
  * Product or service provided
  * A claim detail line. Either a simple (a product or service) or a 'group' of sub-details which are simple items.
  */
-export const ClaimItemDetailSchema = BackboneElementSchema.extend({
+export const ClaimItemDetailSchema = _BackboneElementBase.extend({
   sequence: z.number(),
   _sequence: ElementSchema.optional(),
   traceNumber: z.array(IdentifierSchema).optional(),
@@ -2595,7 +2598,7 @@ export type ClaimItemDetail = z.infer<typeof ClaimItemDetailSchema>
  * Product or service provided
  * A claim line. Either a simple  product or service or a 'group' of details which can each be a simple items or groups of sub-details.
  */
-export const ClaimItemSchema = BackboneElementSchema.extend({
+export const ClaimItemSchema = _BackboneElementBase.extend({
   sequence: z.number(),
   _sequence: ElementSchema.optional(),
   traceNumber: z.array(IdentifierSchema).optional(),
@@ -2680,7 +2683,7 @@ export type Claim = z.infer<typeof ClaimSchema>
 /**
  * Describes the calibrations that have been performed or that are required to be performed
  */
-export const DeviceMetricCalibrationSchema = BackboneElementSchema.extend({
+export const DeviceMetricCalibrationSchema = _BackboneElementBase.extend({
   type: z.enum(['unspecified', 'offset', 'gain', 'two-point']).optional(),
   _type: ElementSchema.optional(),
   state: z.enum(['not-calibrated', 'calibration-required', 'calibrated', 'unspecified']).optional(),
@@ -2715,7 +2718,7 @@ export type DeviceMetric = z.infer<typeof DeviceMetricSchema>
  * Designates which child elements are used to discriminate between the slices when processing an instance. If one or more discriminators are provided, the value of the child elements in the instance data SHALL completely distinguish which slice the element in the resource matches based on the allowed values for those elements in each of the slices.
  * If there is no discriminator, the content is hard to process, so this should be avoided.
  */
-export const ElementDefinitionSlicingDiscriminatorSchema = BackboneElementSchema.extend({
+export const ElementDefinitionSlicingDiscriminatorSchema = _BackboneElementBase.extend({
   type: z.enum(['value', 'exists', 'pattern', 'type', 'profile', 'position']),
   _type: ElementSchema.optional(),
   path: z.string(),
@@ -2728,7 +2731,7 @@ export type ElementDefinitionSlicingDiscriminator = z.infer<typeof ElementDefini
  * Indicates that the element is sliced into a set of alternative definitions (i.e. in a structure definition, there are multiple different constraints on a single element in the base resource). Slicing can be used in any resource that has cardinality ..* on the base resource, or any resource with a choice of types. The set of slices is any elements that come after this in the element sequence that have the same path, until a shorter path occurs (the shorter path terminates the set).
  * The first element in the sequence, the one that carries the slicing, is the definition that applies to all the slices. This is based on the unconstrained element, but can apply any constraints as appropriate. This may include the common constraints on the children of the element.
  */
-export const ElementDefinitionSlicingSchema = BackboneElementSchema.extend({
+export const ElementDefinitionSlicingSchema = _BackboneElementBase.extend({
   discriminator: z.array(ElementDefinitionSlicingDiscriminatorSchema).optional(),
   description: z.string().optional(),
   _description: ElementSchema.optional(),
@@ -2744,7 +2747,7 @@ export type ElementDefinitionSlicing = z.infer<typeof ElementDefinitionSlicingSc
  * Information about the base definition of the element, provided to make it unnecessary for tools to trace the deviation of the element through the derived and related profiles. When the element definition is not the original definition of an element - e.g. either in a constraint on another type, or for elements from a super type in a snap shot - then the information in provided in the element definition may be different to the base definition. On the original definition of the element, it will be same.
  * The base information does not carry any information that could not be determined from the path and related profiles, but making this determination requires both that the related profiles are available, and that the algorithm to determine them be available. For tooling simplicity, the base information must always be populated in element definitions in snap shots, even if it is the same.
  */
-export const ElementDefinitionBaseSchema = BackboneElementSchema.extend({
+export const ElementDefinitionBaseSchema = _BackboneElementBase.extend({
   path: z.string(),
   _path: ElementSchema.optional(),
   min: z.number(),
@@ -2759,7 +2762,7 @@ export type ElementDefinitionBase = z.infer<typeof ElementDefinitionBaseSchema>
  * The data type or resource that the value of this element is permitted to be.
  * The Type of the element can be left blank in a differential constraint, in which case the type is inherited from the resource. Abstract types are not permitted to appear as a type when multiple types are listed.  (I.e. Abstract types cannot be part of a choice).
  */
-export const ElementDefinitionTypeSchema = BackboneElementSchema.extend({
+export const ElementDefinitionTypeSchema = _BackboneElementBase.extend({
   code: z.string(),
   _code: ElementSchema.optional(),
   profile: z.array(z.string()).optional(),
@@ -2778,7 +2781,7 @@ export type ElementDefinitionType = z.infer<typeof ElementDefinitionTypeSchema>
  * A sample value for this element demonstrating the type of information that would typically be found in the element.
  * Examples will most commonly be present for data where it's not implicitly obvious from either the data type or value set what the values might be.  (I.e. Example values for dates or quantities would generally be unnecessary.)  If the example value is fully populated, the publication tool can generate an instance automatically.
  */
-export const ElementDefinitionExampleSchema = BackboneElementSchema.extend({
+export const ElementDefinitionExampleSchema = _BackboneElementBase.extend({
   label: z.string(),
   _label: ElementSchema.optional(),
   valueBase64Binary: z.string().optional(),
@@ -2863,7 +2866,7 @@ export type ElementDefinitionExample = z.infer<typeof ElementDefinitionExampleSc
  * Formal constraints such as co-occurrence and other constraints that can be computationally evaluated within the context of the instance.
  * Constraints should be declared on the "context" element - the lowest element in the hierarchy that is common to all nodes referenced by the constraint.
  */
-export const ElementDefinitionConstraintSchema = BackboneElementSchema.extend({
+export const ElementDefinitionConstraintSchema = _BackboneElementBase.extend({
   key: z.string(),
   _key: ElementSchema.optional(),
   requirements: z.string().optional(),
@@ -2885,7 +2888,7 @@ export type ElementDefinitionConstraint = z.infer<typeof ElementDefinitionConstr
  * Additional Bindings - more rules about the binding
  * Additional bindings that help applications implementing this element. Additional bindings do not replace the main binding but provide more information and/or context.
  */
-export const ElementDefinitionBindingAdditionalSchema = BackboneElementSchema.extend({
+export const ElementDefinitionBindingAdditionalSchema = _BackboneElementBase.extend({
   purpose: z.enum(['maximum', 'minimum', 'required', 'extensible', 'candidate', 'current', 'preferred', 'ui', 'starter', 'component']),
   _purpose: ElementSchema.optional(),
   valueSet: z.string(),
@@ -2905,7 +2908,7 @@ export type ElementDefinitionBindingAdditional = z.infer<typeof ElementDefinitio
  * Binds to a value set if this element is coded (code, Coding, CodeableConcept, Quantity), or the data types (string, uri).
  * For a CodeableConcept, when no codes are allowed - only text, use a binding of strength "required" with a description explaining that no coded values are allowed and what sort of information to put in the "text" element.
  */
-export const ElementDefinitionBindingSchema = BackboneElementSchema.extend({
+export const ElementDefinitionBindingSchema = _BackboneElementBase.extend({
   strength: z.enum(['required', 'extensible', 'preferred', 'example']),
   _strength: ElementSchema.optional(),
   description: z.string().optional(),
@@ -2921,7 +2924,7 @@ export type ElementDefinitionBinding = z.infer<typeof ElementDefinitionBindingSc
  * Identifies a concept from an external specification that roughly corresponds to this element.
  * Mappings are not necessarily specific enough for safe translation.
  */
-export const ElementDefinitionMappingSchema = BackboneElementSchema.extend({
+export const ElementDefinitionMappingSchema = _BackboneElementBase.extend({
   identity: z.string(),
   _identity: ElementSchema.optional(),
   language: z.string().optional(),
@@ -2936,7 +2939,7 @@ export type ElementDefinitionMapping = z.infer<typeof ElementDefinitionMappingSc
 /**
  * ElementDefinition Type: Captures constraints on each element within the resource, profile, or extension.
  */
-export const ElementDefinitionSchema = BackboneTypeSchema.extend({
+export const ElementDefinitionSchema = _BackboneTypeBase.extend({
   path: z.string(),
   _path: ElementSchema.optional(),
   representation: z.array(z.enum(['xmlAttr', 'xmlText', 'typeAttr', 'cdaText', 'xhtml'])).optional(),
@@ -3259,7 +3262,7 @@ export type ElementDefinition = z.infer<typeof ElementDefinitionSchema>
  * Indicates whether the event succeeded or failed. A free text descripiton can be given in outcome.text.
  * In some cases a "success" may be partial, for example, an incomplete or interrupted transfer of a radiological study. For the purpose of establishing accountability, these distinctions are not relevant.
  */
-export const AuditEventOutcomeSchema = BackboneElementSchema.extend({
+export const AuditEventOutcomeSchema = _BackboneElementBase.extend({
   code: CodingSchema,
   detail: z.array(CodeableConceptSchema).optional(),
 })
@@ -3288,20 +3291,20 @@ export interface AuditEventAgent extends BackboneElement {
 }
 
 export const AuditEventAgentSchema: z.ZodType<AuditEventAgent> = z.lazy(() =>
-  BackboneElementSchema.extend({
+  _BackboneElementBase.extend({
     type: CodeableConceptSchema.optional(),
     role: z.array(CodeableConceptSchema).optional(),
     who: ReferenceSchema,
     requestor: z.boolean().optional(),
-      _requestor: ElementSchema.optional(),
+    _requestor: ElementSchema.optional(),
     location: ReferenceSchema.optional(),
     policy: z.array(z.string()).optional(),
-      _policy: ElementSchema.optional(),
+    _policy: ElementSchema.optional(),
     networkReference: ReferenceSchema.optional(),
     networkUri: z.string().optional(),
-      _networkUri: ElementSchema.optional(),
+    _networkUri: ElementSchema.optional(),
     networkString: z.string().optional(),
-      _networkString: ElementSchema.optional(),
+    _networkString: ElementSchema.optional(),
     authorization: z.array(CodeableConceptSchema).optional(),
   })
 )
@@ -3311,7 +3314,7 @@ export const AuditEventAgentSchema: z.ZodType<AuditEventAgent> = z.lazy(() =>
  * The actor that is reporting the event.
  * Events are reported by the actor that detected them. This may be one of the participating actors, but may also be different. The actor may be a human such as a medical-records clerk disclosing data manually, that clerk would be the source for the record of disclosure.
  */
-export const AuditEventSourceSchema = BackboneElementSchema.extend({
+export const AuditEventSourceSchema = _BackboneElementBase.extend({
   site: ReferenceSchema.optional(),
   observer: ReferenceSchema,
   type: z.array(CodeableConceptSchema).optional(),
@@ -3322,7 +3325,7 @@ export type AuditEventSource = z.infer<typeof AuditEventSourceSchema>
  * Additional Information about the entity
  * Tagged value pairs for conveying additional information about the entity.
  */
-export const AuditEventEntityDetailSchema = BackboneElementSchema.extend({
+export const AuditEventEntityDetailSchema = _BackboneElementBase.extend({
   type: CodeableConceptSchema,
   valueQuantity: QuantitySchema.optional(),
   valueCodeableConcept: CodeableConceptSchema.optional(),
@@ -3349,14 +3352,14 @@ export type AuditEventEntityDetail = z.infer<typeof AuditEventEntityDetailSchema
  * Specific instances of data or objects that have been accessed.
  * Required unless the values for event identification, agent identification, and audit source identification are sufficient to document the entire auditable event. Because events may have more than one entity, this group can be a repeating set of values.
  */
-export const AuditEventEntitySchema = BackboneElementSchema.extend({
+export const AuditEventEntitySchema = _BackboneElementBase.extend({
   what: ReferenceSchema.optional(),
   role: CodeableConceptSchema.optional(),
   securityLabel: z.array(CodeableConceptSchema).optional(),
   query: z.string().optional(),
   _query: ElementSchema.optional(),
   detail: z.array(AuditEventEntityDetailSchema).optional(),
-  agent: z.lazy(() => z.array(AuditEventAgentSchema)).optional(),
+  agent: (z.lazy(() => z.array(AuditEventAgentSchema)) as unknown as z.ZodArray<z.ZodTypeAny>).optional(),
 })
 export type AuditEventEntity = z.infer<typeof AuditEventEntitySchema>
 
@@ -3390,7 +3393,7 @@ export type AuditEvent = z.infer<typeof AuditEventSchema>
 /**
  * The parameter details for the service being requested
  */
-export const ServiceRequestOrderDetailParameterSchema = BackboneElementSchema.extend({
+export const ServiceRequestOrderDetailParameterSchema = _BackboneElementBase.extend({
   code: CodeableConceptSchema,
   valueQuantity: QuantitySchema.optional(),
   valueRatio: RatioSchema.optional(),
@@ -3409,7 +3412,7 @@ export type ServiceRequestOrderDetailParameter = z.infer<typeof ServiceRequestOr
  * Additional details and instructions about the how the services are to be delivered.   For example, and order for a urinary catheter may have an order detail for an external or indwelling catheter, or an order for a bandage may require additional instructions specifying how the bandage should be applied.
  * For information from the medical record intended to support the delivery of the requested services, use the `supportingInformation` element.
  */
-export const ServiceRequestOrderDetailSchema = BackboneElementSchema.extend({
+export const ServiceRequestOrderDetailSchema = _BackboneElementBase.extend({
   parameterFocus: CodeableReferenceSchema.optional(),
   parameter: z.array(ServiceRequestOrderDetailParameterSchema),
 })
@@ -3419,7 +3422,7 @@ export type ServiceRequestOrderDetail = z.infer<typeof ServiceRequestOrderDetail
  * Patient or consumer-oriented instructions
  * Instructions in terms that are understood by the patient or consumer.
  */
-export const ServiceRequestPatientInstructionSchema = BackboneElementSchema.extend({
+export const ServiceRequestPatientInstructionSchema = _BackboneElementBase.extend({
   instructionMarkdown: z.string().optional(),
   _instructionMarkdown: ElementSchema.optional(),
   instructionReference: ReferenceSchema.optional(),
@@ -3484,7 +3487,7 @@ export type ServiceRequest = z.infer<typeof ServiceRequestSchema>
 /**
  * What food or fluid product or item was consumed
  */
-export const NutritionIntakeConsumedItemSchema = BackboneElementSchema.extend({
+export const NutritionIntakeConsumedItemSchema = _BackboneElementBase.extend({
   type: CodeableConceptSchema,
   nutritionProduct: CodeableReferenceSchema,
   schedule: TimingSchema.optional(),
@@ -3501,7 +3504,7 @@ export type NutritionIntakeConsumedItem = z.infer<typeof NutritionIntakeConsumed
  * Total nutrient amounts for the whole meal, product, serving, etc.
  * Individual item nutrients are not currently included in the resource and will likely end up as a reference in nutritionProduct to represent the individual items.
  */
-export const NutritionIntakeIngredientLabelSchema = BackboneElementSchema.extend({
+export const NutritionIntakeIngredientLabelSchema = _BackboneElementBase.extend({
   nutrient: CodeableReferenceSchema,
   amount: QuantitySchema,
 })
@@ -3511,7 +3514,7 @@ export type NutritionIntakeIngredientLabel = z.infer<typeof NutritionIntakeIngre
  * Who was performed in the intake
  * Who performed the intake and how they were involved.
  */
-export const NutritionIntakePerformerSchema = BackboneElementSchema.extend({
+export const NutritionIntakePerformerSchema = _BackboneElementBase.extend({
   function: CodeableConceptSchema.optional(),
   actor: ReferenceSchema,
 })
@@ -3614,7 +3617,7 @@ export type EventDefinition = z.infer<typeof EventDefinitionSchema>
  * Action to occur or has occurred as part of plan
  * Identifies an action that has occurred or is a planned action to occur as part of the plan. For example, a medication to be used, lab tests to perform, self-monitoring that has occurred, education etc.
  */
-export const CarePlanActivitySchema = BackboneElementSchema.extend({
+export const CarePlanActivitySchema = _BackboneElementBase.extend({
   performedActivity: z.array(CodeableReferenceSchema).optional(),
   progress: z.array(AnnotationSchema).optional(),
   plannedActivityReference: ReferenceSchema.optional(),
@@ -3663,7 +3666,7 @@ export type CarePlan = z.infer<typeof CarePlanSchema>
  * Item to be linked
  * Identifies which record considered as the reference to the same real-world occurrence as well as how the items should be evaluated within the collection of linked items.
  */
-export const LinkageItemSchema = BackboneElementSchema.extend({
+export const LinkageItemSchema = _BackboneElementBase.extend({
   type: z.enum(['source', 'alternate', 'historical']),
   _type: ElementSchema.optional(),
   resource: ReferenceSchema,
@@ -3686,7 +3689,7 @@ export type Linkage = z.infer<typeof LinkageSchema>
  * Event information
  * Information code for an event with a corresponding date or period.
  */
-export const CoverageEligibilityResponseEventSchema = BackboneElementSchema.extend({
+export const CoverageEligibilityResponseEventSchema = _BackboneElementBase.extend({
   type: CodeableConceptSchema,
   whenDateTime: z.string().optional(),
   _whenDateTime: ElementSchema.optional(),
@@ -3698,7 +3701,7 @@ export type CoverageEligibilityResponseEvent = z.infer<typeof CoverageEligibilit
  * Benefit Summary
  * Benefits used to date.
  */
-export const CoverageEligibilityResponseInsuranceItemBenefitSchema = BackboneElementSchema.extend({
+export const CoverageEligibilityResponseInsuranceItemBenefitSchema = _BackboneElementBase.extend({
   type: CodeableConceptSchema,
   allowedUnsignedInt: z.number().optional(),
   _allowedUnsignedInt: ElementSchema.optional(),
@@ -3717,7 +3720,7 @@ export type CoverageEligibilityResponseInsuranceItemBenefit = z.infer<typeof Cov
  * Benefits and authorization details
  * Benefits and optionally current balances, and authorization details by category or service.
  */
-export const CoverageEligibilityResponseInsuranceItemSchema = BackboneElementSchema.extend({
+export const CoverageEligibilityResponseInsuranceItemSchema = _BackboneElementBase.extend({
   category: CodeableConceptSchema.optional(),
   productOrService: CodeableConceptSchema.optional(),
   modifier: z.array(CodeableConceptSchema).optional(),
@@ -3745,7 +3748,7 @@ export type CoverageEligibilityResponseInsuranceItem = z.infer<typeof CoverageEl
  * Financial instruments for reimbursement for the health care products and services.
  * All insurance coverages for the patient which may be applicable for reimbursement, of the products and services listed in the claim, are typically provided in the claim to allow insurers to confirm the ordering of the insurance coverages relative to local 'coordination of benefit' rules. One coverage (and only one) with 'focal=true' is to be used in the adjudication of this claim. Coverages appearing before the focal Coverage in the list, and where 'subrogation=false', should provide a reference to the ClaimResponse containing the adjudication results of the prior claim.
  */
-export const CoverageEligibilityResponseInsuranceSchema = BackboneElementSchema.extend({
+export const CoverageEligibilityResponseInsuranceSchema = _BackboneElementBase.extend({
   coverage: ReferenceSchema,
   inforce: z.boolean().optional(),
   _inforce: ElementSchema.optional(),
@@ -3758,7 +3761,7 @@ export type CoverageEligibilityResponseInsurance = z.infer<typeof CoverageEligib
  * Processing errors
  * Errors encountered during the processing of the request.
  */
-export const CoverageEligibilityResponseErrorSchema = BackboneElementSchema.extend({
+export const CoverageEligibilityResponseErrorSchema = _BackboneElementBase.extend({
   code: CodeableConceptSchema,
   expression: z.array(z.string()).optional(),
   _expression: ElementSchema.optional(),
@@ -3798,29 +3801,11 @@ export const CoverageEligibilityResponseSchema = DomainResourceSchema.extend({
 export type CoverageEligibilityResponse = z.infer<typeof CoverageEligibilityResponseSchema>
 
 /**
- * time Type: A time during the day, with no date specified
- */
-export const timeSchema = PrimitiveTypeSchema.extend({
-  value: z.string().optional(),
-  _value: ElementSchema.optional(),
-})
-export type time = z.infer<typeof timeSchema>
-
-/**
- * base64Binary Type: A stream of bytes
- */
-export const base64BinarySchema = PrimitiveTypeSchema.extend({
-  value: z.string().optional(),
-  _value: ElementSchema.optional(),
-})
-export type base64Binary = z.infer<typeof base64BinarySchema>
-
-/**
  * The response(s) to the question
  * The respondent's answer(s) to the question.
  * The value is nested because we cannot have a repeating structure that has variable type.
  */
-export const QuestionnaireResponseItemAnswerSchema = BackboneElementSchema.extend({
+export const QuestionnaireResponseItemAnswerSchema = _BackboneElementBase.extend({
   valueBoolean: z.boolean().optional(),
   _valueBoolean: ElementSchema.optional(),
   valueDecimal: z.number().optional(),
@@ -3841,7 +3826,7 @@ export const QuestionnaireResponseItemAnswerSchema = BackboneElementSchema.exten
   valueCoding: CodingSchema.optional(),
   valueQuantity: QuantitySchema.optional(),
   valueReference: ReferenceSchema.optional(),
-  item: z.lazy(() => z.array(QuestionnaireResponseItemSchema)).optional(),
+  item: (z.lazy(() => z.array(QuestionnaireResponseItemSchema)) as unknown as z.ZodArray<z.ZodTypeAny>).optional(),
 })
 export type QuestionnaireResponseItemAnswer = z.infer<typeof QuestionnaireResponseItemAnswerSchema>
 
@@ -3862,15 +3847,15 @@ export interface QuestionnaireResponseItem extends BackboneElement {
 }
 
 export const QuestionnaireResponseItemSchema: z.ZodType<QuestionnaireResponseItem> = z.lazy(() =>
-  BackboneElementSchema.extend({
+  _BackboneElementBase.extend({
     linkId: z.string(),
-      _linkId: ElementSchema.optional(),
+    _linkId: ElementSchema.optional(),
     definition: z.string().optional(),
-      _definition: ElementSchema.optional(),
+    _definition: ElementSchema.optional(),
     text: z.string().optional(),
-      _text: ElementSchema.optional(),
+    _text: ElementSchema.optional(),
     answer: z.array(QuestionnaireResponseItemAnswerSchema).optional(),
-    item: z.lazy(() => z.array(QuestionnaireResponseItemSchema)).optional(),
+    item: (z.lazy(() => z.array(QuestionnaireResponseItemSchema)) as unknown as z.ZodArray<z.ZodTypeAny>).optional(),
   })
 )
 
@@ -3901,7 +3886,7 @@ export type QuestionnaireResponse = z.infer<typeof QuestionnaireResponseSchema>
  * The absolute geographic location of the Location, expressed using the WGS84 datum (This is the same co-ordinate system used in KML).
  * To define a boundary shape for this location use the standard extension `[http://hl7.org/fhir/StructureDefinition/location-boundary-geojson](http://hl7.org/fhir/extensions/StructureDefinition-location-boundary-geojson.html)`, and search using the `contains` special search parameter.
  */
-export const LocationPositionSchema = BackboneElementSchema.extend({
+export const LocationPositionSchema = _BackboneElementBase.extend({
   longitude: z.number(),
   _longitude: ElementSchema.optional(),
   latitude: z.number(),
@@ -3946,7 +3931,7 @@ export type Location = z.infer<typeof LocationSchema>
  * Benefit limits
  * The specific limits on the benefit.
  */
-export const InsurancePlanCoverageBenefitLimitSchema = BackboneElementSchema.extend({
+export const InsurancePlanCoverageBenefitLimitSchema = _BackboneElementBase.extend({
   value: QuantitySchema.optional(),
   code: CodeableConceptSchema.optional(),
 })
@@ -3956,7 +3941,7 @@ export type InsurancePlanCoverageBenefitLimit = z.infer<typeof InsurancePlanCove
  * List of benefits
  * Specific benefits under this type of coverage.
  */
-export const InsurancePlanCoverageBenefitSchema = BackboneElementSchema.extend({
+export const InsurancePlanCoverageBenefitSchema = _BackboneElementBase.extend({
   type: CodeableConceptSchema,
   requirement: z.string().optional(),
   _requirement: ElementSchema.optional(),
@@ -3968,7 +3953,7 @@ export type InsurancePlanCoverageBenefit = z.infer<typeof InsurancePlanCoverageB
  * Coverage details
  * Details about the coverage offered by the insurance product.
  */
-export const InsurancePlanCoverageSchema = BackboneElementSchema.extend({
+export const InsurancePlanCoverageSchema = _BackboneElementBase.extend({
   type: CodeableConceptSchema,
   network: z.array(ReferenceSchema).optional(),
   benefit: z.array(InsurancePlanCoverageBenefitSchema),
@@ -3979,7 +3964,7 @@ export type InsurancePlanCoverage = z.infer<typeof InsurancePlanCoverageSchema>
  * Overall costs
  * Overall costs associated with the plan.
  */
-export const InsurancePlanPlanGeneralCostSchema = BackboneElementSchema.extend({
+export const InsurancePlanPlanGeneralCostSchema = _BackboneElementBase.extend({
   type: CodeableConceptSchema.optional(),
   groupSize: z.number().optional(),
   _groupSize: ElementSchema.optional(),
@@ -3993,7 +3978,7 @@ export type InsurancePlanPlanGeneralCost = z.infer<typeof InsurancePlanPlanGener
  * List of the costs
  * List of the costs associated with a specific benefit.
  */
-export const InsurancePlanPlanSpecificCostBenefitCostSchema = BackboneElementSchema.extend({
+export const InsurancePlanPlanSpecificCostBenefitCostSchema = _BackboneElementBase.extend({
   type: CodeableConceptSchema,
   applicability: CodeableConceptSchema.optional(),
   qualifiers: z.array(CodeableConceptSchema).optional(),
@@ -4005,7 +3990,7 @@ export type InsurancePlanPlanSpecificCostBenefitCost = z.infer<typeof InsuranceP
  * Benefits list
  * List of the specific benefits under this category of benefit.
  */
-export const InsurancePlanPlanSpecificCostBenefitSchema = BackboneElementSchema.extend({
+export const InsurancePlanPlanSpecificCostBenefitSchema = _BackboneElementBase.extend({
   type: CodeableConceptSchema,
   cost: z.array(InsurancePlanPlanSpecificCostBenefitCostSchema).optional(),
 })
@@ -4015,7 +4000,7 @@ export type InsurancePlanPlanSpecificCostBenefit = z.infer<typeof InsurancePlanP
  * Specific costs
  * Costs associated with the coverage provided by the product.
  */
-export const InsurancePlanPlanSpecificCostSchema = BackboneElementSchema.extend({
+export const InsurancePlanPlanSpecificCostSchema = _BackboneElementBase.extend({
   category: CodeableConceptSchema,
   benefit: z.array(InsurancePlanPlanSpecificCostBenefitSchema).optional(),
 })
@@ -4025,7 +4010,7 @@ export type InsurancePlanPlanSpecificCost = z.infer<typeof InsurancePlanPlanSpec
  * Plan details
  * Details about an insurance plan.
  */
-export const InsurancePlanPlanSchema = BackboneElementSchema.extend({
+export const InsurancePlanPlanSchema = _BackboneElementBase.extend({
   identifier: z.array(IdentifierSchema).optional(),
   type: CodeableConceptSchema.optional(),
   coverageArea: z.array(ReferenceSchema).optional(),
@@ -4063,7 +4048,7 @@ export type InsurancePlan = z.infer<typeof InsurancePlanSchema>
 /**
  * A human-readable display of key concepts to represent the citation
  */
-export const CitationSummarySchema = BackboneElementSchema.extend({
+export const CitationSummarySchema = _BackboneElementBase.extend({
   style: CodeableConceptSchema.optional(),
   text: z.string(),
   _text: ElementSchema.optional(),
@@ -4074,7 +4059,7 @@ export type CitationSummary = z.infer<typeof CitationSummarySchema>
  * The assignment to an organizing scheme
  * Use this element if you need to classify the citation record independently from classifying the cited artifact.
  */
-export const CitationClassificationSchema = BackboneElementSchema.extend({
+export const CitationClassificationSchema = _BackboneElementBase.extend({
   type: CodeableConceptSchema.optional(),
   classifier: z.array(CodeableConceptSchema).optional(),
 })
@@ -4085,7 +4070,7 @@ export type CitationClassification = z.infer<typeof CitationClassificationSchema
  * The state or status of the citation record paired with an effective date or period for that state.
  * Use this if needed for reporting the state or status of the citation record, NOT FOR reporting the state or status of the cited article.
  */
-export const CitationStatusDateSchema = BackboneElementSchema.extend({
+export const CitationStatusDateSchema = _BackboneElementBase.extend({
   activity: CodeableConceptSchema,
   actual: z.boolean().optional(),
   _actual: ElementSchema.optional(),
@@ -4096,7 +4081,7 @@ export type CitationStatusDate = z.infer<typeof CitationStatusDateSchema>
 /**
  * The defined version of the cited artifact
  */
-export const CitationCitedArtifactVersionSchema = BackboneElementSchema.extend({
+export const CitationCitedArtifactVersionSchema = _BackboneElementBase.extend({
   value: z.string(),
   _value: ElementSchema.optional(),
   baseCitation: ReferenceSchema.optional(),
@@ -4107,7 +4092,7 @@ export type CitationCitedArtifactVersion = z.infer<typeof CitationCitedArtifactV
  * An effective date or period for a status of the cited artifact
  * An effective date or period, historical or future, actual or expected, for a status of the cited artifact.
  */
-export const CitationCitedArtifactStatusDateSchema = BackboneElementSchema.extend({
+export const CitationCitedArtifactStatusDateSchema = _BackboneElementBase.extend({
   activity: CodeableConceptSchema,
   actual: z.boolean().optional(),
   _actual: ElementSchema.optional(),
@@ -4118,7 +4103,7 @@ export type CitationCitedArtifactStatusDate = z.infer<typeof CitationCitedArtifa
 /**
  * The title details of the article or artifact
  */
-export const CitationCitedArtifactTitleSchema = BackboneElementSchema.extend({
+export const CitationCitedArtifactTitleSchema = _BackboneElementBase.extend({
   type: z.array(CodeableConceptSchema).optional(),
   language: CodeableConceptSchema.optional(),
   text: z.string(),
@@ -4130,7 +4115,7 @@ export type CitationCitedArtifactTitle = z.infer<typeof CitationCitedArtifactTit
  * Summary of the article or artifact
  * The abstract may be used to convey article-contained abstracts, externally-created abstracts, or other descriptive summaries.
  */
-export const CitationCitedArtifactAbstractSchema = BackboneElementSchema.extend({
+export const CitationCitedArtifactAbstractSchema = _BackboneElementBase.extend({
   type: CodeableConceptSchema.optional(),
   language: CodeableConceptSchema.optional(),
   text: z.string(),
@@ -4143,7 +4128,7 @@ export type CitationCitedArtifactAbstract = z.infer<typeof CitationCitedArtifact
 /**
  * The component of the article or artifact
  */
-export const CitationCitedArtifactPartSchema = BackboneElementSchema.extend({
+export const CitationCitedArtifactPartSchema = _BackboneElementBase.extend({
   type: CodeableConceptSchema.optional(),
   value: z.string().optional(),
   _value: ElementSchema.optional(),
@@ -4155,7 +4140,7 @@ export type CitationCitedArtifactPart = z.infer<typeof CitationCitedArtifactPart
  * The artifact related to the cited artifact
  * The citedArtifact.relatesTo element uses a BackboneElement instead of the RelatedArtifact Datatype to enable use of an extended value set for the required code for the type of relationship.
  */
-export const CitationCitedArtifactRelatesToSchema = BackboneElementSchema.extend({
+export const CitationCitedArtifactRelatesToSchema = _BackboneElementBase.extend({
   type: z.enum(['documentation', 'justification', 'citation', 'predecessor', 'successor', 'derived-from', 'depends-on', 'composed-of', 'part-of', 'amends', 'amended-with', 'appends', 'appended-with', 'cites', 'cited-by', 'comments-on', 'comment-in', 'contains', 'contained-in', 'corrects', 'correction-in', 'replaces', 'replaced-with', 'retracts', 'retracted-by', 'signs', 'similar-to', 'supports', 'supported-with', 'transforms', 'transformed-into', 'transformed-with', 'documents', 'specification-of', 'created-with', 'cite-as', 'reprint', 'reprint-of']),
   _type: ElementSchema.optional(),
   classifier: z.array(CodeableConceptSchema).optional(),
@@ -4175,7 +4160,7 @@ export type CitationCitedArtifactRelatesTo = z.infer<typeof CitationCitedArtifac
 /**
  * The collection the cited article or artifact is published in
  */
-export const CitationCitedArtifactPublicationFormPublishedInSchema = BackboneElementSchema.extend({
+export const CitationCitedArtifactPublicationFormPublishedInSchema = _BackboneElementBase.extend({
   type: CodeableConceptSchema.optional(),
   identifier: z.array(IdentifierSchema).optional(),
   title: z.string().optional(),
@@ -4190,7 +4175,7 @@ export type CitationCitedArtifactPublicationFormPublishedIn = z.infer<typeof Cit
  * If multiple, used to represent alternative forms of the article that are not separate citations
  * A common use is a journal article with a publication date and pagination for a print version and a different publication date for the online version of the same article.
  */
-export const CitationCitedArtifactPublicationFormSchema = BackboneElementSchema.extend({
+export const CitationCitedArtifactPublicationFormSchema = _BackboneElementBase.extend({
   publishedIn: CitationCitedArtifactPublicationFormPublishedInSchema.optional(),
   citedMedium: CodeableConceptSchema.optional(),
   volume: z.string().optional(),
@@ -4224,7 +4209,7 @@ export type CitationCitedArtifactPublicationForm = z.infer<typeof CitationCitedA
 /**
  * Used for any URL for the article or artifact cited
  */
-export const CitationCitedArtifactWebLocationSchema = BackboneElementSchema.extend({
+export const CitationCitedArtifactWebLocationSchema = _BackboneElementBase.extend({
   classifier: z.array(CodeableConceptSchema).optional(),
   url: z.string().optional(),
   _url: ElementSchema.optional(),
@@ -4234,7 +4219,7 @@ export type CitationCitedArtifactWebLocation = z.infer<typeof CitationCitedArtif
 /**
  * The assignment to an organizing scheme
  */
-export const CitationCitedArtifactClassificationSchema = BackboneElementSchema.extend({
+export const CitationCitedArtifactClassificationSchema = _BackboneElementBase.extend({
   type: CodeableConceptSchema.optional(),
   classifier: z.array(CodeableConceptSchema).optional(),
   artifactAssessment: z.array(ReferenceSchema).optional(),
@@ -4244,7 +4229,7 @@ export type CitationCitedArtifactClassification = z.infer<typeof CitationCitedAr
 /**
  * Contributions with accounting for time or number
  */
-export const CitationCitedArtifactContributorshipEntryContributionInstanceSchema = BackboneElementSchema.extend({
+export const CitationCitedArtifactContributorshipEntryContributionInstanceSchema = _BackboneElementBase.extend({
   type: CodeableConceptSchema,
   time: z.string().optional(),
   _time: ElementSchema.optional(),
@@ -4256,7 +4241,7 @@ export type CitationCitedArtifactContributorshipEntryContributionInstance = z.in
  * An individual entity named as a contributor, for example in the author list or contributor list.
  * Used to report contributorship in individualized ways.
  */
-export const CitationCitedArtifactContributorshipEntrySchema = BackboneElementSchema.extend({
+export const CitationCitedArtifactContributorshipEntrySchema = _BackboneElementBase.extend({
   contributor: ReferenceSchema,
   forenameInitials: z.string().optional(),
   _forenameInitials: ElementSchema.optional(),
@@ -4274,7 +4259,7 @@ export type CitationCitedArtifactContributorshipEntry = z.infer<typeof CitationC
 /**
  * Used to record a display of the author/contributor list without separate data element for each list member
  */
-export const CitationCitedArtifactContributorshipSummarySchema = BackboneElementSchema.extend({
+export const CitationCitedArtifactContributorshipSummarySchema = _BackboneElementBase.extend({
   type: CodeableConceptSchema.optional(),
   style: CodeableConceptSchema.optional(),
   source: CodeableConceptSchema.optional(),
@@ -4287,7 +4272,7 @@ export type CitationCitedArtifactContributorshipSummary = z.infer<typeof Citatio
  * Attribution of authors and other contributors
  * This element is used to list authors and other contributors, their contact information, specific contributions, and summary statements.
  */
-export const CitationCitedArtifactContributorshipSchema = BackboneElementSchema.extend({
+export const CitationCitedArtifactContributorshipSchema = _BackboneElementBase.extend({
   complete: z.boolean().optional(),
   _complete: ElementSchema.optional(),
   entry: z.array(CitationCitedArtifactContributorshipEntrySchema).optional(),
@@ -4298,7 +4283,7 @@ export type CitationCitedArtifactContributorship = z.infer<typeof CitationCitedA
 /**
  * The article or artifact being described
  */
-export const CitationCitedArtifactSchema = BackboneElementSchema.extend({
+export const CitationCitedArtifactSchema = _BackboneElementBase.extend({
   identifier: z.array(IdentifierSchema).optional(),
   relatedIdentifier: z.array(IdentifierSchema).optional(),
   dateAccessed: z.string().optional(),
@@ -4377,7 +4362,7 @@ export type Citation = z.infer<typeof CitationSchema>
  * Detailed information about any events relevant to this notification
  * Detailed information about events relevant to this subscription notification.
  */
-export const SubscriptionStatusNotificationEventSchema = BackboneElementSchema.extend({
+export const SubscriptionStatusNotificationEventSchema = _BackboneElementBase.extend({
   eventNumber: z.string(),
   _eventNumber: ElementSchema.optional(),
   timestamp: z.string().optional(),
@@ -4410,7 +4395,7 @@ export type SubscriptionStatus = z.infer<typeof SubscriptionStatusSchema>
  * Defined terms used in the measure documentation
  * Provides a description of an individual term used within the measure.
  */
-export const MeasureTermSchema = BackboneElementSchema.extend({
+export const MeasureTermSchema = _BackboneElementBase.extend({
   code: CodeableConceptSchema.optional(),
   definition: z.string().optional(),
   _definition: ElementSchema.optional(),
@@ -4421,7 +4406,7 @@ export type MeasureTerm = z.infer<typeof MeasureTermSchema>
  * Population criteria
  * A population criteria for the measure.
  */
-export const MeasureGroupPopulationSchema = BackboneElementSchema.extend({
+export const MeasureGroupPopulationSchema = _BackboneElementBase.extend({
   linkId: z.string().optional(),
   _linkId: ElementSchema.optional(),
   code: CodeableConceptSchema.optional(),
@@ -4440,7 +4425,7 @@ export type MeasureGroupPopulation = z.infer<typeof MeasureGroupPopulationSchema
  * A component of the stratifier criteria for the measure report, specified as either the name of a valid CQL expression defined within a referenced library or a valid FHIR Resource Path.
  * Stratifiers are defined either as a single criteria, or as a set of component criteria.
  */
-export const MeasureGroupStratifierComponentSchema = BackboneElementSchema.extend({
+export const MeasureGroupStratifierComponentSchema = _BackboneElementBase.extend({
   linkId: z.string().optional(),
   _linkId: ElementSchema.optional(),
   code: CodeableConceptSchema.optional(),
@@ -4455,7 +4440,7 @@ export type MeasureGroupStratifierComponent = z.infer<typeof MeasureGroupStratif
  * Stratifier criteria for the measure
  * The stratifier criteria for the measure report, specified as either the name of a valid CQL expression defined within a referenced library or a valid FHIR Resource Path.
  */
-export const MeasureGroupStratifierSchema = BackboneElementSchema.extend({
+export const MeasureGroupStratifierSchema = _BackboneElementBase.extend({
   linkId: z.string().optional(),
   _linkId: ElementSchema.optional(),
   code: CodeableConceptSchema.optional(),
@@ -4471,7 +4456,7 @@ export type MeasureGroupStratifier = z.infer<typeof MeasureGroupStratifierSchema
  * Population criteria group
  * A group of population criteria for the measure.
  */
-export const MeasureGroupSchema = BackboneElementSchema.extend({
+export const MeasureGroupSchema = _BackboneElementBase.extend({
   linkId: z.string().optional(),
   _linkId: ElementSchema.optional(),
   code: CodeableConceptSchema.optional(),
@@ -4499,7 +4484,7 @@ export type MeasureGroup = z.infer<typeof MeasureGroupSchema>
  * The supplemental data criteria for the measure report, specified as either the name of a valid CQL expression within a referenced library, or a valid FHIR Resource Path.
  * Note that supplemental data are reported as resources for each patient and referenced in the supplementalData element of the MeasureReport. If the supplementalData expression results in a value other than a resource, it is reported using an Observation resource, typically contained in the resulting MeasureReport. See the MeasureReport resource and the Quality Reporting topic for more information.
  */
-export const MeasureSupplementalDataSchema = BackboneElementSchema.extend({
+export const MeasureSupplementalDataSchema = _BackboneElementBase.extend({
   linkId: z.string().optional(),
   _linkId: ElementSchema.optional(),
   code: CodeableConceptSchema.optional(),
@@ -4594,7 +4579,7 @@ export type Measure = z.infer<typeof MeasureSchema>
  * Who should participate in the action
  * Indicates who should participate in performing the action described.
  */
-export const ActivityDefinitionParticipantSchema = BackboneElementSchema.extend({
+export const ActivityDefinitionParticipantSchema = _BackboneElementBase.extend({
   type: z.enum(['careteam', 'device', 'group', 'healthcareservice', 'location', 'organization', 'patient', 'practitioner', 'practitionerrole', 'relatedperson']).optional(),
   _type: ElementSchema.optional(),
   typeCanonical: z.string().optional(),
@@ -4610,7 +4595,7 @@ export type ActivityDefinitionParticipant = z.infer<typeof ActivityDefinitionPar
  * Dynamic values that will be evaluated to produce values for elements of the resulting resource. For example, if the dosage of a medication must be computed based on the patient's weight, a dynamic value would be used to specify an expression that calculated the weight, and the path on the request resource that would contain the result.
  * Dynamic values are applied in the order in which they are defined in the ActivityDefinition. Note that if both a transform and dynamic values are specified, the dynamic values will be applied to the result of the transform.
  */
-export const ActivityDefinitionDynamicValueSchema = BackboneElementSchema.extend({
+export const ActivityDefinitionDynamicValueSchema = _BackboneElementBase.extend({
   path: z.string(),
   _path: ElementSchema.optional(),
   expression: ExpressionSchema,
@@ -4736,7 +4721,7 @@ export type OrganizationAffiliation = z.infer<typeof OrganizationAffiliationSche
  * Past list of status codes (the current status may be included to cover the start date of the status)
  * The history of statuses that the EpisodeOfCare has been through (without requiring processing the history of the resource).
  */
-export const EpisodeOfCareStatusHistorySchema = BackboneElementSchema.extend({
+export const EpisodeOfCareStatusHistorySchema = _BackboneElementBase.extend({
   status: z.enum(['planned', 'waitlist', 'active', 'onhold', 'finished', 'cancelled', 'entered-in-error']),
   _status: ElementSchema.optional(),
   period: PeriodSchema,
@@ -4747,7 +4732,7 @@ export type EpisodeOfCareStatusHistory = z.infer<typeof EpisodeOfCareStatusHisto
  * The list of medical reasons that are expected to be addressed during the episode of care
  * The reason communicates what medical problem the patient has that should be addressed during the episode of care.  This reason could be patient reported complaint, a clinical indication that was determined in a previous encounter or episode of care, or some planned care such as an immunization recommendation.  In the case where you have a primary reason, but are expecting to also address other problems, you can list the primary reason with a use code of 'Chief Complaint', while the other problems being addressed would have a use code of 'Reason for Visit'.Examples: * pregnancy would use HealthcareService or a coding as the reason * patient home monitoring could use Condition as the reason
  */
-export const EpisodeOfCareReasonSchema = BackboneElementSchema.extend({
+export const EpisodeOfCareReasonSchema = _BackboneElementBase.extend({
   use: CodeableConceptSchema.optional(),
   value: z.array(CodeableReferenceSchema).optional(),
 })
@@ -4757,7 +4742,7 @@ export type EpisodeOfCareReason = z.infer<typeof EpisodeOfCareReasonSchema>
  * The list of medical conditions that were addressed during the episode of care
  * The diagnosis communicates what medical conditions were actually addressed during the episode of care.  If a diagnosis was provided as a reason, and was treated during the episode of care, it may be listed in both EpisodeOfCare.reason and EpisodeOfCare.diagnosis.Diagnoses related to billing can be documented on the Account resources which supports ranking for the purpose of reimbursement.
  */
-export const EpisodeOfCareDiagnosisSchema = BackboneElementSchema.extend({
+export const EpisodeOfCareDiagnosisSchema = _BackboneElementBase.extend({
   condition: z.array(CodeableReferenceSchema).optional(),
   use: CodeableConceptSchema.optional(),
 })
@@ -4788,7 +4773,7 @@ export type EpisodeOfCare = z.infer<typeof EpisodeOfCareSchema>
 /**
  * The item or items in this listing
  */
-export const InventoryReportInventoryListingItemSchema = BackboneElementSchema.extend({
+export const InventoryReportInventoryListingItemSchema = _BackboneElementBase.extend({
   category: CodeableConceptSchema.optional(),
   quantity: QuantitySchema,
   item: CodeableReferenceSchema,
@@ -4798,7 +4783,7 @@ export type InventoryReportInventoryListingItem = z.infer<typeof InventoryReport
 /**
  * An inventory listing section (grouped by any of the attributes)
  */
-export const InventoryReportInventoryListingSchema = BackboneElementSchema.extend({
+export const InventoryReportInventoryListingSchema = _BackboneElementBase.extend({
   location: ReferenceSchema.optional(),
   itemStatus: CodeableConceptSchema.optional(),
   countingDateTime: z.string().optional(),
@@ -4832,7 +4817,7 @@ export type InventoryReport = z.infer<typeof InventoryReportSchema>
  * Device details
  * Specific parameters for the ordered item.  For example, the prism value for lenses.
  */
-export const DeviceRequestParameterSchema = BackboneElementSchema.extend({
+export const DeviceRequestParameterSchema = _BackboneElementBase.extend({
   code: CodeableConceptSchema.optional(),
   valueCodeableConcept: CodeableConceptSchema.optional(),
   valueQuantity: QuantitySchema.optional(),
@@ -4889,19 +4874,10 @@ export const DeviceRequestSchema = DomainResourceSchema.extend({
 export type DeviceRequest = z.infer<typeof DeviceRequestSchema>
 
 /**
- * markdown type: A string that may contain Github Flavored Markdown syntax for optional processing by a mark down presentation engine
- */
-export const markdownSchema = stringSchema.extend({
-  value: z.string().optional(),
-  _value: ElementSchema.optional(),
-})
-export type markdown = z.infer<typeof markdownSchema>
-
-/**
  * Software that is covered by this capability statement
  * Software that is covered by this capability statement.  It is used when the capability statement describes the capabilities of a particular software version, independent of an installation.
  */
-export const CapabilityStatementSoftwareSchema = BackboneElementSchema.extend({
+export const CapabilityStatementSoftwareSchema = _BackboneElementBase.extend({
   name: z.string(),
   _name: ElementSchema.optional(),
   version: z.string().optional(),
@@ -4915,7 +4891,7 @@ export type CapabilityStatementSoftware = z.infer<typeof CapabilityStatementSoft
  * If this describes a specific instance
  * Identifies a specific implementation instance that is described by the capability statement - i.e. a particular installation, rather than the capabilities of a software program.
  */
-export const CapabilityStatementImplementationSchema = BackboneElementSchema.extend({
+export const CapabilityStatementImplementationSchema = _BackboneElementBase.extend({
   description: z.string(),
   _description: ElementSchema.optional(),
   url: z.string().optional(),
@@ -4928,7 +4904,7 @@ export type CapabilityStatementImplementation = z.infer<typeof CapabilityStateme
  * Information about security of implementation
  * Information about security implementation from an interface perspective - what a client needs to know.
  */
-export const CapabilityStatementRestSecuritySchema = BackboneElementSchema.extend({
+export const CapabilityStatementRestSecuritySchema = _BackboneElementBase.extend({
   cors: z.boolean().optional(),
   _cors: ElementSchema.optional(),
   service: z.array(CodeableConceptSchema).optional(),
@@ -4942,7 +4918,7 @@ export type CapabilityStatementRestSecurity = z.infer<typeof CapabilityStatement
  * Identifies a restful operation supported by the solution.
  * In general, a Resource will only appear in a CapabilityStatement if the server actually has some capabilities - e.g. there is at least one interaction supported. However interactions can be omitted to support summarization (_summary = true).
  */
-export const CapabilityStatementRestResourceInteractionSchema = BackboneElementSchema.extend({
+export const CapabilityStatementRestResourceInteractionSchema = _BackboneElementBase.extend({
   code: z.enum(['read', 'vread', 'update', 'patch', 'delete', 'history-instance', 'history-type', 'create', 'search-type']),
   _code: ElementSchema.optional(),
   documentation: z.string().optional(),
@@ -4967,15 +4943,15 @@ export interface CapabilityStatementRestResourceSearchParam extends BackboneElem
 }
 
 export const CapabilityStatementRestResourceSearchParamSchema: z.ZodType<CapabilityStatementRestResourceSearchParam> = z.lazy(() =>
-  BackboneElementSchema.extend({
+  _BackboneElementBase.extend({
     name: z.string(),
-      _name: ElementSchema.optional(),
+    _name: ElementSchema.optional(),
     definition: z.string().optional(),
-      _definition: ElementSchema.optional(),
+    _definition: ElementSchema.optional(),
     type: z.enum(['number', 'date', 'string', 'token', 'reference', 'composite', 'quantity', 'uri', 'special']),
-      _type: ElementSchema.optional(),
+    _type: ElementSchema.optional(),
     documentation: z.string().optional(),
-      _documentation: ElementSchema.optional(),
+    _documentation: ElementSchema.optional(),
   })
 )
 
@@ -4994,13 +4970,13 @@ export interface CapabilityStatementRestResourceOperation extends BackboneElemen
 }
 
 export const CapabilityStatementRestResourceOperationSchema: z.ZodType<CapabilityStatementRestResourceOperation> = z.lazy(() =>
-  BackboneElementSchema.extend({
+  _BackboneElementBase.extend({
     name: z.string(),
-      _name: ElementSchema.optional(),
+    _name: ElementSchema.optional(),
     definition: z.string(),
-      _definition: ElementSchema.optional(),
+    _definition: ElementSchema.optional(),
     documentation: z.string().optional(),
-      _documentation: ElementSchema.optional(),
+    _documentation: ElementSchema.optional(),
   })
 )
 
@@ -5009,7 +4985,7 @@ export const CapabilityStatementRestResourceOperationSchema: z.ZodType<Capabilit
  * A specification of the restful capabilities of the solution for a specific resource type.
  * Max of one repetition per resource type.
  */
-export const CapabilityStatementRestResourceSchema = BackboneElementSchema.extend({
+export const CapabilityStatementRestResourceSchema = _BackboneElementBase.extend({
   type: z.enum(['Account', 'ActivityDefinition', 'ActorDefinition', 'AdministrableProductDefinition', 'AdverseEvent', 'AllergyIntolerance', 'Appointment', 'AppointmentResponse', 'ArtifactAssessment', 'AuditEvent', 'Basic', 'Binary', 'BiologicallyDerivedProduct', 'BiologicallyDerivedProductDispense', 'BodyStructure', 'Bundle', 'CapabilityStatement', 'CarePlan', 'CareTeam', 'ChargeItem', 'ChargeItemDefinition', 'Citation', 'Claim', 'ClaimResponse', 'ClinicalImpression', 'ClinicalUseDefinition', 'CodeSystem', 'Communication', 'CommunicationRequest', 'CompartmentDefinition', 'Composition', 'ConceptMap', 'Condition', 'ConditionDefinition', 'Consent', 'Contract', 'Coverage', 'CoverageEligibilityRequest', 'CoverageEligibilityResponse', 'DetectedIssue', 'Device', 'DeviceAssociation', 'DeviceDefinition', 'DeviceDispense', 'DeviceMetric', 'DeviceRequest', 'DeviceUsage', 'DiagnosticReport', 'DocumentReference', 'Encounter', 'EncounterHistory', 'Endpoint', 'EnrollmentRequest', 'EnrollmentResponse', 'EpisodeOfCare', 'EventDefinition', 'Evidence', 'EvidenceReport', 'EvidenceVariable', 'ExampleScenario', 'ExplanationOfBenefit', 'FamilyMemberHistory', 'Flag', 'FormularyItem', 'GenomicStudy', 'Goal', 'GraphDefinition', 'Group', 'GuidanceResponse', 'HealthcareService', 'ImagingSelection', 'ImagingStudy', 'Immunization', 'ImmunizationEvaluation', 'ImmunizationRecommendation', 'ImplementationGuide', 'Ingredient', 'InsurancePlan', 'InventoryItem', 'InventoryReport', 'Invoice', 'Library', 'Linkage', 'List', 'Location', 'ManufacturedItemDefinition', 'Measure', 'MeasureReport', 'Medication', 'MedicationAdministration', 'MedicationDispense', 'MedicationKnowledge', 'MedicationRequest', 'MedicationStatement', 'MedicinalProductDefinition', 'MessageDefinition', 'MessageHeader', 'MolecularSequence', 'NamingSystem', 'NutritionIntake', 'NutritionOrder', 'NutritionProduct', 'Observation', 'ObservationDefinition', 'OperationDefinition', 'OperationOutcome', 'Organization', 'OrganizationAffiliation', 'PackagedProductDefinition', 'Parameters', 'Patient', 'PaymentNotice', 'PaymentReconciliation', 'Permission', 'Person', 'PlanDefinition', 'Practitioner', 'PractitionerRole', 'Procedure', 'Provenance', 'Questionnaire', 'QuestionnaireResponse', 'RegulatedAuthorization', 'RelatedPerson', 'RequestOrchestration', 'Requirements', 'ResearchStudy', 'ResearchSubject', 'RiskAssessment', 'Schedule', 'SearchParameter', 'ServiceRequest', 'Slot', 'Specimen', 'SpecimenDefinition', 'StructureDefinition', 'StructureMap', 'Subscription', 'SubscriptionStatus', 'SubscriptionTopic', 'Substance', 'SubstanceDefinition', 'SubstanceNucleicAcid', 'SubstancePolymer', 'SubstanceProtein', 'SubstanceReferenceInformation', 'SubstanceSourceMaterial', 'SupplyDelivery', 'SupplyRequest', 'Task', 'TerminologyCapabilities', 'TestPlan', 'TestReport', 'TestScript', 'Transport', 'ValueSet', 'VerificationResult', 'VisionPrescription']),
   _type: ElementSchema.optional(),
   profile: z.string().optional(),
@@ -5050,7 +5026,7 @@ export type CapabilityStatementRestResource = z.infer<typeof CapabilityStatement
  * What operations are supported?
  * A specification of restful operations supported by the system.
  */
-export const CapabilityStatementRestInteractionSchema = BackboneElementSchema.extend({
+export const CapabilityStatementRestInteractionSchema = _BackboneElementBase.extend({
   code: z.enum(['transaction', 'batch', 'search-system', 'history-system']),
   _code: ElementSchema.optional(),
   documentation: z.string().optional(),
@@ -5063,7 +5039,7 @@ export type CapabilityStatementRestInteraction = z.infer<typeof CapabilityStatem
  * A definition of the restful capabilities of the solution, if any.
  * Multiple repetitions allow definition of both client and/or server behaviors or possibly behaviors under different configuration settings (for software or requirements statements).
  */
-export const CapabilityStatementRestSchema = BackboneElementSchema.extend({
+export const CapabilityStatementRestSchema = _BackboneElementBase.extend({
   mode: z.enum(['client', 'server']),
   _mode: ElementSchema.optional(),
   documentation: z.string().optional(),
@@ -5071,8 +5047,8 @@ export const CapabilityStatementRestSchema = BackboneElementSchema.extend({
   security: CapabilityStatementRestSecuritySchema.optional(),
   resource: z.array(CapabilityStatementRestResourceSchema).optional(),
   interaction: z.array(CapabilityStatementRestInteractionSchema).optional(),
-  searchParam: z.lazy(() => z.array(CapabilityStatementRestResourceSearchParamSchema)).optional(),
-  operation: z.lazy(() => z.array(CapabilityStatementRestResourceOperationSchema)).optional(),
+  searchParam: (z.lazy(() => z.array(CapabilityStatementRestResourceSearchParamSchema)) as unknown as z.ZodArray<z.ZodTypeAny>).optional(),
+  operation: (z.lazy(() => z.array(CapabilityStatementRestResourceOperationSchema)) as unknown as z.ZodArray<z.ZodTypeAny>).optional(),
   compartment: z.array(z.string()).optional(),
   _compartment: ElementSchema.optional(),
 })
@@ -5082,7 +5058,7 @@ export type CapabilityStatementRest = z.infer<typeof CapabilityStatementRestSche
  * Where messages should be sent
  * An endpoint (network accessible address) to which messages and/or replies are to be sent.
  */
-export const CapabilityStatementMessagingEndpointSchema = BackboneElementSchema.extend({
+export const CapabilityStatementMessagingEndpointSchema = _BackboneElementBase.extend({
   protocol: CodingSchema,
   address: z.string(),
   _address: ElementSchema.optional(),
@@ -5094,7 +5070,7 @@ export type CapabilityStatementMessagingEndpoint = z.infer<typeof CapabilityStat
  * References to message definitions for messages this system can send or receive.
  * This is a proposed alternative to the messaging.event structure.
  */
-export const CapabilityStatementMessagingSupportedMessageSchema = BackboneElementSchema.extend({
+export const CapabilityStatementMessagingSupportedMessageSchema = _BackboneElementBase.extend({
   mode: z.enum(['sender', 'receiver']),
   _mode: ElementSchema.optional(),
   definition: z.string(),
@@ -5107,7 +5083,7 @@ export type CapabilityStatementMessagingSupportedMessage = z.infer<typeof Capabi
  * A description of the messaging capabilities of the solution.
  * Multiple repetitions allow the documentation of multiple endpoints per solution.
  */
-export const CapabilityStatementMessagingSchema = BackboneElementSchema.extend({
+export const CapabilityStatementMessagingSchema = _BackboneElementBase.extend({
   endpoint: z.array(CapabilityStatementMessagingEndpointSchema).optional(),
   reliableCache: z.number().optional(),
   _reliableCache: ElementSchema.optional(),
@@ -5121,7 +5097,7 @@ export type CapabilityStatementMessaging = z.infer<typeof CapabilityStatementMes
  * Document definition
  * A document definition.
  */
-export const CapabilityStatementDocumentSchema = BackboneElementSchema.extend({
+export const CapabilityStatementDocumentSchema = _BackboneElementBase.extend({
   mode: z.enum(['producer', 'consumer']),
   _mode: ElementSchema.optional(),
   documentation: z.string().optional(),
@@ -5196,7 +5172,7 @@ export type CapabilityStatement = z.infer<typeof CapabilityStatementSchema>
  * The set of payloads that are provided/available at this endpoint.
  * Note that not all mimetypes or types will be listed under the one endpoint resource, there may be multiple instances that information for cases where other header data such as the endpoint address, active status/period etc. is different.
  */
-export const EndpointPayloadSchema = BackboneElementSchema.extend({
+export const EndpointPayloadSchema = _BackboneElementBase.extend({
   type: z.array(CodeableConceptSchema).optional(),
   mimeType: z.array(z.string()).optional(),
   _mimeType: ElementSchema.optional(),
@@ -5232,7 +5208,7 @@ export type Endpoint = z.infer<typeof EndpointSchema>
  * Who performed event
  * Indicates who or what performed the event.
  */
-export const DeviceDispensePerformerSchema = BackboneElementSchema.extend({
+export const DeviceDispensePerformerSchema = _BackboneElementBase.extend({
   function: CodeableConceptSchema.optional(),
   actor: ReferenceSchema,
 })
@@ -5274,7 +5250,7 @@ export type DeviceDispense = z.infer<typeof DeviceDispenseSchema>
 /**
  * The starting materials - monomer(s) used in the synthesis of the polymer
  */
-export const SubstancePolymerMonomerSetStartingMaterialSchema = BackboneElementSchema.extend({
+export const SubstancePolymerMonomerSetStartingMaterialSchema = _BackboneElementBase.extend({
   code: CodeableConceptSchema.optional(),
   category: CodeableConceptSchema.optional(),
   isDefining: z.boolean().optional(),
@@ -5286,7 +5262,7 @@ export type SubstancePolymerMonomerSetStartingMaterial = z.infer<typeof Substanc
 /**
  * Todo
  */
-export const SubstancePolymerMonomerSetSchema = BackboneElementSchema.extend({
+export const SubstancePolymerMonomerSetSchema = _BackboneElementBase.extend({
   ratioType: CodeableConceptSchema.optional(),
   startingMaterial: z.array(SubstancePolymerMonomerSetStartingMaterialSchema).optional(),
 })
@@ -5295,7 +5271,7 @@ export type SubstancePolymerMonomerSet = z.infer<typeof SubstancePolymerMonomerS
 /**
  * Applies to homopolymer and block co-polymers where the degree of polymerisation within a block can be described
  */
-export const SubstancePolymerRepeatRepeatUnitDegreeOfPolymerisationSchema = BackboneElementSchema.extend({
+export const SubstancePolymerRepeatRepeatUnitDegreeOfPolymerisationSchema = _BackboneElementBase.extend({
   type: CodeableConceptSchema.optional(),
   average: z.number().optional(),
   _average: ElementSchema.optional(),
@@ -5309,7 +5285,7 @@ export type SubstancePolymerRepeatRepeatUnitDegreeOfPolymerisation = z.infer<typ
 /**
  * A graphical structure for this SRU
  */
-export const SubstancePolymerRepeatRepeatUnitStructuralRepresentationSchema = BackboneElementSchema.extend({
+export const SubstancePolymerRepeatRepeatUnitStructuralRepresentationSchema = _BackboneElementBase.extend({
   type: CodeableConceptSchema.optional(),
   representation: z.string().optional(),
   _representation: ElementSchema.optional(),
@@ -5321,7 +5297,7 @@ export type SubstancePolymerRepeatRepeatUnitStructuralRepresentation = z.infer<t
 /**
  * An SRU - Structural Repeat Unit
  */
-export const SubstancePolymerRepeatRepeatUnitSchema = BackboneElementSchema.extend({
+export const SubstancePolymerRepeatRepeatUnitSchema = _BackboneElementBase.extend({
   unit: z.string().optional(),
   _unit: ElementSchema.optional(),
   orientation: CodeableConceptSchema.optional(),
@@ -5335,7 +5311,7 @@ export type SubstancePolymerRepeatRepeatUnit = z.infer<typeof SubstancePolymerRe
 /**
  * Specifies and quantifies the repeated units and their configuration
  */
-export const SubstancePolymerRepeatSchema = BackboneElementSchema.extend({
+export const SubstancePolymerRepeatSchema = _BackboneElementBase.extend({
   averageMolecularFormula: z.string().optional(),
   _averageMolecularFormula: ElementSchema.optional(),
   repeatUnitAmountType: CodeableConceptSchema.optional(),
@@ -5363,7 +5339,7 @@ export type SubstancePolymer = z.infer<typeof SubstancePolymerSchema>
  * Composition information about the substance
  * A substance can be composed of other substances.
  */
-export const SubstanceIngredientSchema = BackboneElementSchema.extend({
+export const SubstanceIngredientSchema = _BackboneElementBase.extend({
   quantity: RatioSchema.optional(),
   substanceCodeableConcept: CodeableConceptSchema.optional(),
   substanceReference: ReferenceSchema.optional(),
@@ -5396,7 +5372,7 @@ export type Substance = z.infer<typeof SubstanceSchema>
  * Identifies traits whose presence r absence is shared by members of the group.
  * All the identified characteristics must be true for an entity to a member of the group.
  */
-export const GroupCharacteristicSchema = BackboneElementSchema.extend({
+export const GroupCharacteristicSchema = _BackboneElementBase.extend({
   code: CodeableConceptSchema,
   valueCodeableConcept: CodeableConceptSchema.optional(),
   valueBoolean: z.boolean().optional(),
@@ -5414,7 +5390,7 @@ export type GroupCharacteristic = z.infer<typeof GroupCharacteristicSchema>
  * Who or what is in group
  * Identifies the resource instances that are members of the group.
  */
-export const GroupMemberSchema = BackboneElementSchema.extend({
+export const GroupMemberSchema = _BackboneElementBase.extend({
   entity: ReferenceSchema,
   period: PeriodSchema.optional(),
   inactive: z.boolean().optional(),
@@ -5452,7 +5428,7 @@ export type Group = z.infer<typeof GroupSchema>
  * Indicates who or what performed the series and how they were involved.
  * If the person who performed the series is not known, their Organization may be recorded. A patient, or related person, may be the performer, e.g. for patient-captured images.
  */
-export const ImagingStudySeriesPerformerSchema = BackboneElementSchema.extend({
+export const ImagingStudySeriesPerformerSchema = _BackboneElementBase.extend({
   function: CodeableConceptSchema.optional(),
   actor: ReferenceSchema,
 })
@@ -5462,7 +5438,7 @@ export type ImagingStudySeriesPerformer = z.infer<typeof ImagingStudySeriesPerfo
  * A single SOP instance from the series
  * A single SOP instance within the series, e.g. an image, or presentation state.
  */
-export const ImagingStudySeriesInstanceSchema = BackboneElementSchema.extend({
+export const ImagingStudySeriesInstanceSchema = _BackboneElementBase.extend({
   uid: z.string(),
   _uid: ElementSchema.optional(),
   sopClass: CodingSchema,
@@ -5477,7 +5453,7 @@ export type ImagingStudySeriesInstance = z.infer<typeof ImagingStudySeriesInstan
  * Each study has one or more series of instances
  * Each study has one or more series of images or other content.
  */
-export const ImagingStudySeriesSchema = BackboneElementSchema.extend({
+export const ImagingStudySeriesSchema = _BackboneElementBase.extend({
   uid: z.string(),
   _uid: ElementSchema.optional(),
   number: z.number().optional(),
@@ -5532,7 +5508,7 @@ export type ImagingStudy = z.infer<typeof ImagingStudySchema>
 /**
  * The linkages between sugar residues will also be captured
  */
-export const SubstanceNucleicAcidSubunitLinkageSchema = BackboneElementSchema.extend({
+export const SubstanceNucleicAcidSubunitLinkageSchema = _BackboneElementBase.extend({
   connectivity: z.string().optional(),
   _connectivity: ElementSchema.optional(),
   identifier: IdentifierSchema.optional(),
@@ -5546,7 +5522,7 @@ export type SubstanceNucleicAcidSubunitLinkage = z.infer<typeof SubstanceNucleic
 /**
  * 5.3.6.8.1 Sugar ID (Mandatory)
  */
-export const SubstanceNucleicAcidSubunitSugarSchema = BackboneElementSchema.extend({
+export const SubstanceNucleicAcidSubunitSugarSchema = _BackboneElementBase.extend({
   identifier: IdentifierSchema.optional(),
   name: z.string().optional(),
   _name: ElementSchema.optional(),
@@ -5558,7 +5534,7 @@ export type SubstanceNucleicAcidSubunitSugar = z.infer<typeof SubstanceNucleicAc
 /**
  * Subunits are listed in order of decreasing length; sequences of the same length will be ordered by molecular weight; subunits that have identical sequences will be repeated multiple times
  */
-export const SubstanceNucleicAcidSubunitSchema = BackboneElementSchema.extend({
+export const SubstanceNucleicAcidSubunitSchema = _BackboneElementBase.extend({
   subunit: z.number().optional(),
   _subunit: ElementSchema.optional(),
   sequence: z.string().optional(),
@@ -5589,19 +5565,10 @@ export const SubstanceNucleicAcidSchema = DomainResourceSchema.extend({
 export type SubstanceNucleicAcid = z.infer<typeof SubstanceNucleicAcidSchema>
 
 /**
- * dateTime Type: A date, date-time or partial date (e.g. just year or year + month).  If hours and minutes are specified, a UTC offset SHALL be populated. The format is a union of the schema types gYear, gYearMonth, date and dateTime. Seconds must be provided due to schema type constraints but may be zero-filled and may be ignored.                 Dates SHALL be valid dates.
- */
-export const dateTimeSchema = PrimitiveTypeSchema.extend({
-  value: z.string().optional(),
-  _value: ElementSchema.optional(),
-})
-export type dateTime = z.infer<typeof dateTimeSchema>
-
-/**
  * Qualifications, certifications, accreditations, licenses, training, etc. pertaining to the provision of care
  * The official certifications, accreditations, training, designations and licenses that authorize and/or otherwise endorse the provision of care by the organization.For example, an approval to provide a type of services issued by a certifying body (such as the US Joint Commission) to an organization.
  */
-export const OrganizationQualificationSchema = BackboneElementSchema.extend({
+export const OrganizationQualificationSchema = _BackboneElementBase.extend({
   identifier: z.array(IdentifierSchema).optional(),
   code: CodeableConceptSchema,
   period: PeriodSchema.optional(),
@@ -5647,7 +5614,7 @@ export type Contributor = z.infer<typeof ContributorSchema>
  * A sequence used as starting sequence
  * A sequence that is used as a starting sequence to describe variants that are present in a sequence analyzed.
  */
-export const MolecularSequenceRelativeStartingSequenceSchema = BackboneElementSchema.extend({
+export const MolecularSequenceRelativeStartingSequenceSchema = _BackboneElementBase.extend({
   genomeAssembly: CodeableConceptSchema.optional(),
   chromosome: CodeableConceptSchema.optional(),
   sequenceCodeableConcept: CodeableConceptSchema.optional(),
@@ -5668,7 +5635,7 @@ export type MolecularSequenceRelativeStartingSequence = z.infer<typeof Molecular
 /**
  * Changes in sequence from the starting sequence
  */
-export const MolecularSequenceRelativeEditSchema = BackboneElementSchema.extend({
+export const MolecularSequenceRelativeEditSchema = _BackboneElementBase.extend({
   start: z.number().optional(),
   _start: ElementSchema.optional(),
   end: z.number().optional(),
@@ -5683,7 +5650,7 @@ export type MolecularSequenceRelativeEdit = z.infer<typeof MolecularSequenceRela
 /**
  * A sequence defined relative to another sequence
  */
-export const MolecularSequenceRelativeSchema = BackboneElementSchema.extend({
+export const MolecularSequenceRelativeSchema = _BackboneElementBase.extend({
   coordinateSystem: CodeableConceptSchema,
   ordinalPosition: z.number().optional(),
   _ordinalPosition: ElementSchema.optional(),
@@ -5728,14 +5695,14 @@ export interface RegulatedAuthorizationCase extends BackboneElement {
 }
 
 export const RegulatedAuthorizationCaseSchema: z.ZodType<RegulatedAuthorizationCase> = z.lazy(() =>
-  BackboneElementSchema.extend({
+  _BackboneElementBase.extend({
     identifier: IdentifierSchema.optional(),
     type: CodeableConceptSchema.optional(),
     status: CodeableConceptSchema.optional(),
     datePeriod: PeriodSchema.optional(),
     dateDateTime: z.string().optional(),
-      _dateDateTime: ElementSchema.optional(),
-    application: z.lazy(() => z.array(RegulatedAuthorizationCaseSchema)).optional(),
+    _dateDateTime: ElementSchema.optional(),
+    application: (z.lazy(() => z.array(RegulatedAuthorizationCaseSchema)) as unknown as z.ZodArray<z.ZodTypeAny>).optional(),
   })
 )
 
@@ -5765,15 +5732,6 @@ export const RegulatedAuthorizationSchema = DomainResourceSchema.extend({
 export type RegulatedAuthorization = z.infer<typeof RegulatedAuthorizationSchema>
 
 /**
- * boolean Type: Value of "true" or "false"
- */
-export const booleanSchema = PrimitiveTypeSchema.extend({
-  value: z.boolean().optional(),
-  _value: ElementSchema.optional(),
-})
-export type boolean = z.infer<typeof booleanSchema>
-
-/**
  * Whether or not the billing code is applicable
  * Expressions that describe applicability criteria for the billing code.
  * The applicability conditions can be used to ascertain whether a billing item is allowed in a specific context. E.g. some billing codes may only be applicable in out-patient settings, only to male/female patients or only to children.
@@ -5785,7 +5743,7 @@ export interface ChargeItemDefinitionApplicability extends BackboneElement {
 }
 
 export const ChargeItemDefinitionApplicabilitySchema: z.ZodType<ChargeItemDefinitionApplicability> = z.lazy(() =>
-  BackboneElementSchema.extend({
+  _BackboneElementBase.extend({
     condition: ExpressionSchema.optional(),
     effectivePeriod: PeriodSchema.optional(),
     relatedArtifact: RelatedArtifactSchema.optional(),
@@ -5796,8 +5754,8 @@ export const ChargeItemDefinitionApplicabilitySchema: z.ZodType<ChargeItemDefini
  * Group of properties which are applicable under the same conditions
  * Group of properties which are applicable under the same conditions. If no applicability rules are established for the group, then all properties always apply.
  */
-export const ChargeItemDefinitionPropertyGroupSchema = BackboneElementSchema.extend({
-  applicability: z.lazy(() => z.array(ChargeItemDefinitionApplicabilitySchema)).optional(),
+export const ChargeItemDefinitionPropertyGroupSchema = _BackboneElementBase.extend({
+  applicability: (z.lazy(() => z.array(ChargeItemDefinitionApplicabilitySchema)) as unknown as z.ZodArray<z.ZodTypeAny>).optional(),
   priceComponent: z.array(MonetaryComponentSchema).optional(),
 })
 export type ChargeItemDefinitionPropertyGroup = z.infer<typeof ChargeItemDefinitionPropertyGroupSchema>
@@ -5860,7 +5818,7 @@ export type ChargeItemDefinition = z.infer<typeof ChargeItemDefinitionSchema>
  * A constraint indicating that this item should only be enabled (displayed/allow answers to be captured) when the specified condition is true.
  * If multiple repetitions of this extension are present, the interpretation is driven by enableBehavior (either all repetitions must evaluate to true for this item to be enabled, or only one must evaluate to true for the item to be enabled).  If the enableWhen.question has multiple answers, the condition evaluates to true if *any* of the answers for the referenced item match the enableWhen condition.  This element is a modifier because if enableWhen is present for an item, "required" is ignored unless one of the enableWhen conditions is met. When an item is disabled, all of its descendants are disabled, regardless of what their own enableWhen logic might evaluate to.  If enableWhen logic depends on an item that is disabled, the logic should proceed as though the item is not valued - even if a default value or other value might be retained in memory in the event of the item being re-enabled.  In some cases, the comparison between the indicated answer and the specified value may differ only by precision.  For example, the enableWhen might be Q1 > 1970, but the answer to Q1 is 1970-10-15.  There is not a clear answer as to whether 1970-10-15 should be considered 'greater' than 1970, given that it is an imprecise value.  In these indeterminate situations, the form filler has the option of refusing to render the form.  If the form **is** displayed, items where enableWhen is indeterminate SHOULD be treated as enabled with a warning indicating that the questionnaire logic was faulty and it is possible that the item should not be enabled.  Questionnaires SHOULD be designed to take into account challenges around varying precision to minimize non-deterministic situations by setting constraints around expected precision, etc.
  */
-export const QuestionnaireItemEnableWhenSchema = BackboneElementSchema.extend({
+export const QuestionnaireItemEnableWhenSchema = _BackboneElementBase.extend({
   question: z.string(),
   _question: ElementSchema.optional(),
   operator: z.enum(['exists', '=', '!=', '>', '<', '>=', '<=']),
@@ -5890,7 +5848,7 @@ export type QuestionnaireItemEnableWhen = z.infer<typeof QuestionnaireItemEnable
  * One of the permitted answers for the question.
  * This element can be used when the value set machinery of answerValueSet is deemed too cumbersome or when there's a need to capture possible answers that are not codes.
  */
-export const QuestionnaireItemAnswerOptionSchema = BackboneElementSchema.extend({
+export const QuestionnaireItemAnswerOptionSchema = _BackboneElementBase.extend({
   valueInteger: z.number().optional(),
   _valueInteger: ElementSchema.optional(),
   valueDate: z.string().optional(),
@@ -5911,7 +5869,7 @@ export type QuestionnaireItemAnswerOption = z.infer<typeof QuestionnaireItemAnsw
  * One or more values that should be pre-populated in the answer when initially rendering the questionnaire for user input.
  * The user is allowed to change the value and override the default (unless marked as read-only). If the user doesn't change the value, then this initial value will be persisted when the QuestionnaireResponse is initially created.  Note that initial values can influence results.  The data type of initial.answer[x] must agree with the item.type, and only repeating items can have more then one initial value.
  */
-export const QuestionnaireItemInitialSchema = BackboneElementSchema.extend({
+export const QuestionnaireItemInitialSchema = _BackboneElementBase.extend({
   valueBoolean: z.boolean().optional(),
   _valueBoolean: ElementSchema.optional(),
   valueDecimal: z.number().optional(),
@@ -5975,38 +5933,38 @@ export interface QuestionnaireItem extends BackboneElement {
 }
 
 export const QuestionnaireItemSchema: z.ZodType<QuestionnaireItem> = z.lazy(() =>
-  BackboneElementSchema.extend({
+  _BackboneElementBase.extend({
     linkId: z.string(),
-      _linkId: ElementSchema.optional(),
+    _linkId: ElementSchema.optional(),
     definition: z.string().optional(),
-      _definition: ElementSchema.optional(),
+    _definition: ElementSchema.optional(),
     code: z.array(CodingSchema).optional(),
     prefix: z.string().optional(),
-      _prefix: ElementSchema.optional(),
+    _prefix: ElementSchema.optional(),
     text: z.string().optional(),
-      _text: ElementSchema.optional(),
+    _text: ElementSchema.optional(),
     type: z.enum(['group', 'display', 'question', 'boolean', 'decimal', 'integer', 'date', 'dateTime', 'time', 'string', 'text', 'url', 'coding', 'attachment', 'reference', 'quantity']),
-      _type: ElementSchema.optional(),
+    _type: ElementSchema.optional(),
     enableWhen: z.array(QuestionnaireItemEnableWhenSchema).optional(),
     enableBehavior: z.enum(['all', 'any']).optional(),
-      _enableBehavior: ElementSchema.optional(),
+    _enableBehavior: ElementSchema.optional(),
     disabledDisplay: z.enum(['hidden', 'protected']).optional(),
-      _disabledDisplay: ElementSchema.optional(),
+    _disabledDisplay: ElementSchema.optional(),
     required: z.boolean().optional(),
-      _required: ElementSchema.optional(),
+    _required: ElementSchema.optional(),
     repeats: z.boolean().optional(),
-      _repeats: ElementSchema.optional(),
+    _repeats: ElementSchema.optional(),
     readOnly: z.boolean().optional(),
-      _readOnly: ElementSchema.optional(),
+    _readOnly: ElementSchema.optional(),
     maxLength: z.number().optional(),
-      _maxLength: ElementSchema.optional(),
+    _maxLength: ElementSchema.optional(),
     answerConstraint: z.enum(['optionsOnly', 'optionsOrType', 'optionsOrString']).optional(),
-      _answerConstraint: ElementSchema.optional(),
+    _answerConstraint: ElementSchema.optional(),
     answerValueSet: z.string().optional(),
-      _answerValueSet: ElementSchema.optional(),
+    _answerValueSet: ElementSchema.optional(),
     answerOption: z.array(QuestionnaireItemAnswerOptionSchema).optional(),
     initial: z.array(QuestionnaireItemInitialSchema).optional(),
-    item: z.lazy(() => z.array(QuestionnaireItemSchema)).optional(),
+    item: (z.lazy(() => z.array(QuestionnaireItemSchema)) as unknown as z.ZodArray<z.ZodTypeAny>).optional(),
   })
 )
 
@@ -6065,7 +6023,7 @@ export type Questionnaire = z.infer<typeof QuestionnaireSchema>
  * An abstract server used in operations within this test script in the origin element.
  * The purpose of this element is to define the profile of an origin element used elsewhere in the script.  Test engines could then use the origin-profile mapping to offer a filtered list of test systems that can serve as the sender for the interaction.
  */
-export const TestScriptOriginSchema = BackboneElementSchema.extend({
+export const TestScriptOriginSchema = _BackboneElementBase.extend({
   index: z.number(),
   _index: ElementSchema.optional(),
   profile: CodingSchema,
@@ -6079,7 +6037,7 @@ export type TestScriptOrigin = z.infer<typeof TestScriptOriginSchema>
  * An abstract server used in operations within this test script in the destination element.
  * The purpose of this element is to define the profile of a destination element used elsewhere in the script.  Test engines could then use the destination-profile mapping to offer a filtered list of test systems that can serve as the receiver for the interaction.
  */
-export const TestScriptDestinationSchema = BackboneElementSchema.extend({
+export const TestScriptDestinationSchema = _BackboneElementBase.extend({
   index: z.number(),
   _index: ElementSchema.optional(),
   profile: CodingSchema,
@@ -6092,7 +6050,7 @@ export type TestScriptDestination = z.infer<typeof TestScriptDestinationSchema>
  * Links to the FHIR specification
  * A link to the FHIR specification that this test is covering.
  */
-export const TestScriptMetadataLinkSchema = BackboneElementSchema.extend({
+export const TestScriptMetadataLinkSchema = _BackboneElementBase.extend({
   url: z.string(),
   _url: ElementSchema.optional(),
   description: z.string().optional(),
@@ -6105,7 +6063,7 @@ export type TestScriptMetadataLink = z.infer<typeof TestScriptMetadataLinkSchema
  * Capabilities that must exist and are assumed to function correctly on the FHIR server being tested.
  * When the metadata capabilities section is defined at TestScript.metadata or at TestScript.setup.metadata, and the server's conformance statement does not contain the elements defined in the minimal conformance statement, then all the tests in the TestScript are skipped.  When the metadata capabilities section is defined at TestScript.test.metadata and the server's conformance statement does not contain the elements defined in the minimal conformance statement, then only that test is skipped.  The "metadata.capabilities.required" and "metadata.capabilities.validated" elements only indicate whether the capabilities are the primary focus of the test script or not.  They do not impact the skipping logic.  Capabilities whose "metadata.capabilities.validated" flag is true are the primary focus of the test script.
  */
-export const TestScriptMetadataCapabilitySchema = BackboneElementSchema.extend({
+export const TestScriptMetadataCapabilitySchema = _BackboneElementBase.extend({
   required: z.boolean(),
   _required: ElementSchema.optional(),
   validated: z.boolean(),
@@ -6127,7 +6085,7 @@ export type TestScriptMetadataCapability = z.infer<typeof TestScriptMetadataCapa
  * Required capability that is assumed to function correctly on the FHIR server being tested
  * The required capability must exist and are assumed to function correctly on the FHIR server being tested.
  */
-export const TestScriptMetadataSchema = BackboneElementSchema.extend({
+export const TestScriptMetadataSchema = _BackboneElementBase.extend({
   link: z.array(TestScriptMetadataLinkSchema).optional(),
   capability: z.array(TestScriptMetadataCapabilitySchema),
 })
@@ -6137,7 +6095,7 @@ export type TestScriptMetadata = z.infer<typeof TestScriptMetadataSchema>
  * Indication of the artifact(s) that are tested by this test case
  * The scope indicates a conformance artifact that is tested by the test(s) within this test case and the expectation of the test outcome(s) as well as the intended test phase inclusion.
  */
-export const TestScriptScopeSchema = BackboneElementSchema.extend({
+export const TestScriptScopeSchema = _BackboneElementBase.extend({
   artifact: z.string(),
   _artifact: ElementSchema.optional(),
   conformance: CodeableConceptSchema.optional(),
@@ -6149,7 +6107,7 @@ export type TestScriptScope = z.infer<typeof TestScriptScopeSchema>
  * Fixture in the test script - by reference (uri)
  * Fixture in the test script - by reference (uri). All fixtures are required for the test script to execute.
  */
-export const TestScriptFixtureSchema = BackboneElementSchema.extend({
+export const TestScriptFixtureSchema = _BackboneElementBase.extend({
   autocreate: z.boolean(),
   _autocreate: ElementSchema.optional(),
   autodelete: z.boolean(),
@@ -6163,7 +6121,7 @@ export type TestScriptFixture = z.infer<typeof TestScriptFixtureSchema>
  * Variable is set based either on element value in response body or on header field value in the response headers.
  * Variables would be set based either on XPath/JSONPath expressions against fixtures (static and response), or headerField evaluations against response headers. If variable evaluates to nodelist or anything other than a primitive value, then test engine would report an error.  Variables would be used to perform clean replacements in "operation.params", "operation.requestHeader.value", and "operation.url" element values during operation calls and in "assert.value" during assertion evaluations. This limits the places that test engines would need to look for placeholders "${}".  Variables are scoped to the whole script. They are NOT evaluated at declaration. They are evaluated by test engine when used for substitutions in "operation.params", "operation.requestHeader.value", and "operation.url" element values during operation calls and in "assert.value" during assertion evaluations.  See example testscript-search.xml.
  */
-export const TestScriptVariableSchema = BackboneElementSchema.extend({
+export const TestScriptVariableSchema = _BackboneElementBase.extend({
   name: z.string(),
   _name: ElementSchema.optional(),
   defaultValue: z.string().optional(),
@@ -6188,7 +6146,7 @@ export type TestScriptVariable = z.infer<typeof TestScriptVariableSchema>
  * Header elements would be used to set HTTP headers.
  * This gives control to test-script writers to set headers explicitly based on test requirements.  It will allow for testing using:  - "If-Modified-Since" and "If-None-Match" headers.  ["If-Match" header](http.html#2.1.0.5.1).  See [Conditional Create using "If-None-Exist"](http.html#2.1.0.11).  See [Invalid "Content-Type" header](http.html#2.1.0.13.1) for negative testing. - etc.
  */
-export const TestScriptSetupActionOperationRequestHeaderSchema = BackboneElementSchema.extend({
+export const TestScriptSetupActionOperationRequestHeaderSchema = _BackboneElementBase.extend({
   field: z.string(),
   _field: ElementSchema.optional(),
   value: z.string(),
@@ -6236,39 +6194,39 @@ export interface TestScriptSetupActionOperation extends BackboneElement {
 }
 
 export const TestScriptSetupActionOperationSchema: z.ZodType<TestScriptSetupActionOperation> = z.lazy(() =>
-  BackboneElementSchema.extend({
+  _BackboneElementBase.extend({
     type: CodingSchema.optional(),
     resource: z.string().optional(),
-      _resource: ElementSchema.optional(),
+    _resource: ElementSchema.optional(),
     label: z.string().optional(),
-      _label: ElementSchema.optional(),
+    _label: ElementSchema.optional(),
     description: z.string().optional(),
-      _description: ElementSchema.optional(),
+    _description: ElementSchema.optional(),
     accept: z.string().optional(),
-      _accept: ElementSchema.optional(),
+    _accept: ElementSchema.optional(),
     contentType: z.string().optional(),
-      _contentType: ElementSchema.optional(),
+    _contentType: ElementSchema.optional(),
     destination: z.number().optional(),
-      _destination: ElementSchema.optional(),
+    _destination: ElementSchema.optional(),
     encodeRequestUrl: z.boolean(),
-      _encodeRequestUrl: ElementSchema.optional(),
+    _encodeRequestUrl: ElementSchema.optional(),
     method: z.enum(['delete', 'get', 'options', 'patch', 'post', 'put', 'head']).optional(),
-      _method: ElementSchema.optional(),
+    _method: ElementSchema.optional(),
     origin: z.number().optional(),
-      _origin: ElementSchema.optional(),
+    _origin: ElementSchema.optional(),
     params: z.string().optional(),
-      _params: ElementSchema.optional(),
+    _params: ElementSchema.optional(),
     requestHeader: z.array(TestScriptSetupActionOperationRequestHeaderSchema).optional(),
     requestId: z.string().optional(),
-      _requestId: ElementSchema.optional(),
+    _requestId: ElementSchema.optional(),
     responseId: z.string().optional(),
-      _responseId: ElementSchema.optional(),
+    _responseId: ElementSchema.optional(),
     sourceId: z.string().optional(),
-      _sourceId: ElementSchema.optional(),
+    _sourceId: ElementSchema.optional(),
     targetId: z.string().optional(),
-      _targetId: ElementSchema.optional(),
+    _targetId: ElementSchema.optional(),
     url: z.string().optional(),
-      _url: ElementSchema.optional(),
+    _url: ElementSchema.optional(),
   })
 )
 
@@ -6277,7 +6235,7 @@ export const TestScriptSetupActionOperationSchema: z.ZodType<TestScriptSetupActi
  * Links or references providing traceability to the testing requirements for this assert.
  * TestScript and TestReport instances are typically (and expected to be) based on known, defined test requirements and documentation. These links provide traceability from the executable/executed TestScript and TestReport tests to these requirements.
  */
-export const TestScriptSetupActionAssertRequirementSchema = BackboneElementSchema.extend({
+export const TestScriptSetupActionAssertRequirementSchema = _BackboneElementBase.extend({
   linkUri: z.string().optional(),
   _linkUri: ElementSchema.optional(),
   linkCanonical: z.string().optional(),
@@ -6343,55 +6301,55 @@ export interface TestScriptSetupActionAssert extends BackboneElement {
 }
 
 export const TestScriptSetupActionAssertSchema: z.ZodType<TestScriptSetupActionAssert> = z.lazy(() =>
-  BackboneElementSchema.extend({
+  _BackboneElementBase.extend({
     label: z.string().optional(),
-      _label: ElementSchema.optional(),
+    _label: ElementSchema.optional(),
     description: z.string().optional(),
-      _description: ElementSchema.optional(),
+    _description: ElementSchema.optional(),
     direction: z.enum(['response', 'request']).optional(),
-      _direction: ElementSchema.optional(),
+    _direction: ElementSchema.optional(),
     compareToSourceId: z.string().optional(),
-      _compareToSourceId: ElementSchema.optional(),
+    _compareToSourceId: ElementSchema.optional(),
     compareToSourceExpression: z.string().optional(),
-      _compareToSourceExpression: ElementSchema.optional(),
+    _compareToSourceExpression: ElementSchema.optional(),
     compareToSourcePath: z.string().optional(),
-      _compareToSourcePath: ElementSchema.optional(),
+    _compareToSourcePath: ElementSchema.optional(),
     contentType: z.string().optional(),
-      _contentType: ElementSchema.optional(),
+    _contentType: ElementSchema.optional(),
     defaultManualCompletion: z.enum(['fail', 'pass', 'skip', 'stop']).optional(),
-      _defaultManualCompletion: ElementSchema.optional(),
+    _defaultManualCompletion: ElementSchema.optional(),
     expression: z.string().optional(),
-      _expression: ElementSchema.optional(),
+    _expression: ElementSchema.optional(),
     headerField: z.string().optional(),
-      _headerField: ElementSchema.optional(),
+    _headerField: ElementSchema.optional(),
     minimumId: z.string().optional(),
-      _minimumId: ElementSchema.optional(),
+    _minimumId: ElementSchema.optional(),
     navigationLinks: z.boolean().optional(),
-      _navigationLinks: ElementSchema.optional(),
+    _navigationLinks: ElementSchema.optional(),
     operator: z.enum(['equals', 'notEquals', 'in', 'notIn', 'greaterThan', 'lessThan', 'empty', 'notEmpty', 'contains', 'notContains', 'eval', 'manualEval']).optional(),
-      _operator: ElementSchema.optional(),
+    _operator: ElementSchema.optional(),
     path: z.string().optional(),
-      _path: ElementSchema.optional(),
+    _path: ElementSchema.optional(),
     requestMethod: z.enum(['delete', 'get', 'options', 'patch', 'post', 'put', 'head']).optional(),
-      _requestMethod: ElementSchema.optional(),
+    _requestMethod: ElementSchema.optional(),
     requestURL: z.string().optional(),
-      _requestURL: ElementSchema.optional(),
+    _requestURL: ElementSchema.optional(),
     resource: z.string().optional(),
-      _resource: ElementSchema.optional(),
+    _resource: ElementSchema.optional(),
     response: z.enum(['continue', 'switchingProtocols', 'okay', 'created', 'accepted', 'nonAuthoritativeInformation', 'noContent', 'resetContent', 'partialContent', 'multipleChoices', 'movedPermanently', 'found', 'seeOther', 'notModified', 'useProxy', 'temporaryRedirect', 'permanentRedirect', 'badRequest', 'unauthorized', 'paymentRequired', 'forbidden', 'notFound', 'methodNotAllowed', 'notAcceptable', 'proxyAuthenticationRequired', 'requestTimeout', 'conflict', 'gone', 'lengthRequired', 'preconditionFailed', 'contentTooLarge', 'uriTooLong', 'unsupportedMediaType', 'rangeNotSatisfiable', 'expectationFailed', 'misdirectedRequest', 'unprocessableContent', 'upgradeRequired', 'internalServerError', 'notImplemented', 'badGateway', 'serviceUnavailable', 'gatewayTimeout', 'httpVersionNotSupported']).optional(),
-      _response: ElementSchema.optional(),
+    _response: ElementSchema.optional(),
     responseCode: z.string().optional(),
-      _responseCode: ElementSchema.optional(),
+    _responseCode: ElementSchema.optional(),
     sourceId: z.string().optional(),
-      _sourceId: ElementSchema.optional(),
+    _sourceId: ElementSchema.optional(),
     stopTestOnFail: z.boolean(),
-      _stopTestOnFail: ElementSchema.optional(),
+    _stopTestOnFail: ElementSchema.optional(),
     validateProfileId: z.string().optional(),
-      _validateProfileId: ElementSchema.optional(),
+    _validateProfileId: ElementSchema.optional(),
     value: z.string().optional(),
-      _value: ElementSchema.optional(),
+    _value: ElementSchema.optional(),
     warningOnly: z.boolean(),
-      _warningOnly: ElementSchema.optional(),
+    _warningOnly: ElementSchema.optional(),
     requirement: z.array(TestScriptSetupActionAssertRequirementSchema).optional(),
   })
 )
@@ -6401,7 +6359,7 @@ export const TestScriptSetupActionAssertSchema: z.ZodType<TestScriptSetupActionA
  * Action would contain either an operation or an assertion.
  * An action should contain either an operation or an assertion but not both.  It can contain any number of variables.
  */
-export const TestScriptSetupActionSchema = BackboneElementSchema.extend({
+export const TestScriptSetupActionSchema = _BackboneElementBase.extend({
   operation: TestScriptSetupActionOperationSchema.optional(),
   assert: TestScriptSetupActionAssertSchema.optional(),
 })
@@ -6410,7 +6368,7 @@ export type TestScriptSetupAction = z.infer<typeof TestScriptSetupActionSchema>
 /**
  * A series of required setup operations before tests are executed
  */
-export const TestScriptSetupSchema = BackboneElementSchema.extend({
+export const TestScriptSetupSchema = _BackboneElementBase.extend({
   action: z.array(TestScriptSetupActionSchema),
 })
 export type TestScriptSetup = z.infer<typeof TestScriptSetupSchema>
@@ -6420,16 +6378,16 @@ export type TestScriptSetup = z.infer<typeof TestScriptSetupSchema>
  * Action would contain either an operation or an assertion.
  * An action should contain either an operation or an assertion but not both.  It can contain any number of variables.
  */
-export const TestScriptTestActionSchema = BackboneElementSchema.extend({
-  operation: z.lazy(() => TestScriptSetupActionOperationSchema).optional(),
-  assert: z.lazy(() => TestScriptSetupActionAssertSchema).optional(),
+export const TestScriptTestActionSchema = _BackboneElementBase.extend({
+  operation: (z.lazy(() => TestScriptSetupActionOperationSchema) as z.ZodTypeAny).optional(),
+  assert: (z.lazy(() => TestScriptSetupActionAssertSchema) as z.ZodTypeAny).optional(),
 })
 export type TestScriptTestAction = z.infer<typeof TestScriptTestActionSchema>
 
 /**
  * A test in this script
  */
-export const TestScriptTestSchema = BackboneElementSchema.extend({
+export const TestScriptTestSchema = _BackboneElementBase.extend({
   name: z.string().optional(),
   _name: ElementSchema.optional(),
   description: z.string().optional(),
@@ -6443,8 +6401,8 @@ export type TestScriptTest = z.infer<typeof TestScriptTestSchema>
  * The teardown action will only contain an operation.
  * An action should contain either an operation or an assertion but not both.  It can contain any number of variables.
  */
-export const TestScriptTeardownActionSchema = BackboneElementSchema.extend({
-  operation: z.lazy(() => TestScriptSetupActionOperationSchema),
+export const TestScriptTeardownActionSchema = _BackboneElementBase.extend({
+  operation: (z.lazy(() => TestScriptSetupActionOperationSchema) as z.ZodTypeAny),
 })
 export type TestScriptTeardownAction = z.infer<typeof TestScriptTeardownActionSchema>
 
@@ -6452,7 +6410,7 @@ export type TestScriptTeardownAction = z.infer<typeof TestScriptTeardownActionSc
  * A series of required clean up steps
  * A series of operations required to clean up after all the tests are executed (successfully or otherwise).
  */
-export const TestScriptTeardownSchema = BackboneElementSchema.extend({
+export const TestScriptTeardownSchema = _BackboneElementBase.extend({
   action: z.array(TestScriptTeardownActionSchema),
 })
 export type TestScriptTeardown = z.infer<typeof TestScriptTeardownSchema>
@@ -6510,7 +6468,7 @@ export type TestScript = z.infer<typeof TestScriptSchema>
 /**
  * Additional names for the study
  */
-export const ResearchStudyLabelSchema = BackboneElementSchema.extend({
+export const ResearchStudyLabelSchema = _BackboneElementBase.extend({
   type: CodeableConceptSchema.optional(),
   value: z.string().optional(),
   _value: ElementSchema.optional(),
@@ -6521,7 +6479,7 @@ export type ResearchStudyLabel = z.infer<typeof ResearchStudyLabelSchema>
  * Sponsors, collaborators, and other parties
  * For a Sponsor or a PrincipalInvestigator use the dedicated attributes provided.
  */
-export const ResearchStudyAssociatedPartySchema = BackboneElementSchema.extend({
+export const ResearchStudyAssociatedPartySchema = _BackboneElementBase.extend({
   name: z.string().optional(),
   _name: ElementSchema.optional(),
   role: CodeableConceptSchema,
@@ -6534,7 +6492,7 @@ export type ResearchStudyAssociatedParty = z.infer<typeof ResearchStudyAssociate
 /**
  * Status of study with time for that status
  */
-export const ResearchStudyProgressStatusSchema = BackboneElementSchema.extend({
+export const ResearchStudyProgressStatusSchema = _BackboneElementBase.extend({
   state: CodeableConceptSchema,
   actual: z.boolean().optional(),
   _actual: ElementSchema.optional(),
@@ -6545,7 +6503,7 @@ export type ResearchStudyProgressStatus = z.infer<typeof ResearchStudyProgressSt
 /**
  * Target or actual group of participants enrolled in study
  */
-export const ResearchStudyRecruitmentSchema = BackboneElementSchema.extend({
+export const ResearchStudyRecruitmentSchema = _BackboneElementBase.extend({
   targetNumber: z.number().optional(),
   _targetNumber: ElementSchema.optional(),
   actualNumber: z.number().optional(),
@@ -6560,7 +6518,7 @@ export type ResearchStudyRecruitment = z.infer<typeof ResearchStudyRecruitmentSc
  * Describes an expected event or sequence of events for one of the subjects of a study. E.g. for a living subject: exposure to drug A, wash-out, exposure to drug B, wash-out, follow-up. E.g. for a stability study: {store sample from lot A at 25 degrees for 1 month}, {store sample from lot A at 40 degrees for 1 month}.
  * In many clinical trials this is refered to as the ARM of the study, but such a term is not used in other sorts of trials even when there is a comparison between two or more groups.
  */
-export const ResearchStudyComparisonGroupSchema = BackboneElementSchema.extend({
+export const ResearchStudyComparisonGroupSchema = _BackboneElementBase.extend({
   linkId: z.string().optional(),
   _linkId: ElementSchema.optional(),
   name: z.string(),
@@ -6577,7 +6535,7 @@ export type ResearchStudyComparisonGroup = z.infer<typeof ResearchStudyCompariso
  * A goal for the study
  * A goal that the study is aiming to achieve in terms of a scientific question to be answered by the analysis of data collected during the study.
  */
-export const ResearchStudyObjectiveSchema = BackboneElementSchema.extend({
+export const ResearchStudyObjectiveSchema = _BackboneElementBase.extend({
   name: z.string().optional(),
   _name: ElementSchema.optional(),
   type: CodeableConceptSchema.optional(),
@@ -6591,7 +6549,7 @@ export type ResearchStudyObjective = z.infer<typeof ResearchStudyObjectiveSchema
  * An "outcome measure", "endpoint", "effect measure" or "measure of effect" is a specific measurement or observation used to quantify the effect of experimental variables on the participants in a study, or for observational studies, to describe patterns of diseases or traits or associations with exposures, risk factors or treatment.
  * A study may have multiple distinct outcome measures that can be used to assess the overall goal for a study. The goal of a study is in the objective whereas the metric by which the goal is assessed is the outcomeMeasure. Examples: Time to Local Recurrence (TLR), Disease-free Survival (DFS), 30 Day Mortality, Systolic BP
  */
-export const ResearchStudyOutcomeMeasureSchema = BackboneElementSchema.extend({
+export const ResearchStudyOutcomeMeasureSchema = _BackboneElementBase.extend({
   name: z.string().optional(),
   _name: ElementSchema.optional(),
   type: z.array(CodeableConceptSchema).optional(),
@@ -6675,7 +6633,7 @@ export type PractitionerRole = z.infer<typeof PractitionerRoleSchema>
 /**
  * A participant in the test execution, either the execution engine, a client, or a server
  */
-export const TestReportParticipantSchema = BackboneElementSchema.extend({
+export const TestReportParticipantSchema = _BackboneElementBase.extend({
   type: z.enum(['test-engine', 'client', 'server']),
   _type: ElementSchema.optional(),
   uri: z.string(),
@@ -6699,13 +6657,13 @@ export interface TestReportSetupActionOperation extends BackboneElement {
 }
 
 export const TestReportSetupActionOperationSchema: z.ZodType<TestReportSetupActionOperation> = z.lazy(() =>
-  BackboneElementSchema.extend({
+  _BackboneElementBase.extend({
     result: z.enum(['pass', 'skip', 'fail', 'warning', 'error']),
-      _result: ElementSchema.optional(),
+    _result: ElementSchema.optional(),
     message: z.string().optional(),
-      _message: ElementSchema.optional(),
+    _message: ElementSchema.optional(),
     detail: z.string().optional(),
-      _detail: ElementSchema.optional(),
+    _detail: ElementSchema.optional(),
   })
 )
 
@@ -6714,7 +6672,7 @@ export const TestReportSetupActionOperationSchema: z.ZodType<TestReportSetupActi
  * Links or references providing traceability to the testing requirements for this assert.
  * TestScript and TestReport instances are typically (and expected to be) based on known, defined test requirements and documentation. These links provide traceability from the executable/executed TestScript and TestReport tests to these requirements.
  */
-export const TestReportSetupActionAssertRequirementSchema = BackboneElementSchema.extend({
+export const TestReportSetupActionAssertRequirementSchema = _BackboneElementBase.extend({
   linkUri: z.string().optional(),
   _linkUri: ElementSchema.optional(),
   linkCanonical: z.string().optional(),
@@ -6737,13 +6695,13 @@ export interface TestReportSetupActionAssert extends BackboneElement {
 }
 
 export const TestReportSetupActionAssertSchema: z.ZodType<TestReportSetupActionAssert> = z.lazy(() =>
-  BackboneElementSchema.extend({
+  _BackboneElementBase.extend({
     result: z.enum(['pass', 'skip', 'fail', 'warning', 'error']),
-      _result: ElementSchema.optional(),
+    _result: ElementSchema.optional(),
     message: z.string().optional(),
-      _message: ElementSchema.optional(),
+    _message: ElementSchema.optional(),
     detail: z.string().optional(),
-      _detail: ElementSchema.optional(),
+    _detail: ElementSchema.optional(),
     requirement: z.array(TestReportSetupActionAssertRequirementSchema).optional(),
   })
 )
@@ -6753,7 +6711,7 @@ export const TestReportSetupActionAssertSchema: z.ZodType<TestReportSetupActionA
  * Action would contain either an operation or an assertion.
  * An action should contain either an operation or an assertion but not both.  It can contain any number of variables.
  */
-export const TestReportSetupActionSchema = BackboneElementSchema.extend({
+export const TestReportSetupActionSchema = _BackboneElementBase.extend({
   operation: TestReportSetupActionOperationSchema.optional(),
   assert: TestReportSetupActionAssertSchema.optional(),
 })
@@ -6762,7 +6720,7 @@ export type TestReportSetupAction = z.infer<typeof TestReportSetupActionSchema>
 /**
  * The results of the series of required setup operations before the tests were executed
  */
-export const TestReportSetupSchema = BackboneElementSchema.extend({
+export const TestReportSetupSchema = _BackboneElementBase.extend({
   action: z.array(TestReportSetupActionSchema),
 })
 export type TestReportSetup = z.infer<typeof TestReportSetupSchema>
@@ -6772,16 +6730,16 @@ export type TestReportSetup = z.infer<typeof TestReportSetupSchema>
  * Action would contain either an operation or an assertion.
  * An action should contain either an operation or an assertion but not both.  It can contain any number of variables.
  */
-export const TestReportTestActionSchema = BackboneElementSchema.extend({
-  operation: z.lazy(() => TestReportSetupActionOperationSchema).optional(),
-  assert: z.lazy(() => TestReportSetupActionAssertSchema).optional(),
+export const TestReportTestActionSchema = _BackboneElementBase.extend({
+  operation: (z.lazy(() => TestReportSetupActionOperationSchema) as z.ZodTypeAny).optional(),
+  assert: (z.lazy(() => TestReportSetupActionAssertSchema) as z.ZodTypeAny).optional(),
 })
 export type TestReportTestAction = z.infer<typeof TestReportTestActionSchema>
 
 /**
  * A test executed from the test script
  */
-export const TestReportTestSchema = BackboneElementSchema.extend({
+export const TestReportTestSchema = _BackboneElementBase.extend({
   name: z.string().optional(),
   _name: ElementSchema.optional(),
   description: z.string().optional(),
@@ -6795,8 +6753,8 @@ export type TestReportTest = z.infer<typeof TestReportTestSchema>
  * The teardown action will only contain an operation.
  * An action should contain either an operation or an assertion but not both.  It can contain any number of variables.
  */
-export const TestReportTeardownActionSchema = BackboneElementSchema.extend({
-  operation: z.lazy(() => TestReportSetupActionOperationSchema),
+export const TestReportTeardownActionSchema = _BackboneElementBase.extend({
+  operation: (z.lazy(() => TestReportSetupActionOperationSchema) as z.ZodTypeAny),
 })
 export type TestReportTeardownAction = z.infer<typeof TestReportTeardownActionSchema>
 
@@ -6804,7 +6762,7 @@ export type TestReportTeardownAction = z.infer<typeof TestReportTeardownActionSc
  * The results of running the series of required clean up steps
  * The results of the series of operations required to clean up after all the tests were executed (successfully or otherwise).
  */
-export const TestReportTeardownSchema = BackboneElementSchema.extend({
+export const TestReportTeardownSchema = _BackboneElementBase.extend({
   action: z.array(TestReportTeardownActionSchema),
 })
 export type TestReportTeardown = z.infer<typeof TestReportTeardownSchema>
@@ -6840,7 +6798,7 @@ export type TestReport = z.infer<typeof TestReportSchema>
  * How device is being used
  * This indicates how or if the device is being used.
  */
-export const DeviceUsageAdherenceSchema = BackboneElementSchema.extend({
+export const DeviceUsageAdherenceSchema = _BackboneElementBase.extend({
   code: CodeableConceptSchema,
   reason: z.array(CodeableConceptSchema),
 })
@@ -6880,7 +6838,7 @@ export type DeviceUsage = z.infer<typeof DeviceUsageSchema>
  * The populations in the group
  * The populations that make up the population group, one for each type of population appropriate for the measure.
  */
-export const MeasureReportGroupPopulationSchema = BackboneElementSchema.extend({
+export const MeasureReportGroupPopulationSchema = _BackboneElementBase.extend({
   linkId: z.string().optional(),
   _linkId: ElementSchema.optional(),
   code: CodeableConceptSchema.optional(),
@@ -6896,7 +6854,7 @@ export type MeasureReportGroupPopulation = z.infer<typeof MeasureReportGroupPopu
  * Stratifier component values
  * A stratifier component value.
  */
-export const MeasureReportGroupStratifierStratumComponentSchema = BackboneElementSchema.extend({
+export const MeasureReportGroupStratifierStratumComponentSchema = _BackboneElementBase.extend({
   linkId: z.string().optional(),
   _linkId: ElementSchema.optional(),
   code: CodeableConceptSchema,
@@ -6913,7 +6871,7 @@ export type MeasureReportGroupStratifierStratumComponent = z.infer<typeof Measur
  * Population results in this stratum
  * The populations that make up the stratum, one for each type of population appropriate to the measure.
  */
-export const MeasureReportGroupStratifierStratumPopulationSchema = BackboneElementSchema.extend({
+export const MeasureReportGroupStratifierStratumPopulationSchema = _BackboneElementBase.extend({
   linkId: z.string().optional(),
   _linkId: ElementSchema.optional(),
   code: CodeableConceptSchema.optional(),
@@ -6929,7 +6887,7 @@ export type MeasureReportGroupStratifierStratumPopulation = z.infer<typeof Measu
  * Stratum results, one for each unique value, or set of values, in the stratifier, or stratifier components
  * This element contains the results for a single stratum within the stratifier. For example, when stratifying on administrative gender, there will be four strata, one for each possible gender value.
  */
-export const MeasureReportGroupStratifierStratumSchema = BackboneElementSchema.extend({
+export const MeasureReportGroupStratifierStratumSchema = _BackboneElementBase.extend({
   valueCodeableConcept: CodeableConceptSchema.optional(),
   valueBoolean: z.boolean().optional(),
   _valueBoolean: ElementSchema.optional(),
@@ -6952,7 +6910,7 @@ export type MeasureReportGroupStratifierStratum = z.infer<typeof MeasureReportGr
  * Stratification results
  * When a measure includes multiple stratifiers, there will be a stratifier group for each stratifier defined by the measure.
  */
-export const MeasureReportGroupStratifierSchema = BackboneElementSchema.extend({
+export const MeasureReportGroupStratifierSchema = _BackboneElementBase.extend({
   linkId: z.string().optional(),
   _linkId: ElementSchema.optional(),
   code: CodeableConceptSchema.optional(),
@@ -6964,7 +6922,7 @@ export type MeasureReportGroupStratifier = z.infer<typeof MeasureReportGroupStra
  * Measure results for each group
  * The results of the calculation, one for each population group in the measure.
  */
-export const MeasureReportGroupSchema = BackboneElementSchema.extend({
+export const MeasureReportGroupSchema = _BackboneElementBase.extend({
   linkId: z.string().optional(),
   _linkId: ElementSchema.optional(),
   code: CodeableConceptSchema.optional(),
@@ -7014,7 +6972,7 @@ export type MeasureReport = z.infer<typeof MeasureReportSchema>
 /**
  * Many complex materials are fractions of parts of plants, animals, or minerals. Fraction elements are often necessary to define both Substances and Specified Group 1 Substances. For substances derived from Plants, fraction information will be captured at the Substance information level ( . Oils, Juices and Exudates). Additional information for Extracts, such as extraction solvent composition, will be captured at the Specified Substance Group 1 information level. For plasma-derived products fraction information will be captured at the Substance and the Specified Substance Group 1 levels
  */
-export const SubstanceSourceMaterialFractionDescriptionSchema = BackboneElementSchema.extend({
+export const SubstanceSourceMaterialFractionDescriptionSchema = _BackboneElementBase.extend({
   fraction: z.string().optional(),
   _fraction: ElementSchema.optional(),
   materialType: CodeableConceptSchema.optional(),
@@ -7024,7 +6982,7 @@ export type SubstanceSourceMaterialFractionDescription = z.infer<typeof Substanc
 /**
  * 4.9.13.6.1 Author type (Conditional)
  */
-export const SubstanceSourceMaterialOrganismAuthorSchema = BackboneElementSchema.extend({
+export const SubstanceSourceMaterialOrganismAuthorSchema = _BackboneElementBase.extend({
   authorType: CodeableConceptSchema.optional(),
   authorDescription: z.string().optional(),
   _authorDescription: ElementSchema.optional(),
@@ -7034,7 +6992,7 @@ export type SubstanceSourceMaterialOrganismAuthor = z.infer<typeof SubstanceSour
 /**
  * 4.9.13.8.1 Hybrid species maternal organism ID (Optional)
  */
-export const SubstanceSourceMaterialOrganismHybridSchema = BackboneElementSchema.extend({
+export const SubstanceSourceMaterialOrganismHybridSchema = _BackboneElementBase.extend({
   maternalOrganismId: z.string().optional(),
   _maternalOrganismId: ElementSchema.optional(),
   maternalOrganismName: z.string().optional(),
@@ -7050,7 +7008,7 @@ export type SubstanceSourceMaterialOrganismHybrid = z.infer<typeof SubstanceSour
 /**
  * 4.9.13.7.1 Kingdom (Conditional)
  */
-export const SubstanceSourceMaterialOrganismOrganismGeneralSchema = BackboneElementSchema.extend({
+export const SubstanceSourceMaterialOrganismOrganismGeneralSchema = _BackboneElementBase.extend({
   kingdom: CodeableConceptSchema.optional(),
   phylum: CodeableConceptSchema.optional(),
   class: CodeableConceptSchema.optional(),
@@ -7061,7 +7019,7 @@ export type SubstanceSourceMaterialOrganismOrganismGeneral = z.infer<typeof Subs
 /**
  * This subclause describes the organism which the substance is derived from. For vaccines, the parent organism shall be specified based on these subclause elements. As an example, full taxonomy will be described for the Substance Name: ., Leaf
  */
-export const SubstanceSourceMaterialOrganismSchema = BackboneElementSchema.extend({
+export const SubstanceSourceMaterialOrganismSchema = _BackboneElementBase.extend({
   family: CodeableConceptSchema.optional(),
   genus: CodeableConceptSchema.optional(),
   species: CodeableConceptSchema.optional(),
@@ -7077,7 +7035,7 @@ export type SubstanceSourceMaterialOrganism = z.infer<typeof SubstanceSourceMate
 /**
  * To do
  */
-export const SubstanceSourceMaterialPartDescriptionSchema = BackboneElementSchema.extend({
+export const SubstanceSourceMaterialPartDescriptionSchema = _BackboneElementBase.extend({
   part: CodeableConceptSchema.optional(),
   partLocation: CodeableConceptSchema.optional(),
 })
@@ -7110,7 +7068,7 @@ export type SubstanceSourceMaterial = z.infer<typeof SubstanceSourceMaterialSche
 /**
  * Moiety, for structural modifications
  */
-export const SubstanceDefinitionMoietySchema = BackboneElementSchema.extend({
+export const SubstanceDefinitionMoietySchema = _BackboneElementBase.extend({
   role: CodeableConceptSchema.optional(),
   identifier: IdentifierSchema.optional(),
   name: z.string().optional(),
@@ -7129,7 +7087,7 @@ export type SubstanceDefinitionMoiety = z.infer<typeof SubstanceDefinitionMoiety
 /**
  * General specifications for this substance
  */
-export const SubstanceDefinitionCharacterizationSchema = BackboneElementSchema.extend({
+export const SubstanceDefinitionCharacterizationSchema = _BackboneElementBase.extend({
   technique: CodeableConceptSchema.optional(),
   form: CodeableConceptSchema.optional(),
   description: z.string().optional(),
@@ -7141,7 +7099,7 @@ export type SubstanceDefinitionCharacterization = z.infer<typeof SubstanceDefini
 /**
  * General specifications for this substance
  */
-export const SubstanceDefinitionPropertySchema = BackboneElementSchema.extend({
+export const SubstanceDefinitionPropertySchema = _BackboneElementBase.extend({
   type: CodeableConceptSchema,
   valueCodeableConcept: CodeableConceptSchema.optional(),
   valueQuantity: QuantitySchema.optional(),
@@ -7164,7 +7122,7 @@ export interface SubstanceDefinitionMolecularWeight extends BackboneElement {
 }
 
 export const SubstanceDefinitionMolecularWeightSchema: z.ZodType<SubstanceDefinitionMolecularWeight> = z.lazy(() =>
-  BackboneElementSchema.extend({
+  _BackboneElementBase.extend({
     method: CodeableConceptSchema.optional(),
     type: CodeableConceptSchema.optional(),
     amount: QuantitySchema,
@@ -7174,7 +7132,7 @@ export const SubstanceDefinitionMolecularWeightSchema: z.ZodType<SubstanceDefini
 /**
  * A depiction of the structure of the substance
  */
-export const SubstanceDefinitionStructureRepresentationSchema = BackboneElementSchema.extend({
+export const SubstanceDefinitionStructureRepresentationSchema = _BackboneElementBase.extend({
   type: CodeableConceptSchema.optional(),
   representation: z.string().optional(),
   _representation: ElementSchema.optional(),
@@ -7186,14 +7144,14 @@ export type SubstanceDefinitionStructureRepresentation = z.infer<typeof Substanc
 /**
  * Structural information
  */
-export const SubstanceDefinitionStructureSchema = BackboneElementSchema.extend({
+export const SubstanceDefinitionStructureSchema = _BackboneElementBase.extend({
   stereochemistry: CodeableConceptSchema.optional(),
   opticalActivity: CodeableConceptSchema.optional(),
   molecularFormula: z.string().optional(),
   _molecularFormula: ElementSchema.optional(),
   molecularFormulaByMoiety: z.string().optional(),
   _molecularFormulaByMoiety: ElementSchema.optional(),
-  molecularWeight: z.lazy(() => SubstanceDefinitionMolecularWeightSchema).optional(),
+  molecularWeight: (z.lazy(() => SubstanceDefinitionMolecularWeightSchema) as z.ZodTypeAny).optional(),
   technique: z.array(CodeableConceptSchema).optional(),
   sourceDocument: z.array(ReferenceSchema).optional(),
   representation: z.array(SubstanceDefinitionStructureRepresentationSchema).optional(),
@@ -7203,7 +7161,7 @@ export type SubstanceDefinitionStructure = z.infer<typeof SubstanceDefinitionStr
 /**
  * Codes associated with the substance
  */
-export const SubstanceDefinitionCodeSchema = BackboneElementSchema.extend({
+export const SubstanceDefinitionCodeSchema = _BackboneElementBase.extend({
   code: CodeableConceptSchema.optional(),
   status: CodeableConceptSchema.optional(),
   statusDate: z.string().optional(),
@@ -7216,7 +7174,7 @@ export type SubstanceDefinitionCode = z.infer<typeof SubstanceDefinitionCodeSche
 /**
  * Details of the official nature of this name
  */
-export const SubstanceDefinitionNameOfficialSchema = BackboneElementSchema.extend({
+export const SubstanceDefinitionNameOfficialSchema = _BackboneElementBase.extend({
   authority: CodeableConceptSchema.optional(),
   status: CodeableConceptSchema.optional(),
   date: z.string().optional(),
@@ -7244,18 +7202,18 @@ export interface SubstanceDefinitionName extends BackboneElement {
 }
 
 export const SubstanceDefinitionNameSchema: z.ZodType<SubstanceDefinitionName> = z.lazy(() =>
-  BackboneElementSchema.extend({
+  _BackboneElementBase.extend({
     name: z.string(),
-      _name: ElementSchema.optional(),
+    _name: ElementSchema.optional(),
     type: CodeableConceptSchema.optional(),
     status: CodeableConceptSchema.optional(),
     preferred: z.boolean().optional(),
-      _preferred: ElementSchema.optional(),
+    _preferred: ElementSchema.optional(),
     language: z.array(CodeableConceptSchema).optional(),
     domain: z.array(CodeableConceptSchema).optional(),
     jurisdiction: z.array(CodeableConceptSchema).optional(),
-    synonym: z.lazy(() => z.array(SubstanceDefinitionNameSchema)).optional(),
-    translation: z.lazy(() => z.array(SubstanceDefinitionNameSchema)).optional(),
+    synonym: (z.lazy(() => z.array(SubstanceDefinitionNameSchema)) as unknown as z.ZodArray<z.ZodTypeAny>).optional(),
+    translation: (z.lazy(() => z.array(SubstanceDefinitionNameSchema)) as unknown as z.ZodArray<z.ZodTypeAny>).optional(),
     official: z.array(SubstanceDefinitionNameOfficialSchema).optional(),
     source: z.array(ReferenceSchema).optional(),
   })
@@ -7265,7 +7223,7 @@ export const SubstanceDefinitionNameSchema: z.ZodType<SubstanceDefinitionName> =
  * A link between this substance and another
  * A link between this substance and another, with details of the relationship.
  */
-export const SubstanceDefinitionRelationshipSchema = BackboneElementSchema.extend({
+export const SubstanceDefinitionRelationshipSchema = _BackboneElementBase.extend({
   substanceDefinitionReference: ReferenceSchema.optional(),
   substanceDefinitionCodeableConcept: CodeableConceptSchema.optional(),
   type: CodeableConceptSchema,
@@ -7285,7 +7243,7 @@ export type SubstanceDefinitionRelationship = z.infer<typeof SubstanceDefinition
  * Material or taxonomic/anatomical source
  * Material or taxonomic/anatomical source for the substance.
  */
-export const SubstanceDefinitionSourceMaterialSchema = BackboneElementSchema.extend({
+export const SubstanceDefinitionSourceMaterialSchema = _BackboneElementBase.extend({
   type: CodeableConceptSchema.optional(),
   genus: CodeableConceptSchema.optional(),
   species: CodeableConceptSchema.optional(),
@@ -7332,7 +7290,7 @@ export type SubstanceDefinition = z.infer<typeof SubstanceDefinitionSchema>
  * Ordered item details
  * Specific parameters for the ordered item.  For example, the size of the indicated item.
  */
-export const SupplyRequestParameterSchema = BackboneElementSchema.extend({
+export const SupplyRequestParameterSchema = _BackboneElementBase.extend({
   code: CodeableConceptSchema.optional(),
   valueCodeableConcept: CodeableConceptSchema.optional(),
   valueQuantity: QuantitySchema.optional(),
@@ -7376,7 +7334,7 @@ export type SupplyRequest = z.infer<typeof SupplyRequestSchema>
  * Selector of the instances (human or machine)
  * Selector of the instances – human or machine.
  */
-export const ImagingSelectionPerformerSchema = BackboneElementSchema.extend({
+export const ImagingSelectionPerformerSchema = _BackboneElementBase.extend({
   function: CodeableConceptSchema.optional(),
   actor: ReferenceSchema.optional(),
 })
@@ -7387,7 +7345,7 @@ export type ImagingSelectionPerformer = z.infer<typeof ImagingSelectionPerformer
  * Each imaging selection instance or frame list might includes an image region, specified by a region type and a set of 2D coordinates.
  *        If the parent imagingSelection.instance contains a subset element of type frame, the image region applies to all frames in the subset list.
  */
-export const ImagingSelectionInstanceImageRegion2DSchema = BackboneElementSchema.extend({
+export const ImagingSelectionInstanceImageRegion2DSchema = _BackboneElementBase.extend({
   regionType: z.enum(['point', 'polyline', 'interpolated', 'circle', 'ellipse']),
   _regionType: ElementSchema.optional(),
   coordinate: z.array(z.number()),
@@ -7399,7 +7357,7 @@ export type ImagingSelectionInstanceImageRegion2D = z.infer<typeof ImagingSelect
  * A specific 3D region in a DICOM frame of reference
  * Each imaging selection might includes a 3D image region, specified by a region type and a set of 3D coordinates.
  */
-export const ImagingSelectionInstanceImageRegion3DSchema = BackboneElementSchema.extend({
+export const ImagingSelectionInstanceImageRegion3DSchema = _BackboneElementBase.extend({
   regionType: z.enum(['point', 'multipoint', 'polyline', 'polygon', 'ellipse', 'ellipsoid']),
   _regionType: ElementSchema.optional(),
   coordinate: z.array(z.number()),
@@ -7411,7 +7369,7 @@ export type ImagingSelectionInstanceImageRegion3D = z.infer<typeof ImagingSelect
  * The selected instances
  * Each imaging selection includes one or more selected DICOM SOP instances.
  */
-export const ImagingSelectionInstanceSchema = BackboneElementSchema.extend({
+export const ImagingSelectionInstanceSchema = _BackboneElementBase.extend({
   uid: z.string(),
   _uid: ElementSchema.optional(),
   number: z.number().optional(),
@@ -7456,27 +7414,9 @@ export const ImagingSelectionSchema = DomainResourceSchema.extend({
 export type ImagingSelection = z.infer<typeof ImagingSelectionSchema>
 
 /**
- * integer Type: A whole number
- */
-export const integerSchema = PrimitiveTypeSchema.extend({
-  value: z.number().optional(),
-  _value: ElementSchema.optional(),
-})
-export type integer = z.infer<typeof integerSchema>
-
-/**
- * positiveInt type: An integer with a value that is positive (e.g. >0)
- */
-export const positiveIntSchema = integerSchema.extend({
-  value: z.number().optional(),
-  _value: ElementSchema.optional(),
-})
-export type positiveInt = z.infer<typeof positiveIntSchema>
-
-/**
  * Inputs for the analysis event
  */
-export const GenomicStudyAnalysisInputSchema = BackboneElementSchema.extend({
+export const GenomicStudyAnalysisInputSchema = _BackboneElementBase.extend({
   file: ReferenceSchema.optional(),
   type: CodeableConceptSchema.optional(),
   generatedByIdentifier: IdentifierSchema.optional(),
@@ -7487,7 +7427,7 @@ export type GenomicStudyAnalysisInput = z.infer<typeof GenomicStudyAnalysisInput
 /**
  * Outputs for the analysis event
  */
-export const GenomicStudyAnalysisOutputSchema = BackboneElementSchema.extend({
+export const GenomicStudyAnalysisOutputSchema = _BackboneElementBase.extend({
   file: ReferenceSchema.optional(),
   type: CodeableConceptSchema.optional(),
 })
@@ -7496,7 +7436,7 @@ export type GenomicStudyAnalysisOutput = z.infer<typeof GenomicStudyAnalysisOutp
 /**
  * Performer for the analysis event
  */
-export const GenomicStudyAnalysisPerformerSchema = BackboneElementSchema.extend({
+export const GenomicStudyAnalysisPerformerSchema = _BackboneElementBase.extend({
   actor: ReferenceSchema.optional(),
   role: CodeableConceptSchema.optional(),
 })
@@ -7505,7 +7445,7 @@ export type GenomicStudyAnalysisPerformer = z.infer<typeof GenomicStudyAnalysisP
 /**
  * Devices used for the analysis (e.g., instruments, software), with settings and parameters
  */
-export const GenomicStudyAnalysisDeviceSchema = BackboneElementSchema.extend({
+export const GenomicStudyAnalysisDeviceSchema = _BackboneElementBase.extend({
   device: ReferenceSchema.optional(),
   function: CodeableConceptSchema.optional(),
 })
@@ -7515,7 +7455,7 @@ export type GenomicStudyAnalysisDevice = z.infer<typeof GenomicStudyAnalysisDevi
  * Genomic Analysis Event
  * The details about a specific analysis that was performed in this GenomicStudy.
  */
-export const GenomicStudyAnalysisSchema = BackboneElementSchema.extend({
+export const GenomicStudyAnalysisSchema = _BackboneElementBase.extend({
   identifier: z.array(IdentifierSchema).optional(),
   methodType: z.array(CodeableConceptSchema).optional(),
   changeType: z.array(CodeableConceptSchema).optional(),
@@ -7582,7 +7522,7 @@ export interface ProvenanceAgent extends BackboneElement {
 }
 
 export const ProvenanceAgentSchema: z.ZodType<ProvenanceAgent> = z.lazy(() =>
-  BackboneElementSchema.extend({
+  _BackboneElementBase.extend({
     type: CodeableConceptSchema.optional(),
     role: z.array(CodeableConceptSchema).optional(),
     who: ReferenceSchema,
@@ -7593,11 +7533,11 @@ export const ProvenanceAgentSchema: z.ZodType<ProvenanceAgent> = z.lazy(() =>
 /**
  * An entity used in this activity
  */
-export const ProvenanceEntitySchema = BackboneElementSchema.extend({
+export const ProvenanceEntitySchema = _BackboneElementBase.extend({
   role: z.enum(['revision', 'quotation', 'source', 'instantiates', 'removal']),
   _role: ElementSchema.optional(),
   what: ReferenceSchema,
-  agent: z.lazy(() => z.array(ProvenanceAgentSchema)).optional(),
+  agent: (z.lazy(() => z.array(ProvenanceAgentSchema)) as unknown as z.ZodArray<z.ZodTypeAny>).optional(),
 })
 export type ProvenanceEntity = z.infer<typeof ProvenanceEntitySchema>
 
@@ -7644,7 +7584,7 @@ export type Binary = z.infer<typeof BinarySchema>
  * Describes the expected outcome for the subject.
  * Multiple repetitions can be used to identify the same type of outcome in different timeframes as well as different types of outcomes.
  */
-export const RiskAssessmentPredictionSchema = BackboneElementSchema.extend({
+export const RiskAssessmentPredictionSchema = _BackboneElementBase.extend({
   outcome: CodeableConceptSchema.optional(),
   probabilityDecimal: z.number().optional(),
   _probabilityDecimal: ElementSchema.optional(),
@@ -7773,49 +7713,49 @@ export interface ParametersParameter extends BackboneElement {
 }
 
 export const ParametersParameterSchema: z.ZodType<ParametersParameter> = z.lazy(() =>
-  BackboneElementSchema.extend({
+  _BackboneElementBase.extend({
     name: z.string(),
-      _name: ElementSchema.optional(),
+    _name: ElementSchema.optional(),
     valueBase64Binary: z.string().optional(),
-      _valueBase64Binary: ElementSchema.optional(),
+    _valueBase64Binary: ElementSchema.optional(),
     valueBoolean: z.boolean().optional(),
-      _valueBoolean: ElementSchema.optional(),
+    _valueBoolean: ElementSchema.optional(),
     valueCanonical: z.string().optional(),
-      _valueCanonical: ElementSchema.optional(),
+    _valueCanonical: ElementSchema.optional(),
     valueCode: z.string().optional(),
-      _valueCode: ElementSchema.optional(),
+    _valueCode: ElementSchema.optional(),
     valueDate: z.string().optional(),
-      _valueDate: ElementSchema.optional(),
+    _valueDate: ElementSchema.optional(),
     valueDateTime: z.string().optional(),
-      _valueDateTime: ElementSchema.optional(),
+    _valueDateTime: ElementSchema.optional(),
     valueDecimal: z.number().optional(),
-      _valueDecimal: ElementSchema.optional(),
+    _valueDecimal: ElementSchema.optional(),
     valueId: z.string().optional(),
-      _valueId: ElementSchema.optional(),
+    _valueId: ElementSchema.optional(),
     valueInstant: z.string().optional(),
-      _valueInstant: ElementSchema.optional(),
+    _valueInstant: ElementSchema.optional(),
     valueInteger: z.number().optional(),
-      _valueInteger: ElementSchema.optional(),
+    _valueInteger: ElementSchema.optional(),
     valueInteger64: z.string().optional(),
-      _valueInteger64: ElementSchema.optional(),
+    _valueInteger64: ElementSchema.optional(),
     valueMarkdown: z.string().optional(),
-      _valueMarkdown: ElementSchema.optional(),
+    _valueMarkdown: ElementSchema.optional(),
     valueOid: z.string().optional(),
-      _valueOid: ElementSchema.optional(),
+    _valueOid: ElementSchema.optional(),
     valuePositiveInt: z.number().optional(),
-      _valuePositiveInt: ElementSchema.optional(),
+    _valuePositiveInt: ElementSchema.optional(),
     valueString: z.string().optional(),
-      _valueString: ElementSchema.optional(),
+    _valueString: ElementSchema.optional(),
     valueTime: z.string().optional(),
-      _valueTime: ElementSchema.optional(),
+    _valueTime: ElementSchema.optional(),
     valueUnsignedInt: z.number().optional(),
-      _valueUnsignedInt: ElementSchema.optional(),
+    _valueUnsignedInt: ElementSchema.optional(),
     valueUri: z.string().optional(),
-      _valueUri: ElementSchema.optional(),
+    _valueUri: ElementSchema.optional(),
     valueUrl: z.string().optional(),
-      _valueUrl: ElementSchema.optional(),
+    _valueUrl: ElementSchema.optional(),
     valueUuid: z.string().optional(),
-      _valueUuid: ElementSchema.optional(),
+    _valueUuid: ElementSchema.optional(),
     valueAddress: AddressSchema.optional(),
     valueAge: AgeSchema.optional(),
     valueAnnotation: AnnotationSchema.optional(),
@@ -7851,7 +7791,7 @@ export const ParametersParameterSchema: z.ZodType<ParametersParameter> = z.lazy(
     valueDosage: DosageSchema.optional(),
     valueMeta: MetaSchema.optional(),
     resource: ResourceSchema.optional(),
-    part: z.lazy(() => z.array(ParametersParameterSchema)).optional(),
+    part: (z.lazy(() => z.array(ParametersParameterSchema)) as unknown as z.ZodArray<z.ZodTypeAny>).optional(),
   })
 )
 
@@ -7868,7 +7808,7 @@ export type Parameters = z.infer<typeof ParametersSchema>
  * Specific eligibility requirements required to use the service
  * Does this service have specific eligibility requirements that need to be met in order to use the service?
  */
-export const HealthcareServiceEligibilitySchema = BackboneElementSchema.extend({
+export const HealthcareServiceEligibilitySchema = _BackboneElementBase.extend({
   code: CodeableConceptSchema.optional(),
   comment: z.string().optional(),
   _comment: ElementSchema.optional(),
@@ -7915,7 +7855,7 @@ export type HealthcareService = z.infer<typeof HealthcareServiceSchema>
  * A language which may be used to communicate with the related person about the patient's health
  * If no language is specified, this *implies* that the default local language is spoken.  If you need to convey proficiency for multiple modes, then you need multiple RelatedPerson.Communication associations.   If the RelatedPerson does not speak the default local language, then the Interpreter Required Standard can be used to explicitly declare that an interpreter is required.
  */
-export const RelatedPersonCommunicationSchema = BackboneElementSchema.extend({
+export const RelatedPersonCommunicationSchema = _BackboneElementBase.extend({
   language: CodeableConceptSchema,
   preferred: z.boolean().optional(),
   _preferred: ElementSchema.optional(),
@@ -7948,7 +7888,7 @@ export type RelatedPerson = z.infer<typeof RelatedPersonSchema>
 /**
  * Evidence variable such as population, exposure, or outcome
  */
-export const EvidenceVariableDefinitionSchema = BackboneElementSchema.extend({
+export const EvidenceVariableDefinitionSchema = _BackboneElementBase.extend({
   description: z.string().optional(),
   _description: ElementSchema.optional(),
   note: z.array(AnnotationSchema).optional(),
@@ -7962,7 +7902,7 @@ export type EvidenceVariableDefinition = z.infer<typeof EvidenceVariableDefiniti
 /**
  * Number of samples in the statistic
  */
-export const EvidenceStatisticSampleSizeSchema = BackboneElementSchema.extend({
+export const EvidenceStatisticSampleSizeSchema = _BackboneElementBase.extend({
   description: z.string().optional(),
   _description: ElementSchema.optional(),
   note: z.array(AnnotationSchema).optional(),
@@ -7992,23 +7932,23 @@ export interface EvidenceStatisticAttributeEstimate extends BackboneElement {
 }
 
 export const EvidenceStatisticAttributeEstimateSchema: z.ZodType<EvidenceStatisticAttributeEstimate> = z.lazy(() =>
-  BackboneElementSchema.extend({
+  _BackboneElementBase.extend({
     description: z.string().optional(),
-      _description: ElementSchema.optional(),
+    _description: ElementSchema.optional(),
     note: z.array(AnnotationSchema).optional(),
     type: CodeableConceptSchema.optional(),
     quantity: QuantitySchema.optional(),
     level: z.number().optional(),
-      _level: ElementSchema.optional(),
+    _level: ElementSchema.optional(),
     range: RangeSchema.optional(),
-    attributeEstimate: z.lazy(() => z.array(EvidenceStatisticAttributeEstimateSchema)).optional(),
+    attributeEstimate: (z.lazy(() => z.array(EvidenceStatisticAttributeEstimateSchema)) as unknown as z.ZodArray<z.ZodTypeAny>).optional(),
   })
 )
 
 /**
  * A variable adjusted for in the adjusted analysis
  */
-export const EvidenceStatisticModelCharacteristicVariableSchema = BackboneElementSchema.extend({
+export const EvidenceStatisticModelCharacteristicVariableSchema = _BackboneElementBase.extend({
   variableDefinition: ReferenceSchema,
   handling: z.enum(['continuous', 'dichotomous', 'ordinal', 'polychotomous']).optional(),
   _handling: ElementSchema.optional(),
@@ -8022,18 +7962,18 @@ export type EvidenceStatisticModelCharacteristicVariable = z.infer<typeof Eviden
  * An aspect of the statistical model
  * A component of the method to generate the statistic.
  */
-export const EvidenceStatisticModelCharacteristicSchema = BackboneElementSchema.extend({
+export const EvidenceStatisticModelCharacteristicSchema = _BackboneElementBase.extend({
   code: CodeableConceptSchema,
   value: QuantitySchema.optional(),
   variable: z.array(EvidenceStatisticModelCharacteristicVariableSchema).optional(),
-  attributeEstimate: z.lazy(() => z.array(EvidenceStatisticAttributeEstimateSchema)).optional(),
+  attributeEstimate: (z.lazy(() => z.array(EvidenceStatisticAttributeEstimateSchema)) as unknown as z.ZodArray<z.ZodTypeAny>).optional(),
 })
 export type EvidenceStatisticModelCharacteristic = z.infer<typeof EvidenceStatisticModelCharacteristicSchema>
 
 /**
  * Values and parameters for a single statistic
  */
-export const EvidenceStatisticSchema = BackboneElementSchema.extend({
+export const EvidenceStatisticSchema = _BackboneElementBase.extend({
   description: z.string().optional(),
   _description: ElementSchema.optional(),
   note: z.array(AnnotationSchema).optional(),
@@ -8066,15 +8006,15 @@ export interface EvidenceCertainty extends BackboneElement {
 }
 
 export const EvidenceCertaintySchema: z.ZodType<EvidenceCertainty> = z.lazy(() =>
-  BackboneElementSchema.extend({
+  _BackboneElementBase.extend({
     description: z.string().optional(),
-      _description: ElementSchema.optional(),
+    _description: ElementSchema.optional(),
     note: z.array(AnnotationSchema).optional(),
     type: CodeableConceptSchema.optional(),
     rating: CodeableConceptSchema.optional(),
     rater: z.string().optional(),
-      _rater: ElementSchema.optional(),
-    subcomponent: z.lazy(() => z.array(EvidenceCertaintySchema)).optional(),
+    _rater: ElementSchema.optional(),
+    subcomponent: (z.lazy(() => z.array(EvidenceCertaintySchema)) as unknown as z.ZodArray<z.ZodTypeAny>).optional(),
   })
 )
 
@@ -8155,7 +8095,7 @@ export type Basic = z.infer<typeof BasicSchema>
  * Indicates how the system may be identified when referenced in electronic exchange.
  * Multiple identifiers may exist, either due to duplicate registration, regional rules, needs of different communication technologies, etc.
  */
-export const NamingSystemUniqueIdSchema = BackboneElementSchema.extend({
+export const NamingSystemUniqueIdSchema = _BackboneElementBase.extend({
   type: z.enum(['oid', 'uuid', 'uri', 'iri-stem', 'v2csmnemonic', 'other']),
   _type: ElementSchema.optional(),
   value: z.string(),
@@ -8232,7 +8172,7 @@ export type NamingSystem = z.infer<typeof NamingSystemSchema>
  * Eye alignment compensation
  * Allows for adjustment on two axis.
  */
-export const VisionPrescriptionLensSpecificationPrismSchema = BackboneElementSchema.extend({
+export const VisionPrescriptionLensSpecificationPrismSchema = _BackboneElementBase.extend({
   amount: z.number(),
   _amount: ElementSchema.optional(),
   base: z.enum(['up', 'down', 'in', 'out']),
@@ -8244,7 +8184,7 @@ export type VisionPrescriptionLensSpecificationPrism = z.infer<typeof VisionPres
  * Vision lens authorization
  * Contain the details of  the individual lens specifications and serves as the authorization for the fullfillment by certified professionals.
  */
-export const VisionPrescriptionLensSpecificationSchema = BackboneElementSchema.extend({
+export const VisionPrescriptionLensSpecificationSchema = _BackboneElementBase.extend({
   product: CodeableConceptSchema,
   eye: z.enum(['right', 'left']),
   _eye: ElementSchema.optional(),
@@ -8330,7 +8270,7 @@ export type Flag = z.infer<typeof FlagSchema>
  * Other claims which are related to this claim such as prior submissions or claims for related services or for the same event.
  * For example,  for the original treatment and follow-up exams.
  */
-export const ExplanationOfBenefitRelatedSchema = BackboneElementSchema.extend({
+export const ExplanationOfBenefitRelatedSchema = _BackboneElementBase.extend({
   claim: ReferenceSchema.optional(),
   relationship: CodeableConceptSchema.optional(),
   reference: IdentifierSchema.optional(),
@@ -8341,7 +8281,7 @@ export type ExplanationOfBenefitRelated = z.infer<typeof ExplanationOfBenefitRel
  * Event information
  * Information code for an event with a corresponding date or period.
  */
-export const ExplanationOfBenefitEventSchema = BackboneElementSchema.extend({
+export const ExplanationOfBenefitEventSchema = _BackboneElementBase.extend({
   type: CodeableConceptSchema,
   whenDateTime: z.string().optional(),
   _whenDateTime: ElementSchema.optional(),
@@ -8354,7 +8294,7 @@ export type ExplanationOfBenefitEvent = z.infer<typeof ExplanationOfBenefitEvent
  * The party to be reimbursed for cost of the products and services according to the terms of the policy.
  * Often providers agree to receive the benefits payable to reduce the near-term costs to the patient. The insurer may decline to pay the provider and may choose to pay the subscriber instead.
  */
-export const ExplanationOfBenefitPayeeSchema = BackboneElementSchema.extend({
+export const ExplanationOfBenefitPayeeSchema = _BackboneElementBase.extend({
   type: CodeableConceptSchema.optional(),
   party: ReferenceSchema.optional(),
 })
@@ -8364,7 +8304,7 @@ export type ExplanationOfBenefitPayee = z.infer<typeof ExplanationOfBenefitPayee
  * Care Team members
  * The members of the team who provided the products and services.
  */
-export const ExplanationOfBenefitCareTeamSchema = BackboneElementSchema.extend({
+export const ExplanationOfBenefitCareTeamSchema = _BackboneElementBase.extend({
   sequence: z.number(),
   _sequence: ElementSchema.optional(),
   provider: ReferenceSchema,
@@ -8380,7 +8320,7 @@ export type ExplanationOfBenefitCareTeam = z.infer<typeof ExplanationOfBenefitCa
  * Additional information codes regarding exceptions, special considerations, the condition, situation, prior or concurrent issues.
  * Often there are multiple jurisdiction specific valuesets which are required.
  */
-export const ExplanationOfBenefitSupportingInfoSchema = BackboneElementSchema.extend({
+export const ExplanationOfBenefitSupportingInfoSchema = _BackboneElementBase.extend({
   sequence: z.number(),
   _sequence: ElementSchema.optional(),
   category: CodeableConceptSchema,
@@ -8404,7 +8344,7 @@ export type ExplanationOfBenefitSupportingInfo = z.infer<typeof ExplanationOfBen
  * Pertinent diagnosis information
  * Information about diagnoses relevant to the claim items.
  */
-export const ExplanationOfBenefitDiagnosisSchema = BackboneElementSchema.extend({
+export const ExplanationOfBenefitDiagnosisSchema = _BackboneElementBase.extend({
   sequence: z.number(),
   _sequence: ElementSchema.optional(),
   diagnosisCodeableConcept: CodeableConceptSchema.optional(),
@@ -8418,7 +8358,7 @@ export type ExplanationOfBenefitDiagnosis = z.infer<typeof ExplanationOfBenefitD
  * Clinical procedures performed
  * Procedures performed on the patient relevant to the billing items with the claim.
  */
-export const ExplanationOfBenefitProcedureSchema = BackboneElementSchema.extend({
+export const ExplanationOfBenefitProcedureSchema = _BackboneElementBase.extend({
   sequence: z.number(),
   _sequence: ElementSchema.optional(),
   type: z.array(CodeableConceptSchema).optional(),
@@ -8435,7 +8375,7 @@ export type ExplanationOfBenefitProcedure = z.infer<typeof ExplanationOfBenefitP
  * Financial instruments for reimbursement for the health care products and services specified on the claim.
  * All insurance coverages for the patient which may be applicable for reimbursement, of the products and services listed in the claim, are typically provided in the claim to allow insurers to confirm the ordering of the insurance coverages relative to local 'coordination of benefit' rules. One coverage (and only one) with 'focal=true' is to be used in the adjudication of this claim. Coverages appearing before the focal Coverage in the list, and where 'Coverage.subrogation=false', should provide a reference to the ClaimResponse containing the adjudication results of the prior claim.
  */
-export const ExplanationOfBenefitInsuranceSchema = BackboneElementSchema.extend({
+export const ExplanationOfBenefitInsuranceSchema = _BackboneElementBase.extend({
   focal: z.boolean(),
   _focal: ElementSchema.optional(),
   coverage: ReferenceSchema,
@@ -8448,7 +8388,7 @@ export type ExplanationOfBenefitInsurance = z.infer<typeof ExplanationOfBenefitI
  * Details of the event
  * Details of a accident which resulted in injuries which required the products and services listed in the claim.
  */
-export const ExplanationOfBenefitAccidentSchema = BackboneElementSchema.extend({
+export const ExplanationOfBenefitAccidentSchema = _BackboneElementBase.extend({
   date: z.string().optional(),
   _date: ElementSchema.optional(),
   type: CodeableConceptSchema.optional(),
@@ -8461,7 +8401,7 @@ export type ExplanationOfBenefitAccident = z.infer<typeof ExplanationOfBenefitAc
  * Anatomical location
  * Physical location where the service is performed or applies.
  */
-export const ExplanationOfBenefitItemBodySiteSchema = BackboneElementSchema.extend({
+export const ExplanationOfBenefitItemBodySiteSchema = _BackboneElementBase.extend({
   site: z.array(CodeableReferenceSchema),
   subSite: z.array(CodeableConceptSchema).optional(),
 })
@@ -8480,11 +8420,11 @@ export interface ExplanationOfBenefitItemReviewOutcome extends BackboneElement {
 }
 
 export const ExplanationOfBenefitItemReviewOutcomeSchema: z.ZodType<ExplanationOfBenefitItemReviewOutcome> = z.lazy(() =>
-  BackboneElementSchema.extend({
+  _BackboneElementBase.extend({
     decision: CodeableConceptSchema.optional(),
     reason: z.array(CodeableConceptSchema).optional(),
     preAuthRef: z.string().optional(),
-      _preAuthRef: ElementSchema.optional(),
+    _preAuthRef: ElementSchema.optional(),
     preAuthPeriod: PeriodSchema.optional(),
   })
 )
@@ -8501,7 +8441,7 @@ export interface ExplanationOfBenefitItemAdjudication extends BackboneElement {
 }
 
 export const ExplanationOfBenefitItemAdjudicationSchema: z.ZodType<ExplanationOfBenefitItemAdjudication> = z.lazy(() =>
-  BackboneElementSchema.extend({
+  _BackboneElementBase.extend({
     category: CodeableConceptSchema,
     reason: CodeableConceptSchema.optional(),
     amount: MoneySchema.optional(),
@@ -8513,7 +8453,7 @@ export const ExplanationOfBenefitItemAdjudicationSchema: z.ZodType<ExplanationOf
  * Additional items
  * Third-tier of goods and services.
  */
-export const ExplanationOfBenefitItemDetailSubDetailSchema = BackboneElementSchema.extend({
+export const ExplanationOfBenefitItemDetailSubDetailSchema = _BackboneElementBase.extend({
   sequence: z.number(),
   _sequence: ElementSchema.optional(),
   traceNumber: z.array(IdentifierSchema).optional(),
@@ -8533,8 +8473,8 @@ export const ExplanationOfBenefitItemDetailSubDetailSchema = BackboneElementSche
   udi: z.array(ReferenceSchema).optional(),
   noteNumber: z.array(z.number()).optional(),
   _noteNumber: ElementSchema.optional(),
-  reviewOutcome: z.lazy(() => ExplanationOfBenefitItemReviewOutcomeSchema).optional(),
-  adjudication: z.lazy(() => z.array(ExplanationOfBenefitItemAdjudicationSchema)).optional(),
+  reviewOutcome: (z.lazy(() => ExplanationOfBenefitItemReviewOutcomeSchema) as z.ZodTypeAny).optional(),
+  adjudication: (z.lazy(() => z.array(ExplanationOfBenefitItemAdjudicationSchema)) as unknown as z.ZodArray<z.ZodTypeAny>).optional(),
 })
 export type ExplanationOfBenefitItemDetailSubDetail = z.infer<typeof ExplanationOfBenefitItemDetailSubDetailSchema>
 
@@ -8542,7 +8482,7 @@ export type ExplanationOfBenefitItemDetailSubDetail = z.infer<typeof Explanation
  * Additional items
  * Second-tier of goods and services.
  */
-export const ExplanationOfBenefitItemDetailSchema = BackboneElementSchema.extend({
+export const ExplanationOfBenefitItemDetailSchema = _BackboneElementBase.extend({
   sequence: z.number(),
   _sequence: ElementSchema.optional(),
   traceNumber: z.array(IdentifierSchema).optional(),
@@ -8562,8 +8502,8 @@ export const ExplanationOfBenefitItemDetailSchema = BackboneElementSchema.extend
   udi: z.array(ReferenceSchema).optional(),
   noteNumber: z.array(z.number()).optional(),
   _noteNumber: ElementSchema.optional(),
-  reviewOutcome: z.lazy(() => ExplanationOfBenefitItemReviewOutcomeSchema).optional(),
-  adjudication: z.lazy(() => z.array(ExplanationOfBenefitItemAdjudicationSchema)).optional(),
+  reviewOutcome: (z.lazy(() => ExplanationOfBenefitItemReviewOutcomeSchema) as z.ZodTypeAny).optional(),
+  adjudication: (z.lazy(() => z.array(ExplanationOfBenefitItemAdjudicationSchema)) as unknown as z.ZodArray<z.ZodTypeAny>).optional(),
   subDetail: z.array(ExplanationOfBenefitItemDetailSubDetailSchema).optional(),
 })
 export type ExplanationOfBenefitItemDetail = z.infer<typeof ExplanationOfBenefitItemDetailSchema>
@@ -8572,7 +8512,7 @@ export type ExplanationOfBenefitItemDetail = z.infer<typeof ExplanationOfBenefit
  * Product or service provided
  * A claim line. Either a simple (a product or service) or a 'group' of details which can also be a simple items or groups of sub-details.
  */
-export const ExplanationOfBenefitItemSchema = BackboneElementSchema.extend({
+export const ExplanationOfBenefitItemSchema = _BackboneElementBase.extend({
   sequence: z.number(),
   _sequence: ElementSchema.optional(),
   careTeamSequence: z.array(z.number()).optional(),
@@ -8619,7 +8559,7 @@ export type ExplanationOfBenefitItem = z.infer<typeof ExplanationOfBenefitItemSc
  * Anatomical location
  * Physical location where the service is performed or applies.
  */
-export const ExplanationOfBenefitAddItemBodySiteSchema = BackboneElementSchema.extend({
+export const ExplanationOfBenefitAddItemBodySiteSchema = _BackboneElementBase.extend({
   site: z.array(CodeableReferenceSchema),
   subSite: z.array(CodeableConceptSchema).optional(),
 })
@@ -8629,7 +8569,7 @@ export type ExplanationOfBenefitAddItemBodySite = z.infer<typeof ExplanationOfBe
  * Insurer added line items
  * The third-tier service adjudications for payor added services.
  */
-export const ExplanationOfBenefitAddItemDetailSubDetailSchema = BackboneElementSchema.extend({
+export const ExplanationOfBenefitAddItemDetailSubDetailSchema = _BackboneElementBase.extend({
   traceNumber: z.array(IdentifierSchema).optional(),
   revenue: CodeableConceptSchema.optional(),
   productOrService: CodeableConceptSchema.optional(),
@@ -8644,8 +8584,8 @@ export const ExplanationOfBenefitAddItemDetailSubDetailSchema = BackboneElementS
   net: MoneySchema.optional(),
   noteNumber: z.array(z.number()).optional(),
   _noteNumber: ElementSchema.optional(),
-  reviewOutcome: z.lazy(() => ExplanationOfBenefitItemReviewOutcomeSchema).optional(),
-  adjudication: z.lazy(() => z.array(ExplanationOfBenefitItemAdjudicationSchema)).optional(),
+  reviewOutcome: (z.lazy(() => ExplanationOfBenefitItemReviewOutcomeSchema) as z.ZodTypeAny).optional(),
+  adjudication: (z.lazy(() => z.array(ExplanationOfBenefitItemAdjudicationSchema)) as unknown as z.ZodArray<z.ZodTypeAny>).optional(),
 })
 export type ExplanationOfBenefitAddItemDetailSubDetail = z.infer<typeof ExplanationOfBenefitAddItemDetailSubDetailSchema>
 
@@ -8653,7 +8593,7 @@ export type ExplanationOfBenefitAddItemDetailSubDetail = z.infer<typeof Explanat
  * Insurer added line items
  * The second-tier service adjudications for payor added services.
  */
-export const ExplanationOfBenefitAddItemDetailSchema = BackboneElementSchema.extend({
+export const ExplanationOfBenefitAddItemDetailSchema = _BackboneElementBase.extend({
   traceNumber: z.array(IdentifierSchema).optional(),
   revenue: CodeableConceptSchema.optional(),
   productOrService: CodeableConceptSchema.optional(),
@@ -8668,8 +8608,8 @@ export const ExplanationOfBenefitAddItemDetailSchema = BackboneElementSchema.ext
   net: MoneySchema.optional(),
   noteNumber: z.array(z.number()).optional(),
   _noteNumber: ElementSchema.optional(),
-  reviewOutcome: z.lazy(() => ExplanationOfBenefitItemReviewOutcomeSchema).optional(),
-  adjudication: z.lazy(() => z.array(ExplanationOfBenefitItemAdjudicationSchema)).optional(),
+  reviewOutcome: (z.lazy(() => ExplanationOfBenefitItemReviewOutcomeSchema) as z.ZodTypeAny).optional(),
+  adjudication: (z.lazy(() => z.array(ExplanationOfBenefitItemAdjudicationSchema)) as unknown as z.ZodArray<z.ZodTypeAny>).optional(),
   subDetail: z.array(ExplanationOfBenefitAddItemDetailSubDetailSchema).optional(),
 })
 export type ExplanationOfBenefitAddItemDetail = z.infer<typeof ExplanationOfBenefitAddItemDetailSchema>
@@ -8678,7 +8618,7 @@ export type ExplanationOfBenefitAddItemDetail = z.infer<typeof ExplanationOfBene
  * Insurer added line items
  * The first-tier service adjudications for payor added product or service lines.
  */
-export const ExplanationOfBenefitAddItemSchema = BackboneElementSchema.extend({
+export const ExplanationOfBenefitAddItemSchema = _BackboneElementBase.extend({
   itemSequence: z.array(z.number()).optional(),
   _itemSequence: ElementSchema.optional(),
   detailSequence: z.array(z.number()).optional(),
@@ -8709,8 +8649,8 @@ export const ExplanationOfBenefitAddItemSchema = BackboneElementSchema.extend({
   bodySite: z.array(ExplanationOfBenefitAddItemBodySiteSchema).optional(),
   noteNumber: z.array(z.number()).optional(),
   _noteNumber: ElementSchema.optional(),
-  reviewOutcome: z.lazy(() => ExplanationOfBenefitItemReviewOutcomeSchema).optional(),
-  adjudication: z.lazy(() => z.array(ExplanationOfBenefitItemAdjudicationSchema)).optional(),
+  reviewOutcome: (z.lazy(() => ExplanationOfBenefitItemReviewOutcomeSchema) as z.ZodTypeAny).optional(),
+  adjudication: (z.lazy(() => z.array(ExplanationOfBenefitItemAdjudicationSchema)) as unknown as z.ZodArray<z.ZodTypeAny>).optional(),
   detail: z.array(ExplanationOfBenefitAddItemDetailSchema).optional(),
 })
 export type ExplanationOfBenefitAddItem = z.infer<typeof ExplanationOfBenefitAddItemSchema>
@@ -8720,7 +8660,7 @@ export type ExplanationOfBenefitAddItem = z.infer<typeof ExplanationOfBenefitAdd
  * Categorized monetary totals for the adjudication.
  * Totals for amounts submitted, co-pays, benefits payable etc.
  */
-export const ExplanationOfBenefitTotalSchema = BackboneElementSchema.extend({
+export const ExplanationOfBenefitTotalSchema = _BackboneElementBase.extend({
   category: CodeableConceptSchema,
   amount: MoneySchema,
 })
@@ -8730,7 +8670,7 @@ export type ExplanationOfBenefitTotal = z.infer<typeof ExplanationOfBenefitTotal
  * Payment Details
  * Payment details for the adjudication of the claim.
  */
-export const ExplanationOfBenefitPaymentSchema = BackboneElementSchema.extend({
+export const ExplanationOfBenefitPaymentSchema = _BackboneElementBase.extend({
   type: CodeableConceptSchema.optional(),
   adjustment: MoneySchema.optional(),
   adjustmentReason: CodeableConceptSchema.optional(),
@@ -8745,7 +8685,7 @@ export type ExplanationOfBenefitPayment = z.infer<typeof ExplanationOfBenefitPay
  * Note concerning adjudication
  * A note that describes or explains adjudication results in a human readable form.
  */
-export const ExplanationOfBenefitProcessNoteSchema = BackboneElementSchema.extend({
+export const ExplanationOfBenefitProcessNoteSchema = _BackboneElementBase.extend({
   number: z.number().optional(),
   _number: ElementSchema.optional(),
   type: CodeableConceptSchema.optional(),
@@ -8759,7 +8699,7 @@ export type ExplanationOfBenefitProcessNote = z.infer<typeof ExplanationOfBenefi
  * Benefit Summary
  * Benefits Used to date.
  */
-export const ExplanationOfBenefitBenefitBalanceFinancialSchema = BackboneElementSchema.extend({
+export const ExplanationOfBenefitBenefitBalanceFinancialSchema = _BackboneElementBase.extend({
   type: CodeableConceptSchema,
   allowedUnsignedInt: z.number().optional(),
   _allowedUnsignedInt: ElementSchema.optional(),
@@ -8775,7 +8715,7 @@ export type ExplanationOfBenefitBenefitBalanceFinancial = z.infer<typeof Explana
 /**
  * Balance by Benefit Category
  */
-export const ExplanationOfBenefitBenefitBalanceSchema = BackboneElementSchema.extend({
+export const ExplanationOfBenefitBenefitBalanceSchema = _BackboneElementBase.extend({
   category: CodeableConceptSchema,
   excluded: z.boolean().optional(),
   _excluded: ElementSchema.optional(),
@@ -8843,7 +8783,7 @@ export const ExplanationOfBenefitSchema = DomainResourceSchema.extend({
   patientPaid: MoneySchema.optional(),
   item: z.array(ExplanationOfBenefitItemSchema).optional(),
   addItem: z.array(ExplanationOfBenefitAddItemSchema).optional(),
-  adjudication: z.lazy(() => z.array(ExplanationOfBenefitItemAdjudicationSchema)).optional(),
+  adjudication: (z.lazy(() => z.array(ExplanationOfBenefitItemAdjudicationSchema)) as unknown as z.ZodArray<z.ZodTypeAny>).optional(),
   total: z.array(ExplanationOfBenefitTotalSchema).optional(),
   payment: ExplanationOfBenefitPaymentSchema.optional(),
   formCode: CodeableConceptSchema.optional(),
@@ -8857,7 +8797,7 @@ export type ExplanationOfBenefit = z.infer<typeof ExplanationOfBenefitSchema>
 /**
  * The legal status of supply of the packaged item as classified by the regulator
  */
-export const PackagedProductDefinitionLegalStatusOfSupplySchema = BackboneElementSchema.extend({
+export const PackagedProductDefinitionLegalStatusOfSupplySchema = _BackboneElementBase.extend({
   code: CodeableConceptSchema.optional(),
   jurisdiction: CodeableConceptSchema.optional(),
 })
@@ -8866,7 +8806,7 @@ export type PackagedProductDefinitionLegalStatusOfSupply = z.infer<typeof Packag
 /**
  * MarketingStatus Type: The marketing status describes the date when a medicinal product is actually put on the market or the date as of which it is no longer available.
  */
-export const MarketingStatusSchema = BackboneTypeSchema.extend({
+export const MarketingStatusSchema = _BackboneTypeBase.extend({
   country: CodeableConceptSchema.optional(),
   jurisdiction: CodeableConceptSchema.optional(),
   status: CodeableConceptSchema,
@@ -8879,7 +8819,7 @@ export type MarketingStatus = z.infer<typeof MarketingStatusSchema>
 /**
  * ProductShelfLife Type: The shelf-life and storage information for a medicinal product item or container can be described using this class.
  */
-export const ProductShelfLifeSchema = BackboneTypeSchema.extend({
+export const ProductShelfLifeSchema = _BackboneTypeBase.extend({
   type: CodeableConceptSchema.optional(),
   periodDuration: DurationSchema.optional(),
   periodString: z.string().optional(),
@@ -8903,14 +8843,14 @@ export interface PackagedProductDefinitionPackagingProperty extends BackboneElem
 }
 
 export const PackagedProductDefinitionPackagingPropertySchema: z.ZodType<PackagedProductDefinitionPackagingProperty> = z.lazy(() =>
-  BackboneElementSchema.extend({
+  _BackboneElementBase.extend({
     type: CodeableConceptSchema,
     valueCodeableConcept: CodeableConceptSchema.optional(),
     valueQuantity: QuantitySchema.optional(),
     valueDate: z.string().optional(),
-      _valueDate: ElementSchema.optional(),
+    _valueDate: ElementSchema.optional(),
     valueBoolean: z.boolean().optional(),
-      _valueBoolean: ElementSchema.optional(),
+    _valueBoolean: ElementSchema.optional(),
     valueAttachment: AttachmentSchema.optional(),
   })
 )
@@ -8918,7 +8858,7 @@ export const PackagedProductDefinitionPackagingPropertySchema: z.ZodType<Package
 /**
  * The item(s) within the packaging
  */
-export const PackagedProductDefinitionPackagingContainedItemSchema = BackboneElementSchema.extend({
+export const PackagedProductDefinitionPackagingContainedItemSchema = _BackboneElementBase.extend({
   item: CodeableReferenceSchema,
   amount: QuantitySchema.optional(),
 })
@@ -8945,20 +8885,20 @@ export interface PackagedProductDefinitionPackaging extends BackboneElement {
 }
 
 export const PackagedProductDefinitionPackagingSchema: z.ZodType<PackagedProductDefinitionPackaging> = z.lazy(() =>
-  BackboneElementSchema.extend({
+  _BackboneElementBase.extend({
     identifier: z.array(IdentifierSchema).optional(),
     type: CodeableConceptSchema.optional(),
     componentPart: z.boolean().optional(),
-      _componentPart: ElementSchema.optional(),
+    _componentPart: ElementSchema.optional(),
     quantity: z.number().optional(),
-      _quantity: ElementSchema.optional(),
+    _quantity: ElementSchema.optional(),
     material: z.array(CodeableConceptSchema).optional(),
     alternateMaterial: z.array(CodeableConceptSchema).optional(),
     shelfLifeStorage: z.array(ProductShelfLifeSchema).optional(),
     manufacturer: z.array(ReferenceSchema).optional(),
     property: z.array(PackagedProductDefinitionPackagingPropertySchema).optional(),
     containedItem: z.array(PackagedProductDefinitionPackagingContainedItemSchema).optional(),
-    packaging: z.lazy(() => z.array(PackagedProductDefinitionPackagingSchema)).optional(),
+    packaging: (z.lazy(() => z.array(PackagedProductDefinitionPackagingSchema)) as unknown as z.ZodArray<z.ZodTypeAny>).optional(),
   })
 )
 
@@ -8985,7 +8925,7 @@ export const PackagedProductDefinitionSchema = DomainResourceSchema.extend({
   manufacturer: z.array(ReferenceSchema).optional(),
   attachedDocument: z.array(ReferenceSchema).optional(),
   packaging: PackagedProductDefinitionPackagingSchema.optional(),
-  characteristic: z.lazy(() => z.array(PackagedProductDefinitionPackagingPropertySchema)).optional(),
+  characteristic: (z.lazy(() => z.array(PackagedProductDefinitionPackagingPropertySchema)) as unknown as z.ZodArray<z.ZodTypeAny>).optional(),
 })
 export type PackagedProductDefinition = z.infer<typeof PackagedProductDefinitionSchema>
 
@@ -8993,7 +8933,7 @@ export type PackagedProductDefinition = z.infer<typeof PackagedProductDefinition
  * A contact party (e.g. guardian, partner, friend) for the patient
  * Contact covers all kinds of contact parties: family members, business contacts, guardians, caregivers. Not applicable to register pedigree and family ties beyond use of having contact.
  */
-export const PatientContactSchema = BackboneElementSchema.extend({
+export const PatientContactSchema = _BackboneElementBase.extend({
   relationship: z.array(CodeableConceptSchema).optional(),
   name: HumanNameSchema.optional(),
   telecom: z.array(ContactPointSchema).optional(),
@@ -9009,7 +8949,7 @@ export type PatientContact = z.infer<typeof PatientContactSchema>
  * A language which may be used to communicate with the patient about his or her health
  * If no language is specified, this *implies* that the default local language is spoken.  If you need to convey proficiency for multiple modes, then you need multiple Patient.Communication associations.   For animals, language is not a relevant field, and should be absent from the instance. If the Patient does not speak the default local language, then the Interpreter Required Standard can be used to explicitly declare that an interpreter is required.
  */
-export const PatientCommunicationSchema = BackboneElementSchema.extend({
+export const PatientCommunicationSchema = _BackboneElementBase.extend({
   language: CodeableConceptSchema,
   preferred: z.boolean().optional(),
   _preferred: ElementSchema.optional(),
@@ -9020,7 +8960,7 @@ export type PatientCommunication = z.infer<typeof PatientCommunicationSchema>
  * Link to a Patient or RelatedPerson resource that concerns the same actual individual
  * There is no assumption that linked patient records have mutual links.
  */
-export const PatientLinkSchema = BackboneElementSchema.extend({
+export const PatientLinkSchema = _BackboneElementBase.extend({
   other: ReferenceSchema,
   type: z.enum(['replaced-by', 'replaces', 'refer', 'seealso']),
   _type: ElementSchema.optional(),
@@ -9061,15 +9001,6 @@ export const PatientSchema = DomainResourceSchema.extend({
 export type Patient = z.infer<typeof PatientSchema>
 
 /**
- * uuid type: A UUID, represented as a URI
- */
-export const uuidSchema = uriSchema.extend({
-  value: z.string().optional(),
-  _value: ElementSchema.optional(),
-})
-export type uuid = z.infer<typeof uuidSchema>
-
-/**
  * General characteristics of this item
  */
 export interface ManufacturedItemDefinitionProperty extends BackboneElement {
@@ -9087,16 +9018,16 @@ export interface ManufacturedItemDefinitionProperty extends BackboneElement {
 }
 
 export const ManufacturedItemDefinitionPropertySchema: z.ZodType<ManufacturedItemDefinitionProperty> = z.lazy(() =>
-  BackboneElementSchema.extend({
+  _BackboneElementBase.extend({
     type: CodeableConceptSchema,
     valueCodeableConcept: CodeableConceptSchema.optional(),
     valueQuantity: QuantitySchema.optional(),
     valueDate: z.string().optional(),
-      _valueDate: ElementSchema.optional(),
+    _valueDate: ElementSchema.optional(),
     valueBoolean: z.boolean().optional(),
-      _valueBoolean: ElementSchema.optional(),
+    _valueBoolean: ElementSchema.optional(),
     valueMarkdown: z.string().optional(),
-      _valueMarkdown: ElementSchema.optional(),
+    _valueMarkdown: ElementSchema.optional(),
     valueAttachment: AttachmentSchema.optional(),
     valueReference: ReferenceSchema.optional(),
   })
@@ -9105,7 +9036,7 @@ export const ManufacturedItemDefinitionPropertySchema: z.ZodType<ManufacturedIte
 /**
  * A reference to a constituent of the manufactured item as a whole, linked here so that its component location within the item can be indicated. This not where the item's ingredient are primarily stated (for which see Ingredient.for or ManufacturedItemDefinition.ingredient)
  */
-export const ManufacturedItemDefinitionComponentConstituentSchema = BackboneElementSchema.extend({
+export const ManufacturedItemDefinitionComponentConstituentSchema = _BackboneElementBase.extend({
   amount: z.array(QuantitySchema).optional(),
   location: z.array(CodeableConceptSchema).optional(),
   function: z.array(CodeableConceptSchema).optional(),
@@ -9126,13 +9057,13 @@ export interface ManufacturedItemDefinitionComponent extends BackboneElement {
 }
 
 export const ManufacturedItemDefinitionComponentSchema: z.ZodType<ManufacturedItemDefinitionComponent> = z.lazy(() =>
-  BackboneElementSchema.extend({
+  _BackboneElementBase.extend({
     type: CodeableConceptSchema,
     function: z.array(CodeableConceptSchema).optional(),
     amount: z.array(QuantitySchema).optional(),
     constituent: z.array(ManufacturedItemDefinitionComponentConstituentSchema).optional(),
-    property: z.lazy(() => z.array(ManufacturedItemDefinitionPropertySchema)).optional(),
-    component: z.lazy(() => z.array(ManufacturedItemDefinitionComponentSchema)).optional(),
+    property: (z.lazy(() => z.array(ManufacturedItemDefinitionPropertySchema)) as unknown as z.ZodArray<z.ZodTypeAny>).optional(),
+    component: (z.lazy(() => z.array(ManufacturedItemDefinitionComponentSchema)) as unknown as z.ZodArray<z.ZodTypeAny>).optional(),
   })
 )
 
@@ -9159,7 +9090,7 @@ export type ManufacturedItemDefinition = z.infer<typeof ManufacturedItemDefiniti
 /**
  * The details about the device when it is in use to describe its operation
  */
-export const DeviceAssociationOperationSchema = BackboneElementSchema.extend({
+export const DeviceAssociationOperationSchema = _BackboneElementBase.extend({
   status: CodeableConceptSchema,
   operator: z.array(ReferenceSchema).optional(),
   period: PeriodSchema.optional(),
@@ -9184,19 +9115,10 @@ export const DeviceAssociationSchema = DomainResourceSchema.extend({
 export type DeviceAssociation = z.infer<typeof DeviceAssociationSchema>
 
 /**
- * code type: A string which has at least one character and no leading or trailing whitespace and where there is no whitespace other than single spaces in the contents
- */
-export const codeSchema = stringSchema.extend({
-  value: z.string().optional(),
-  _value: ElementSchema.optional(),
-})
-export type code = z.infer<typeof codeSchema>
-
-/**
  * The physical feature of a specimen
  * A physical feature or landmark on a specimen, highlighted for context by the collector of the specimen (e.g. surgeon), that identifies the type of feature as well as its meaning (e.g. the red ink indicating the resection margin of the right lobe of the excised prostate tissue or wire loop at radiologically suspected tumor location).
  */
-export const SpecimenFeatureSchema = BackboneElementSchema.extend({
+export const SpecimenFeatureSchema = _BackboneElementBase.extend({
   type: CodeableConceptSchema,
   description: z.string(),
   _description: ElementSchema.optional(),
@@ -9207,7 +9129,7 @@ export type SpecimenFeature = z.infer<typeof SpecimenFeatureSchema>
  * Collection details
  * Details concerning the specimen collection.
  */
-export const SpecimenCollectionSchema = BackboneElementSchema.extend({
+export const SpecimenCollectionSchema = _BackboneElementBase.extend({
   collector: ReferenceSchema.optional(),
   collectedDateTime: z.string().optional(),
   _collectedDateTime: ElementSchema.optional(),
@@ -9227,7 +9149,7 @@ export type SpecimenCollection = z.infer<typeof SpecimenCollectionSchema>
  * Processing and processing step details
  * Details concerning processing and processing steps for the specimen.
  */
-export const SpecimenProcessingSchema = BackboneElementSchema.extend({
+export const SpecimenProcessingSchema = _BackboneElementBase.extend({
   description: z.string().optional(),
   _description: ElementSchema.optional(),
   method: CodeableConceptSchema.optional(),
@@ -9242,7 +9164,7 @@ export type SpecimenProcessing = z.infer<typeof SpecimenProcessingSchema>
  * Direct container of specimen (tube/slide, etc.)
  * The container holding the specimen.  The recursive nature of containers; i.e. blood in tube in tray in rack is not addressed here.
  */
-export const SpecimenContainerSchema = BackboneElementSchema.extend({
+export const SpecimenContainerSchema = _BackboneElementBase.extend({
   device: ReferenceSchema,
   location: ReferenceSchema.optional(),
   specimenQuantity: QuantitySchema.optional(),
@@ -9280,7 +9202,7 @@ export type Specimen = z.infer<typeof SpecimenSchema>
  * Who or what participated in the activities related to the family member history and how they were involved
  * Indicates who or what participated in the activities related to the family member history and how they were involved.
  */
-export const FamilyMemberHistoryParticipantSchema = BackboneElementSchema.extend({
+export const FamilyMemberHistoryParticipantSchema = _BackboneElementBase.extend({
   function: CodeableConceptSchema.optional(),
   actor: ReferenceSchema,
 })
@@ -9290,7 +9212,7 @@ export type FamilyMemberHistoryParticipant = z.infer<typeof FamilyMemberHistoryP
  * Condition that the related person had
  * The significant Conditions (or condition) that the family member had. This is a repeating section to allow a system to represent more than one condition per resource, though there is nothing stopping multiple resources - one per condition.
  */
-export const FamilyMemberHistoryConditionSchema = BackboneElementSchema.extend({
+export const FamilyMemberHistoryConditionSchema = _BackboneElementBase.extend({
   code: CodeableConceptSchema,
   outcome: CodeableConceptSchema.optional(),
   contributedToDeath: z.boolean().optional(),
@@ -9308,7 +9230,7 @@ export type FamilyMemberHistoryCondition = z.infer<typeof FamilyMemberHistoryCon
  * Procedures that the related person had
  * The significant Procedures (or procedure) that the family member had. This is a repeating section to allow a system to represent more than one procedure per resource, though there is nothing stopping multiple resources - one per procedure.
  */
-export const FamilyMemberHistoryProcedureSchema = BackboneElementSchema.extend({
+export const FamilyMemberHistoryProcedureSchema = _BackboneElementBase.extend({
   code: CodeableConceptSchema,
   outcome: CodeableConceptSchema.optional(),
   contributedToDeath: z.boolean().optional(),
@@ -9375,7 +9297,7 @@ export type FamilyMemberHistory = z.infer<typeof FamilyMemberHistorySchema>
  * ValueSet details if this is coded
  * Binds to a value set if this parameter is coded (code, Coding, CodeableConcept).
  */
-export const OperationDefinitionParameterBindingSchema = BackboneElementSchema.extend({
+export const OperationDefinitionParameterBindingSchema = _BackboneElementBase.extend({
   strength: z.enum(['required', 'extensible', 'preferred', 'example']),
   _strength: ElementSchema.optional(),
   valueSet: z.string(),
@@ -9388,7 +9310,7 @@ export type OperationDefinitionParameterBinding = z.infer<typeof OperationDefini
  * Identifies other resource parameters within the operation invocation that are expected to resolve to this resource.
  * Resolution applies if the referenced parameter exists.
  */
-export const OperationDefinitionParameterReferencedFromSchema = BackboneElementSchema.extend({
+export const OperationDefinitionParameterReferencedFromSchema = _BackboneElementBase.extend({
   source: z.string(),
   _source: ElementSchema.optional(),
   sourceId: z.string().optional(),
@@ -9428,30 +9350,30 @@ export interface OperationDefinitionParameter extends BackboneElement {
 }
 
 export const OperationDefinitionParameterSchema: z.ZodType<OperationDefinitionParameter> = z.lazy(() =>
-  BackboneElementSchema.extend({
+  _BackboneElementBase.extend({
     name: z.string(),
-      _name: ElementSchema.optional(),
+    _name: ElementSchema.optional(),
     use: z.enum(['in', 'out']),
-      _use: ElementSchema.optional(),
+    _use: ElementSchema.optional(),
     scope: z.array(z.enum(['instance', 'type', 'system'])).optional(),
-      _scope: ElementSchema.optional(),
+    _scope: ElementSchema.optional(),
     min: z.number(),
-      _min: ElementSchema.optional(),
+    _min: ElementSchema.optional(),
     max: z.string(),
-      _max: ElementSchema.optional(),
+    _max: ElementSchema.optional(),
     documentation: z.string().optional(),
-      _documentation: ElementSchema.optional(),
+    _documentation: ElementSchema.optional(),
     type: z.enum(['Base', 'Element', 'BackboneElement', 'DataType', 'Address', 'Annotation', 'Attachment', 'Availability', 'BackboneType', 'Dosage', 'ElementDefinition', 'MarketingStatus', 'ProductShelfLife', 'Timing', 'CodeableConcept', 'CodeableReference', 'Coding', 'ContactDetail', 'ContactPoint', 'Contributor', 'DataRequirement', 'Expression', 'ExtendedContactDetail', 'Extension', 'HumanName', 'Identifier', 'Meta', 'MonetaryComponent', 'Money', 'Narrative', 'ParameterDefinition', 'Period', 'PrimitiveType', 'base64Binary', 'boolean', 'date', 'dateTime', 'decimal', 'instant', 'integer', 'positiveInt', 'unsignedInt', 'integer64', 'string', 'code', 'id', 'markdown', 'time', 'uri', 'canonical', 'oid', 'url', 'uuid', 'Quantity', 'Age', 'Count', 'Distance', 'Duration', 'Range', 'Ratio', 'RatioRange', 'Reference', 'RelatedArtifact', 'SampledData', 'Signature', 'TriggerDefinition', 'UsageContext', 'VirtualServiceDetail', 'xhtml', 'Resource', 'Binary', 'Bundle', 'DomainResource', 'Account', 'ActivityDefinition', 'ActorDefinition', 'AdministrableProductDefinition', 'AdverseEvent', 'AllergyIntolerance', 'Appointment', 'AppointmentResponse', 'ArtifactAssessment', 'AuditEvent', 'Basic', 'BiologicallyDerivedProduct', 'BiologicallyDerivedProductDispense', 'BodyStructure', 'CanonicalResource', 'CapabilityStatement', 'CarePlan', 'CareTeam', 'ChargeItem', 'ChargeItemDefinition', 'Citation', 'Claim', 'ClaimResponse', 'ClinicalImpression', 'ClinicalUseDefinition', 'CodeSystem', 'Communication', 'CommunicationRequest', 'CompartmentDefinition', 'Composition', 'ConceptMap', 'Condition', 'ConditionDefinition', 'Consent', 'Contract', 'Coverage', 'CoverageEligibilityRequest', 'CoverageEligibilityResponse', 'DetectedIssue', 'Device', 'DeviceAssociation', 'DeviceDefinition', 'DeviceDispense', 'DeviceMetric', 'DeviceRequest', 'DeviceUsage', 'DiagnosticReport', 'DocumentReference', 'Encounter', 'EncounterHistory', 'Endpoint', 'EnrollmentRequest', 'EnrollmentResponse', 'EpisodeOfCare', 'EventDefinition', 'Evidence', 'EvidenceReport', 'EvidenceVariable', 'ExampleScenario', 'ExplanationOfBenefit', 'FamilyMemberHistory', 'Flag', 'FormularyItem', 'GenomicStudy', 'Goal', 'GraphDefinition', 'Group', 'GuidanceResponse', 'HealthcareService', 'ImagingSelection', 'ImagingStudy', 'Immunization', 'ImmunizationEvaluation', 'ImmunizationRecommendation', 'ImplementationGuide', 'Ingredient', 'InsurancePlan', 'InventoryItem', 'InventoryReport', 'Invoice', 'Library', 'Linkage', 'List', 'Location', 'ManufacturedItemDefinition', 'Measure', 'MeasureReport', 'Medication', 'MedicationAdministration', 'MedicationDispense', 'MedicationKnowledge', 'MedicationRequest', 'MedicationStatement', 'MedicinalProductDefinition', 'MessageDefinition', 'MessageHeader', 'MetadataResource', 'MolecularSequence', 'NamingSystem', 'NutritionIntake', 'NutritionOrder', 'NutritionProduct', 'Observation', 'ObservationDefinition', 'OperationDefinition', 'OperationOutcome', 'Organization', 'OrganizationAffiliation', 'PackagedProductDefinition', 'Patient', 'PaymentNotice', 'PaymentReconciliation', 'Permission', 'Person', 'PlanDefinition', 'Practitioner', 'PractitionerRole', 'Procedure', 'Provenance', 'Questionnaire', 'QuestionnaireResponse', 'RegulatedAuthorization', 'RelatedPerson', 'RequestOrchestration', 'Requirements', 'ResearchStudy', 'ResearchSubject', 'RiskAssessment', 'Schedule', 'SearchParameter', 'ServiceRequest', 'Slot', 'Specimen', 'SpecimenDefinition', 'StructureDefinition', 'StructureMap', 'Subscription', 'SubscriptionStatus', 'SubscriptionTopic', 'Substance', 'SubstanceDefinition', 'SubstanceNucleicAcid', 'SubstancePolymer', 'SubstanceProtein', 'SubstanceReferenceInformation', 'SubstanceSourceMaterial', 'SupplyDelivery', 'SupplyRequest', 'Task', 'TerminologyCapabilities', 'TestPlan', 'TestReport', 'TestScript', 'Transport', 'ValueSet', 'VerificationResult', 'VisionPrescription', 'Parameters']).optional(),
-      _type: ElementSchema.optional(),
+    _type: ElementSchema.optional(),
     allowedType: z.array(z.enum(['Base', 'Element', 'BackboneElement', 'DataType', 'Address', 'Annotation', 'Attachment', 'Availability', 'BackboneType', 'Dosage', 'ElementDefinition', 'MarketingStatus', 'ProductShelfLife', 'Timing', 'CodeableConcept', 'CodeableReference', 'Coding', 'ContactDetail', 'ContactPoint', 'Contributor', 'DataRequirement', 'Expression', 'ExtendedContactDetail', 'Extension', 'HumanName', 'Identifier', 'Meta', 'MonetaryComponent', 'Money', 'Narrative', 'ParameterDefinition', 'Period', 'PrimitiveType', 'base64Binary', 'boolean', 'date', 'dateTime', 'decimal', 'instant', 'integer', 'positiveInt', 'unsignedInt', 'integer64', 'string', 'code', 'id', 'markdown', 'time', 'uri', 'canonical', 'oid', 'url', 'uuid', 'Quantity', 'Age', 'Count', 'Distance', 'Duration', 'Range', 'Ratio', 'RatioRange', 'Reference', 'RelatedArtifact', 'SampledData', 'Signature', 'TriggerDefinition', 'UsageContext', 'VirtualServiceDetail', 'xhtml', 'Resource', 'Binary', 'Bundle', 'DomainResource', 'Account', 'ActivityDefinition', 'ActorDefinition', 'AdministrableProductDefinition', 'AdverseEvent', 'AllergyIntolerance', 'Appointment', 'AppointmentResponse', 'ArtifactAssessment', 'AuditEvent', 'Basic', 'BiologicallyDerivedProduct', 'BiologicallyDerivedProductDispense', 'BodyStructure', 'CanonicalResource', 'CapabilityStatement', 'CarePlan', 'CareTeam', 'ChargeItem', 'ChargeItemDefinition', 'Citation', 'Claim', 'ClaimResponse', 'ClinicalImpression', 'ClinicalUseDefinition', 'CodeSystem', 'Communication', 'CommunicationRequest', 'CompartmentDefinition', 'Composition', 'ConceptMap', 'Condition', 'ConditionDefinition', 'Consent', 'Contract', 'Coverage', 'CoverageEligibilityRequest', 'CoverageEligibilityResponse', 'DetectedIssue', 'Device', 'DeviceAssociation', 'DeviceDefinition', 'DeviceDispense', 'DeviceMetric', 'DeviceRequest', 'DeviceUsage', 'DiagnosticReport', 'DocumentReference', 'Encounter', 'EncounterHistory', 'Endpoint', 'EnrollmentRequest', 'EnrollmentResponse', 'EpisodeOfCare', 'EventDefinition', 'Evidence', 'EvidenceReport', 'EvidenceVariable', 'ExampleScenario', 'ExplanationOfBenefit', 'FamilyMemberHistory', 'Flag', 'FormularyItem', 'GenomicStudy', 'Goal', 'GraphDefinition', 'Group', 'GuidanceResponse', 'HealthcareService', 'ImagingSelection', 'ImagingStudy', 'Immunization', 'ImmunizationEvaluation', 'ImmunizationRecommendation', 'ImplementationGuide', 'Ingredient', 'InsurancePlan', 'InventoryItem', 'InventoryReport', 'Invoice', 'Library', 'Linkage', 'List', 'Location', 'ManufacturedItemDefinition', 'Measure', 'MeasureReport', 'Medication', 'MedicationAdministration', 'MedicationDispense', 'MedicationKnowledge', 'MedicationRequest', 'MedicationStatement', 'MedicinalProductDefinition', 'MessageDefinition', 'MessageHeader', 'MetadataResource', 'MolecularSequence', 'NamingSystem', 'NutritionIntake', 'NutritionOrder', 'NutritionProduct', 'Observation', 'ObservationDefinition', 'OperationDefinition', 'OperationOutcome', 'Organization', 'OrganizationAffiliation', 'PackagedProductDefinition', 'Patient', 'PaymentNotice', 'PaymentReconciliation', 'Permission', 'Person', 'PlanDefinition', 'Practitioner', 'PractitionerRole', 'Procedure', 'Provenance', 'Questionnaire', 'QuestionnaireResponse', 'RegulatedAuthorization', 'RelatedPerson', 'RequestOrchestration', 'Requirements', 'ResearchStudy', 'ResearchSubject', 'RiskAssessment', 'Schedule', 'SearchParameter', 'ServiceRequest', 'Slot', 'Specimen', 'SpecimenDefinition', 'StructureDefinition', 'StructureMap', 'Subscription', 'SubscriptionStatus', 'SubscriptionTopic', 'Substance', 'SubstanceDefinition', 'SubstanceNucleicAcid', 'SubstancePolymer', 'SubstanceProtein', 'SubstanceReferenceInformation', 'SubstanceSourceMaterial', 'SupplyDelivery', 'SupplyRequest', 'Task', 'TerminologyCapabilities', 'TestPlan', 'TestReport', 'TestScript', 'Transport', 'ValueSet', 'VerificationResult', 'VisionPrescription', 'Parameters'])).optional(),
-      _allowedType: ElementSchema.optional(),
+    _allowedType: ElementSchema.optional(),
     targetProfile: z.array(z.string()).optional(),
-      _targetProfile: ElementSchema.optional(),
+    _targetProfile: ElementSchema.optional(),
     searchType: z.enum(['number', 'date', 'string', 'token', 'reference', 'composite', 'quantity', 'uri', 'special']).optional(),
-      _searchType: ElementSchema.optional(),
+    _searchType: ElementSchema.optional(),
     binding: OperationDefinitionParameterBindingSchema.optional(),
     referencedFrom: z.array(OperationDefinitionParameterReferencedFromSchema).optional(),
-    part: z.lazy(() => z.array(OperationDefinitionParameterSchema)).optional(),
+    part: (z.lazy(() => z.array(OperationDefinitionParameterSchema)) as unknown as z.ZodArray<z.ZodTypeAny>).optional(),
   })
 )
 
@@ -9460,7 +9382,7 @@ export const OperationDefinitionParameterSchema: z.ZodType<OperationDefinitionPa
  * Defines an appropriate combination of parameters to use when invoking this operation, to help code generators when generating overloaded parameter sets for this operation.
  * The combinations are suggestions as to which sets of parameters to use together, but the combinations are not intended to be authoritative.
  */
-export const OperationDefinitionOverloadSchema = BackboneElementSchema.extend({
+export const OperationDefinitionOverloadSchema = _BackboneElementBase.extend({
   parameterName: z.array(z.string()).optional(),
   _parameterName: ElementSchema.optional(),
   comment: z.string().optional(),
@@ -9534,7 +9456,7 @@ export type OperationDefinition = z.infer<typeof OperationDefinitionSchema>
 /**
  * Potential target for the link
  */
-export const GraphDefinitionNodeSchema = BackboneElementSchema.extend({
+export const GraphDefinitionNodeSchema = _BackboneElementBase.extend({
   nodeId: z.string(),
   _nodeId: ElementSchema.optional(),
   description: z.string().optional(),
@@ -9549,7 +9471,7 @@ export type GraphDefinitionNode = z.infer<typeof GraphDefinitionNodeSchema>
 /**
  * Compartment Consistency Rules
  */
-export const GraphDefinitionLinkCompartmentSchema = BackboneElementSchema.extend({
+export const GraphDefinitionLinkCompartmentSchema = _BackboneElementBase.extend({
   use: z.enum(['where', 'requires']),
   _use: ElementSchema.optional(),
   rule: z.enum(['identical', 'matching', 'different', 'custom']),
@@ -9566,7 +9488,7 @@ export type GraphDefinitionLinkCompartment = z.infer<typeof GraphDefinitionLinkC
 /**
  * Links this graph makes rules about
  */
-export const GraphDefinitionLinkSchema = BackboneElementSchema.extend({
+export const GraphDefinitionLinkSchema = _BackboneElementBase.extend({
   description: z.string().optional(),
   _description: ElementSchema.optional(),
   min: z.number().optional(),
@@ -9635,7 +9557,7 @@ export type GraphDefinition = z.infer<typeof GraphDefinitionSchema>
  * Identifies a particular constituent of interest in the product.
  * The ingredients need not be a complete list.  If an ingredient is not specified, this does not indicate whether an ingredient is present or absent.  If an ingredient is specified it does not mean that all ingredients are specified.  It is possible to specify both inactive and active ingredients.
  */
-export const MedicationIngredientSchema = BackboneElementSchema.extend({
+export const MedicationIngredientSchema = _BackboneElementBase.extend({
   item: CodeableReferenceSchema,
   isActive: z.boolean().optional(),
   _isActive: ElementSchema.optional(),
@@ -9649,7 +9571,7 @@ export type MedicationIngredient = z.infer<typeof MedicationIngredientSchema>
  * Details about packaged medications
  * Information that only applies to packages (not products).
  */
-export const MedicationBatchSchema = BackboneElementSchema.extend({
+export const MedicationBatchSchema = _BackboneElementBase.extend({
   lotNumber: z.string().optional(),
   _lotNumber: ElementSchema.optional(),
   expirationDate: z.string().optional(),
@@ -9679,7 +9601,7 @@ export type Medication = z.infer<typeof MedicationSchema>
  * Additional information supporting the diagnostic report
  * This backbone element contains supporting information that was used in the creation of the report not included in the results already included in the report.
  */
-export const DiagnosticReportSupportingInfoSchema = BackboneElementSchema.extend({
+export const DiagnosticReportSupportingInfoSchema = _BackboneElementBase.extend({
   type: CodeableConceptSchema,
   reference: ReferenceSchema,
 })
@@ -9689,7 +9611,7 @@ export type DiagnosticReportSupportingInfo = z.infer<typeof DiagnosticReportSupp
  * Key images or data associated with this report
  * A list of key images or data associated with this report. The images or data are generally created during the diagnostic process, and may be directly of the patient, or of treated specimens (i.e. slides of interest).
  */
-export const DiagnosticReportMediaSchema = BackboneElementSchema.extend({
+export const DiagnosticReportMediaSchema = _BackboneElementBase.extend({
   comment: z.string().optional(),
   _comment: ElementSchema.optional(),
   link: ReferenceSchema,
@@ -9763,7 +9685,7 @@ export type AppointmentResponse = z.infer<typeof AppointmentResponseSchema>
  * The destination application which the message is intended for.
  * There SHOULD be at least one destination, but in some circumstances, the source system is unaware of any particular destination system.
  */
-export const MessageHeaderDestinationSchema = BackboneElementSchema.extend({
+export const MessageHeaderDestinationSchema = _BackboneElementBase.extend({
   endpointUrl: z.string().optional(),
   _endpointUrl: ElementSchema.optional(),
   endpointReference: ReferenceSchema.optional(),
@@ -9778,7 +9700,7 @@ export type MessageHeaderDestination = z.infer<typeof MessageHeaderDestinationSc
  * Message source application
  * The source application from which this message originated.
  */
-export const MessageHeaderSourceSchema = BackboneElementSchema.extend({
+export const MessageHeaderSourceSchema = _BackboneElementBase.extend({
   endpointUrl: z.string().optional(),
   _endpointUrl: ElementSchema.optional(),
   endpointReference: ReferenceSchema.optional(),
@@ -9796,7 +9718,7 @@ export type MessageHeaderSource = z.infer<typeof MessageHeaderSourceSchema>
  * If this is a reply to prior message
  * Information about the message that this message is a response to.  Only present if this message is a response.
  */
-export const MessageHeaderResponseSchema = BackboneElementSchema.extend({
+export const MessageHeaderResponseSchema = _BackboneElementBase.extend({
   identifier: IdentifierSchema,
   code: z.enum(['ok', 'transient-error', 'fatal-error']),
   _code: ElementSchema.optional(),
@@ -9826,19 +9748,10 @@ export const MessageHeaderSchema = DomainResourceSchema.extend({
 export type MessageHeader = z.infer<typeof MessageHeaderSchema>
 
 /**
- * xhtml Type definition
- */
-export const xhtmlSchema = ElementSchema.extend({
-  value: z.string(),
-  _value: ElementSchema.optional(),
-})
-export type xhtml = z.infer<typeof xhtmlSchema>
-
-/**
  * Indicates whether and when the device is available on the market
  * Indicates where and when the device is available on the market.
  */
-export const DeviceDefinitionUdiDeviceIdentifierMarketDistributionSchema = BackboneElementSchema.extend({
+export const DeviceDefinitionUdiDeviceIdentifierMarketDistributionSchema = _BackboneElementBase.extend({
   marketPeriod: PeriodSchema,
   subJurisdiction: z.string(),
   _subJurisdiction: ElementSchema.optional(),
@@ -9860,13 +9773,13 @@ export interface DeviceDefinitionUdiDeviceIdentifier extends BackboneElement {
 }
 
 export const DeviceDefinitionUdiDeviceIdentifierSchema: z.ZodType<DeviceDefinitionUdiDeviceIdentifier> = z.lazy(() =>
-  BackboneElementSchema.extend({
+  _BackboneElementBase.extend({
     deviceIdentifier: z.string(),
-      _deviceIdentifier: ElementSchema.optional(),
+    _deviceIdentifier: ElementSchema.optional(),
     issuer: z.string(),
-      _issuer: ElementSchema.optional(),
+    _issuer: ElementSchema.optional(),
     jurisdiction: z.string(),
-      _jurisdiction: ElementSchema.optional(),
+    _jurisdiction: ElementSchema.optional(),
     marketDistribution: z.array(DeviceDefinitionUdiDeviceIdentifierMarketDistributionSchema).optional(),
   })
 )
@@ -9876,7 +9789,7 @@ export const DeviceDefinitionUdiDeviceIdentifierSchema: z.ZodType<DeviceDefiniti
  * Identifier associated with the regulatory documentation (certificates, technical documentation, post-market surveillance documentation and reports) of a set of device models sharing the same intended purpose, risk class and essential design and manufacturing characteristics. One example is the Basic UDI-DI in Europe.
  * This should not be used for regulatory authorization numbers which are to be captured elsewhere.
  */
-export const DeviceDefinitionRegulatoryIdentifierSchema = BackboneElementSchema.extend({
+export const DeviceDefinitionRegulatoryIdentifierSchema = _BackboneElementBase.extend({
   type: z.enum(['basic', 'master', 'license']),
   _type: ElementSchema.optional(),
   deviceIdentifier: z.string(),
@@ -9891,7 +9804,7 @@ export type DeviceDefinitionRegulatoryIdentifier = z.infer<typeof DeviceDefiniti
 /**
  * The name or names of the device as given by the manufacturer
  */
-export const DeviceDefinitionDeviceNameSchema = BackboneElementSchema.extend({
+export const DeviceDefinitionDeviceNameSchema = _BackboneElementBase.extend({
   name: z.string(),
   _name: ElementSchema.optional(),
   type: z.enum(['registered-name', 'user-friendly-name', 'patient-reported-name']),
@@ -9903,7 +9816,7 @@ export type DeviceDefinitionDeviceName = z.infer<typeof DeviceDefinitionDeviceNa
  * What kind of device or device system this is
  * In this element various classifications can be used, such as GMDN, EMDN, SNOMED CT, risk classes, national product codes.
  */
-export const DeviceDefinitionClassificationSchema = BackboneElementSchema.extend({
+export const DeviceDefinitionClassificationSchema = _BackboneElementBase.extend({
   type: CodeableConceptSchema,
   justification: z.array(RelatedArtifactSchema).optional(),
 })
@@ -9913,7 +9826,7 @@ export type DeviceDefinitionClassification = z.infer<typeof DeviceDefinitionClas
  * Identifies the standards, specifications, or formal guidances for the capabilities supported by the device
  * Identifies the standards, specifications, or formal guidances for the capabilities supported by the device. The device may be certified as conformant to these specifications e.g., communication, performance, process, measurement, or specialization standards.
  */
-export const DeviceDefinitionConformsToSchema = BackboneElementSchema.extend({
+export const DeviceDefinitionConformsToSchema = _BackboneElementBase.extend({
   category: CodeableConceptSchema.optional(),
   specification: CodeableConceptSchema,
   version: z.array(z.string()).optional(),
@@ -9926,7 +9839,7 @@ export type DeviceDefinitionConformsTo = z.infer<typeof DeviceDefinitionConforms
  * A device, part of the current one
  * A device that is part (for example a component) of the present device.
  */
-export const DeviceDefinitionHasPartSchema = BackboneElementSchema.extend({
+export const DeviceDefinitionHasPartSchema = _BackboneElementBase.extend({
   reference: ReferenceSchema,
   count: z.number().optional(),
   _count: ElementSchema.optional(),
@@ -9936,7 +9849,7 @@ export type DeviceDefinitionHasPart = z.infer<typeof DeviceDefinitionHasPartSche
 /**
  * An organization that distributes the packaged device
  */
-export const DeviceDefinitionPackagingDistributorSchema = BackboneElementSchema.extend({
+export const DeviceDefinitionPackagingDistributorSchema = _BackboneElementBase.extend({
   name: z.string().optional(),
   _name: ElementSchema.optional(),
   organizationReference: z.array(ReferenceSchema).optional(),
@@ -9957,21 +9870,21 @@ export interface DeviceDefinitionPackaging extends BackboneElement {
 }
 
 export const DeviceDefinitionPackagingSchema: z.ZodType<DeviceDefinitionPackaging> = z.lazy(() =>
-  BackboneElementSchema.extend({
+  _BackboneElementBase.extend({
     identifier: IdentifierSchema.optional(),
     type: CodeableConceptSchema.optional(),
     count: z.number().optional(),
-      _count: ElementSchema.optional(),
+    _count: ElementSchema.optional(),
     distributor: z.array(DeviceDefinitionPackagingDistributorSchema).optional(),
-    udiDeviceIdentifier: z.lazy(() => z.array(DeviceDefinitionUdiDeviceIdentifierSchema)).optional(),
-    packaging: z.lazy(() => z.array(DeviceDefinitionPackagingSchema)).optional(),
+    udiDeviceIdentifier: (z.lazy(() => z.array(DeviceDefinitionUdiDeviceIdentifierSchema)) as unknown as z.ZodArray<z.ZodTypeAny>).optional(),
+    packaging: (z.lazy(() => z.array(DeviceDefinitionPackagingSchema)) as unknown as z.ZodArray<z.ZodTypeAny>).optional(),
   })
 )
 
 /**
  * The version of the device or software
  */
-export const DeviceDefinitionVersionSchema = BackboneElementSchema.extend({
+export const DeviceDefinitionVersionSchema = _BackboneElementBase.extend({
   type: CodeableConceptSchema.optional(),
   component: IdentifierSchema.optional(),
   value: z.string(),
@@ -9984,7 +9897,7 @@ export type DeviceDefinitionVersion = z.infer<typeof DeviceDefinitionVersionSche
  * Static or essentially fixed characteristics or features of this kind of device that are otherwise not captured in more specific attributes, e.g., time or timing attributes, resolution, accuracy, and physical attributes.
  * Dynamic or current properties, such as settings, of an individual device are described using a Device instance-specific DeviceMetric and recorded using Observation.  Static characteristics of an individual device could also be documented in a [Device] instance. The Device instance's properties, and their values, could be, but need not be, the same as in the associated DeviceDefinition.
  */
-export const DeviceDefinitionPropertySchema = BackboneElementSchema.extend({
+export const DeviceDefinitionPropertySchema = _BackboneElementBase.extend({
   type: CodeableConceptSchema,
   valueQuantity: QuantitySchema.optional(),
   valueCodeableConcept: CodeableConceptSchema.optional(),
@@ -10002,7 +9915,7 @@ export type DeviceDefinitionProperty = z.infer<typeof DeviceDefinitionPropertySc
 /**
  * An associated device, attached to, used with, communicating with or linking a previous or new device model to the focal device
  */
-export const DeviceDefinitionLinkSchema = BackboneElementSchema.extend({
+export const DeviceDefinitionLinkSchema = _BackboneElementBase.extend({
   relation: CodingSchema,
   relatedDevice: CodeableReferenceSchema,
 })
@@ -10011,7 +9924,7 @@ export type DeviceDefinitionLink = z.infer<typeof DeviceDefinitionLinkSchema>
 /**
  * A substance used to create the material(s) of which the device is made
  */
-export const DeviceDefinitionMaterialSchema = BackboneElementSchema.extend({
+export const DeviceDefinitionMaterialSchema = _BackboneElementBase.extend({
   substance: CodeableConceptSchema,
   alternate: z.boolean().optional(),
   _alternate: ElementSchema.optional(),
@@ -10024,7 +9937,7 @@ export type DeviceDefinitionMaterial = z.infer<typeof DeviceDefinitionMaterialSc
  * Information aimed at providing directions for the usage of this model of device
  * For more structured data, a ClinicalUseDefinition that points to the DeviceDefinition can be used.
  */
-export const DeviceDefinitionGuidelineSchema = BackboneElementSchema.extend({
+export const DeviceDefinitionGuidelineSchema = _BackboneElementBase.extend({
   useContext: z.array(UsageContextSchema).optional(),
   usageInstruction: z.string().optional(),
   _usageInstruction: ElementSchema.optional(),
@@ -10040,7 +9953,7 @@ export type DeviceDefinitionGuideline = z.infer<typeof DeviceDefinitionGuideline
 /**
  * Tracking of latest field safety corrective action
  */
-export const DeviceDefinitionCorrectiveActionSchema = BackboneElementSchema.extend({
+export const DeviceDefinitionCorrectiveActionSchema = _BackboneElementBase.extend({
   recall: z.boolean(),
   _recall: ElementSchema.optional(),
   scope: z.enum(['model', 'lot-numbers', 'serial-numbers']).optional(),
@@ -10052,7 +9965,7 @@ export type DeviceDefinitionCorrectiveAction = z.infer<typeof DeviceDefinitionCo
 /**
  * Billing code or reference associated with the device
  */
-export const DeviceDefinitionChargeItemSchema = BackboneElementSchema.extend({
+export const DeviceDefinitionChargeItemSchema = _BackboneElementBase.extend({
   chargeItemCode: CodeableReferenceSchema,
   count: QuantitySchema,
   effectivePeriod: PeriodSchema.optional(),
@@ -10103,7 +10016,7 @@ export type DeviceDefinition = z.infer<typeof DeviceDefinitionSchema>
  * Indicates what should be done by when.
  * When multiple targets are present for a single goal instance, all targets must be met for the overall goal to be met.
  */
-export const GoalTargetSchema = BackboneElementSchema.extend({
+export const GoalTargetSchema = _BackboneElementBase.extend({
   measure: CodeableConceptSchema.optional(),
   detailQuantity: QuantitySchema.optional(),
   detailRange: RangeSchema.optional(),
@@ -10178,26 +10091,26 @@ export interface ObservationDefinitionQualifiedValue extends BackboneElement {
 }
 
 export const ObservationDefinitionQualifiedValueSchema: z.ZodType<ObservationDefinitionQualifiedValue> = z.lazy(() =>
-  BackboneElementSchema.extend({
+  _BackboneElementBase.extend({
     context: CodeableConceptSchema.optional(),
     appliesTo: z.array(CodeableConceptSchema).optional(),
     gender: z.enum(['male', 'female', 'other', 'unknown']).optional(),
-      _gender: ElementSchema.optional(),
+    _gender: ElementSchema.optional(),
     age: RangeSchema.optional(),
     gestationalAge: RangeSchema.optional(),
     condition: z.string().optional(),
-      _condition: ElementSchema.optional(),
+    _condition: ElementSchema.optional(),
     rangeCategory: z.enum(['reference', 'critical', 'absolute']).optional(),
-      _rangeCategory: ElementSchema.optional(),
+    _rangeCategory: ElementSchema.optional(),
     range: RangeSchema.optional(),
     validCodedValueSet: z.string().optional(),
-      _validCodedValueSet: ElementSchema.optional(),
+    _validCodedValueSet: ElementSchema.optional(),
     normalCodedValueSet: z.string().optional(),
-      _normalCodedValueSet: ElementSchema.optional(),
+    _normalCodedValueSet: ElementSchema.optional(),
     abnormalCodedValueSet: z.string().optional(),
-      _abnormalCodedValueSet: ElementSchema.optional(),
+    _abnormalCodedValueSet: ElementSchema.optional(),
     criticalCodedValueSet: z.string().optional(),
-      _criticalCodedValueSet: ElementSchema.optional(),
+    _criticalCodedValueSet: ElementSchema.optional(),
   })
 )
 
@@ -10205,12 +10118,12 @@ export const ObservationDefinitionQualifiedValueSchema: z.ZodType<ObservationDef
  * Component results
  * Some observations have multiple component observations, expressed as separate code value pairs.
  */
-export const ObservationDefinitionComponentSchema = BackboneElementSchema.extend({
+export const ObservationDefinitionComponentSchema = _BackboneElementBase.extend({
   code: CodeableConceptSchema,
   permittedDataType: z.array(z.enum(['Quantity', 'CodeableConcept', 'string', 'boolean', 'integer', 'Range', 'Ratio', 'SampledData', 'time', 'dateTime', 'Period'])).optional(),
   _permittedDataType: ElementSchema.optional(),
   permittedUnit: z.array(CodingSchema).optional(),
-  qualifiedValue: z.lazy(() => z.array(ObservationDefinitionQualifiedValueSchema)).optional(),
+  qualifiedValue: (z.lazy(() => z.array(ObservationDefinitionQualifiedValueSchema)) as unknown as z.ZodArray<z.ZodTypeAny>).optional(),
 })
 export type ObservationDefinitionComponent = z.infer<typeof ObservationDefinitionComponentSchema>
 
@@ -10284,7 +10197,7 @@ export type ObservationDefinition = z.infer<typeof ObservationDefinitionSchema>
  * Who performed event
  * Indicates who performed the immunization event.
  */
-export const ImmunizationPerformerSchema = BackboneElementSchema.extend({
+export const ImmunizationPerformerSchema = _BackboneElementBase.extend({
   function: CodeableConceptSchema.optional(),
   actor: ReferenceSchema,
 })
@@ -10294,7 +10207,7 @@ export type ImmunizationPerformer = z.infer<typeof ImmunizationPerformerSchema>
  * Patient eligibility for a specific vaccination program
  * Indicates a patient's eligibility for a funding program.
  */
-export const ImmunizationProgramEligibilitySchema = BackboneElementSchema.extend({
+export const ImmunizationProgramEligibilitySchema = _BackboneElementBase.extend({
   program: CodeableConceptSchema,
   programStatus: CodeableConceptSchema,
 })
@@ -10305,7 +10218,7 @@ export type ImmunizationProgramEligibility = z.infer<typeof ImmunizationProgramE
  * Categorical data indicating that an adverse event is associated in time to an immunization.
  * A reaction may be an indication of an allergy or intolerance and, if this is determined to be the case, it should be recorded as a new AllergyIntolerance resource instance as most systems will not query against past Immunization.reaction elements.
  */
-export const ImmunizationReactionSchema = BackboneElementSchema.extend({
+export const ImmunizationReactionSchema = _BackboneElementBase.extend({
   date: z.string().optional(),
   _date: ElementSchema.optional(),
   manifestation: CodeableReferenceSchema.optional(),
@@ -10318,7 +10231,7 @@ export type ImmunizationReaction = z.infer<typeof ImmunizationReactionSchema>
  * Protocol followed by the provider
  * The protocol (set of recommendations) being followed by the provider who administered the dose.
  */
-export const ImmunizationProtocolAppliedSchema = BackboneElementSchema.extend({
+export const ImmunizationProtocolAppliedSchema = _BackboneElementBase.extend({
   series: z.string().optional(),
   _series: ElementSchema.optional(),
   authority: ReferenceSchema.optional(),
@@ -10389,13 +10302,13 @@ export interface ValueSetComposeIncludeConceptDesignation extends BackboneElemen
 }
 
 export const ValueSetComposeIncludeConceptDesignationSchema: z.ZodType<ValueSetComposeIncludeConceptDesignation> = z.lazy(() =>
-  BackboneElementSchema.extend({
+  _BackboneElementBase.extend({
     language: z.string().optional(),
-      _language: ElementSchema.optional(),
+    _language: ElementSchema.optional(),
     use: CodingSchema.optional(),
     additionalUse: z.array(CodingSchema).optional(),
     value: z.string(),
-      _value: ElementSchema.optional(),
+    _value: ElementSchema.optional(),
   })
 )
 
@@ -10404,7 +10317,7 @@ export const ValueSetComposeIncludeConceptDesignationSchema: z.ZodType<ValueSetC
  * Specifies a concept to be included or excluded.
  * The list of concepts is considered ordered, though the order might not have any particular significance. Typically, the order of an expansion follows that defined in the compose element.
  */
-export const ValueSetComposeIncludeConceptSchema = BackboneElementSchema.extend({
+export const ValueSetComposeIncludeConceptSchema = _BackboneElementBase.extend({
   code: z.string(),
   _code: ElementSchema.optional(),
   display: z.string().optional(),
@@ -10418,7 +10331,7 @@ export type ValueSetComposeIncludeConcept = z.infer<typeof ValueSetComposeInclud
  * Select concepts by specifying a matching criterion based on the properties (including relationships) defined by the system, or on filters defined by the system. If multiple filters are specified within the include, they SHALL all be true.
  * Selecting codes by specifying filters based on properties is only possible where the underlying code system defines appropriate properties. Note that in some cases, the underlying code system defines the logical concepts but not the literal codes for the concepts. In such cases, the literal definitions may be provided by a third party.
  */
-export const ValueSetComposeIncludeFilterSchema = BackboneElementSchema.extend({
+export const ValueSetComposeIncludeFilterSchema = _BackboneElementBase.extend({
   property: z.string(),
   _property: ElementSchema.optional(),
   op: z.enum(['=', 'is-a', 'descendent-of', 'is-not-a', 'regex', 'in', 'not-in', 'generalizes', 'child-of', 'descendent-leaf', 'exists']),
@@ -10446,17 +10359,17 @@ export interface ValueSetComposeInclude extends BackboneElement {
 }
 
 export const ValueSetComposeIncludeSchema: z.ZodType<ValueSetComposeInclude> = z.lazy(() =>
-  BackboneElementSchema.extend({
+  _BackboneElementBase.extend({
     system: z.string().optional(),
-      _system: ElementSchema.optional(),
+    _system: ElementSchema.optional(),
     version: z.string().optional(),
-      _version: ElementSchema.optional(),
+    _version: ElementSchema.optional(),
     concept: z.array(ValueSetComposeIncludeConceptSchema).optional(),
     filter: z.array(ValueSetComposeIncludeFilterSchema).optional(),
     valueSet: z.array(z.string()).optional(),
-      _valueSet: ElementSchema.optional(),
+    _valueSet: ElementSchema.optional(),
     copyright: z.string().optional(),
-      _copyright: ElementSchema.optional(),
+    _copyright: ElementSchema.optional(),
   })
 )
 
@@ -10464,13 +10377,13 @@ export const ValueSetComposeIncludeSchema: z.ZodType<ValueSetComposeInclude> = z
  * Content logical definition of the value set (CLD)
  * A set of criteria that define the contents of the value set by including or excluding codes selected from the specified code system(s) that the value set draws from. This is also known as the Content Logical Definition (CLD).
  */
-export const ValueSetComposeSchema = BackboneElementSchema.extend({
+export const ValueSetComposeSchema = _BackboneElementBase.extend({
   lockedDate: z.string().optional(),
   _lockedDate: ElementSchema.optional(),
   inactive: z.boolean().optional(),
   _inactive: ElementSchema.optional(),
   include: z.array(ValueSetComposeIncludeSchema),
-  exclude: z.lazy(() => z.array(ValueSetComposeIncludeSchema)).optional(),
+  exclude: (z.lazy(() => z.array(ValueSetComposeIncludeSchema)) as unknown as z.ZodArray<z.ZodTypeAny>).optional(),
   property: z.array(z.string()).optional(),
   _property: ElementSchema.optional(),
 })
@@ -10481,7 +10394,7 @@ export type ValueSetCompose = z.infer<typeof ValueSetComposeSchema>
  * A parameter that controlled the expansion process. These parameters may be used by users of expanded value sets to check whether the expansion is suitable for a particular purpose, or to pick the correct expansion.
  * The server decides which parameters to include here, but at a minimum, the list SHOULD include all of the parameters that affect the $expand operation. If the expansion will be persisted all of these parameters SHALL be included. If the codeSystem on the server has a specified version then this version SHALL be provided as a parameter in the expansion (note that not all code systems have a version).
  */
-export const ValueSetExpansionParameterSchema = BackboneElementSchema.extend({
+export const ValueSetExpansionParameterSchema = _BackboneElementBase.extend({
   name: z.string(),
   _name: ElementSchema.optional(),
   valueString: z.string().optional(),
@@ -10505,7 +10418,7 @@ export type ValueSetExpansionParameter = z.infer<typeof ValueSetExpansionParamet
  * Additional information supplied about each concept
  * A property defines an additional slot through which additional information can be provided about a concept.
  */
-export const ValueSetExpansionPropertySchema = BackboneElementSchema.extend({
+export const ValueSetExpansionPropertySchema = _BackboneElementBase.extend({
   code: z.string(),
   _code: ElementSchema.optional(),
   uri: z.string().optional(),
@@ -10517,7 +10430,7 @@ export type ValueSetExpansionProperty = z.infer<typeof ValueSetExpansionProperty
  * SubProperty value for the concept
  * A subproperty value for this concept.
  */
-export const ValueSetExpansionContainsPropertySubPropertySchema = BackboneElementSchema.extend({
+export const ValueSetExpansionContainsPropertySubPropertySchema = _BackboneElementBase.extend({
   code: z.string(),
   _code: ElementSchema.optional(),
   valueCode: z.string().optional(),
@@ -10540,7 +10453,7 @@ export type ValueSetExpansionContainsPropertySubProperty = z.infer<typeof ValueS
  * Property value for the concept
  * A property value for this concept.
  */
-export const ValueSetExpansionContainsPropertySchema = BackboneElementSchema.extend({
+export const ValueSetExpansionContainsPropertySchema = _BackboneElementBase.extend({
   code: z.string(),
   _code: ElementSchema.optional(),
   valueCode: z.string().optional(),
@@ -10583,22 +10496,22 @@ export interface ValueSetExpansionContains extends BackboneElement {
 }
 
 export const ValueSetExpansionContainsSchema: z.ZodType<ValueSetExpansionContains> = z.lazy(() =>
-  BackboneElementSchema.extend({
+  _BackboneElementBase.extend({
     system: z.string().optional(),
-      _system: ElementSchema.optional(),
+    _system: ElementSchema.optional(),
     abstract: z.boolean().optional(),
-      _abstract: ElementSchema.optional(),
+    _abstract: ElementSchema.optional(),
     inactive: z.boolean().optional(),
-      _inactive: ElementSchema.optional(),
+    _inactive: ElementSchema.optional(),
     version: z.string().optional(),
-      _version: ElementSchema.optional(),
+    _version: ElementSchema.optional(),
     code: z.string().optional(),
-      _code: ElementSchema.optional(),
+    _code: ElementSchema.optional(),
     display: z.string().optional(),
-      _display: ElementSchema.optional(),
-    designation: z.lazy(() => z.array(ValueSetComposeIncludeConceptDesignationSchema)).optional(),
+    _display: ElementSchema.optional(),
+    designation: (z.lazy(() => z.array(ValueSetComposeIncludeConceptDesignationSchema)) as unknown as z.ZodArray<z.ZodTypeAny>).optional(),
     property: z.array(ValueSetExpansionContainsPropertySchema).optional(),
-    contains: z.lazy(() => z.array(ValueSetExpansionContainsSchema)).optional(),
+    contains: (z.lazy(() => z.array(ValueSetExpansionContainsSchema)) as unknown as z.ZodArray<z.ZodTypeAny>).optional(),
   })
 )
 
@@ -10607,7 +10520,7 @@ export const ValueSetExpansionContainsSchema: z.ZodType<ValueSetExpansionContain
  * A value set can also be "expanded", where the value set is turned into a simple collection of enumerated codes. This element holds the expansion, if it has been performed.
  * Expansion is performed to produce a collection of codes that are ready to use for data entry or validation. Value set expansions are always considered to be stateless - they are a record of the set of codes in the value set at a point in time under a given set of conditions, and are not subject to ongoing maintenance.
  */
-export const ValueSetExpansionSchema = BackboneElementSchema.extend({
+export const ValueSetExpansionSchema = _BackboneElementBase.extend({
   identifier: z.string().optional(),
   _identifier: ElementSchema.optional(),
   next: z.string().optional(),
@@ -10627,7 +10540,7 @@ export type ValueSetExpansion = z.infer<typeof ValueSetExpansionSchema>
 /**
  * Description of the semantic space the Value Set Expansion is intended to cover and should further clarify the text in ValueSet.description
  */
-export const ValueSetScopeSchema = BackboneElementSchema.extend({
+export const ValueSetScopeSchema = _BackboneElementBase.extend({
   inclusionCriteria: z.string().optional(),
   _inclusionCriteria: ElementSchema.optional(),
   exclusionCriteria: z.string().optional(),
@@ -10694,7 +10607,7 @@ export type ValueSet = z.infer<typeof ValueSetSchema>
  * Event information
  * Information code for an event with a corresponding date or period.
  */
-export const ClaimResponseEventSchema = BackboneElementSchema.extend({
+export const ClaimResponseEventSchema = _BackboneElementBase.extend({
   type: CodeableConceptSchema,
   whenDateTime: z.string().optional(),
   _whenDateTime: ElementSchema.optional(),
@@ -10715,11 +10628,11 @@ export interface ClaimResponseItemReviewOutcome extends BackboneElement {
 }
 
 export const ClaimResponseItemReviewOutcomeSchema: z.ZodType<ClaimResponseItemReviewOutcome> = z.lazy(() =>
-  BackboneElementSchema.extend({
+  _BackboneElementBase.extend({
     decision: CodeableConceptSchema.optional(),
     reason: z.array(CodeableConceptSchema).optional(),
     preAuthRef: z.string().optional(),
-      _preAuthRef: ElementSchema.optional(),
+    _preAuthRef: ElementSchema.optional(),
     preAuthPeriod: PeriodSchema.optional(),
   })
 )
@@ -10736,7 +10649,7 @@ export interface ClaimResponseItemAdjudication extends BackboneElement {
 }
 
 export const ClaimResponseItemAdjudicationSchema: z.ZodType<ClaimResponseItemAdjudication> = z.lazy(() =>
-  BackboneElementSchema.extend({
+  _BackboneElementBase.extend({
     category: CodeableConceptSchema,
     reason: CodeableConceptSchema.optional(),
     amount: MoneySchema.optional(),
@@ -10748,14 +10661,14 @@ export const ClaimResponseItemAdjudicationSchema: z.ZodType<ClaimResponseItemAdj
  * Adjudication for claim sub-details
  * A sub-detail adjudication of a simple product or service.
  */
-export const ClaimResponseItemDetailSubDetailSchema = BackboneElementSchema.extend({
+export const ClaimResponseItemDetailSubDetailSchema = _BackboneElementBase.extend({
   subDetailSequence: z.number(),
   _subDetailSequence: ElementSchema.optional(),
   traceNumber: z.array(IdentifierSchema).optional(),
   noteNumber: z.array(z.number()).optional(),
   _noteNumber: ElementSchema.optional(),
-  reviewOutcome: z.lazy(() => ClaimResponseItemReviewOutcomeSchema).optional(),
-  adjudication: z.lazy(() => z.array(ClaimResponseItemAdjudicationSchema)).optional(),
+  reviewOutcome: (z.lazy(() => ClaimResponseItemReviewOutcomeSchema) as z.ZodTypeAny).optional(),
+  adjudication: (z.lazy(() => z.array(ClaimResponseItemAdjudicationSchema)) as unknown as z.ZodArray<z.ZodTypeAny>).optional(),
 })
 export type ClaimResponseItemDetailSubDetail = z.infer<typeof ClaimResponseItemDetailSubDetailSchema>
 
@@ -10763,14 +10676,14 @@ export type ClaimResponseItemDetailSubDetail = z.infer<typeof ClaimResponseItemD
  * Adjudication for claim details
  * A claim detail. Either a simple (a product or service) or a 'group' of sub-details which are simple items.
  */
-export const ClaimResponseItemDetailSchema = BackboneElementSchema.extend({
+export const ClaimResponseItemDetailSchema = _BackboneElementBase.extend({
   detailSequence: z.number(),
   _detailSequence: ElementSchema.optional(),
   traceNumber: z.array(IdentifierSchema).optional(),
   noteNumber: z.array(z.number()).optional(),
   _noteNumber: ElementSchema.optional(),
-  reviewOutcome: z.lazy(() => ClaimResponseItemReviewOutcomeSchema).optional(),
-  adjudication: z.lazy(() => z.array(ClaimResponseItemAdjudicationSchema)).optional(),
+  reviewOutcome: (z.lazy(() => ClaimResponseItemReviewOutcomeSchema) as z.ZodTypeAny).optional(),
+  adjudication: (z.lazy(() => z.array(ClaimResponseItemAdjudicationSchema)) as unknown as z.ZodArray<z.ZodTypeAny>).optional(),
   subDetail: z.array(ClaimResponseItemDetailSubDetailSchema).optional(),
 })
 export type ClaimResponseItemDetail = z.infer<typeof ClaimResponseItemDetailSchema>
@@ -10779,7 +10692,7 @@ export type ClaimResponseItemDetail = z.infer<typeof ClaimResponseItemDetailSche
  * Adjudication for claim line items
  * A claim line. Either a simple (a product or service) or a 'group' of details which can also be a simple items or groups of sub-details.
  */
-export const ClaimResponseItemSchema = BackboneElementSchema.extend({
+export const ClaimResponseItemSchema = _BackboneElementBase.extend({
   itemSequence: z.number(),
   _itemSequence: ElementSchema.optional(),
   traceNumber: z.array(IdentifierSchema).optional(),
@@ -10795,7 +10708,7 @@ export type ClaimResponseItem = z.infer<typeof ClaimResponseItemSchema>
  * Anatomical location
  * Physical location where the service is performed or applies.
  */
-export const ClaimResponseAddItemBodySiteSchema = BackboneElementSchema.extend({
+export const ClaimResponseAddItemBodySiteSchema = _BackboneElementBase.extend({
   site: z.array(CodeableReferenceSchema),
   subSite: z.array(CodeableConceptSchema).optional(),
 })
@@ -10805,7 +10718,7 @@ export type ClaimResponseAddItemBodySite = z.infer<typeof ClaimResponseAddItemBo
  * Insurer added line items
  * The third-tier service adjudications for payor added services.
  */
-export const ClaimResponseAddItemDetailSubDetailSchema = BackboneElementSchema.extend({
+export const ClaimResponseAddItemDetailSubDetailSchema = _BackboneElementBase.extend({
   traceNumber: z.array(IdentifierSchema).optional(),
   revenue: CodeableConceptSchema.optional(),
   productOrService: CodeableConceptSchema.optional(),
@@ -10819,8 +10732,8 @@ export const ClaimResponseAddItemDetailSubDetailSchema = BackboneElementSchema.e
   net: MoneySchema.optional(),
   noteNumber: z.array(z.number()).optional(),
   _noteNumber: ElementSchema.optional(),
-  reviewOutcome: z.lazy(() => ClaimResponseItemReviewOutcomeSchema).optional(),
-  adjudication: z.lazy(() => z.array(ClaimResponseItemAdjudicationSchema)).optional(),
+  reviewOutcome: (z.lazy(() => ClaimResponseItemReviewOutcomeSchema) as z.ZodTypeAny).optional(),
+  adjudication: (z.lazy(() => z.array(ClaimResponseItemAdjudicationSchema)) as unknown as z.ZodArray<z.ZodTypeAny>).optional(),
 })
 export type ClaimResponseAddItemDetailSubDetail = z.infer<typeof ClaimResponseAddItemDetailSubDetailSchema>
 
@@ -10828,7 +10741,7 @@ export type ClaimResponseAddItemDetailSubDetail = z.infer<typeof ClaimResponseAd
  * Insurer added line details
  * The second-tier service adjudications for payor added services.
  */
-export const ClaimResponseAddItemDetailSchema = BackboneElementSchema.extend({
+export const ClaimResponseAddItemDetailSchema = _BackboneElementBase.extend({
   traceNumber: z.array(IdentifierSchema).optional(),
   revenue: CodeableConceptSchema.optional(),
   productOrService: CodeableConceptSchema.optional(),
@@ -10842,8 +10755,8 @@ export const ClaimResponseAddItemDetailSchema = BackboneElementSchema.extend({
   net: MoneySchema.optional(),
   noteNumber: z.array(z.number()).optional(),
   _noteNumber: ElementSchema.optional(),
-  reviewOutcome: z.lazy(() => ClaimResponseItemReviewOutcomeSchema).optional(),
-  adjudication: z.lazy(() => z.array(ClaimResponseItemAdjudicationSchema)).optional(),
+  reviewOutcome: (z.lazy(() => ClaimResponseItemReviewOutcomeSchema) as z.ZodTypeAny).optional(),
+  adjudication: (z.lazy(() => z.array(ClaimResponseItemAdjudicationSchema)) as unknown as z.ZodArray<z.ZodTypeAny>).optional(),
   subDetail: z.array(ClaimResponseAddItemDetailSubDetailSchema).optional(),
 })
 export type ClaimResponseAddItemDetail = z.infer<typeof ClaimResponseAddItemDetailSchema>
@@ -10852,7 +10765,7 @@ export type ClaimResponseAddItemDetail = z.infer<typeof ClaimResponseAddItemDeta
  * Insurer added line items
  * The first-tier service adjudications for payor added product or service lines.
  */
-export const ClaimResponseAddItemSchema = BackboneElementSchema.extend({
+export const ClaimResponseAddItemSchema = _BackboneElementBase.extend({
   itemSequence: z.array(z.number()).optional(),
   _itemSequence: ElementSchema.optional(),
   detailSequence: z.array(z.number()).optional(),
@@ -10882,8 +10795,8 @@ export const ClaimResponseAddItemSchema = BackboneElementSchema.extend({
   bodySite: z.array(ClaimResponseAddItemBodySiteSchema).optional(),
   noteNumber: z.array(z.number()).optional(),
   _noteNumber: ElementSchema.optional(),
-  reviewOutcome: z.lazy(() => ClaimResponseItemReviewOutcomeSchema).optional(),
-  adjudication: z.lazy(() => z.array(ClaimResponseItemAdjudicationSchema)).optional(),
+  reviewOutcome: (z.lazy(() => ClaimResponseItemReviewOutcomeSchema) as z.ZodTypeAny).optional(),
+  adjudication: (z.lazy(() => z.array(ClaimResponseItemAdjudicationSchema)) as unknown as z.ZodArray<z.ZodTypeAny>).optional(),
   detail: z.array(ClaimResponseAddItemDetailSchema).optional(),
 })
 export type ClaimResponseAddItem = z.infer<typeof ClaimResponseAddItemSchema>
@@ -10893,7 +10806,7 @@ export type ClaimResponseAddItem = z.infer<typeof ClaimResponseAddItemSchema>
  * Categorized monetary totals for the adjudication.
  * Totals for amounts submitted, co-pays, benefits payable etc.
  */
-export const ClaimResponseTotalSchema = BackboneElementSchema.extend({
+export const ClaimResponseTotalSchema = _BackboneElementBase.extend({
   category: CodeableConceptSchema,
   amount: MoneySchema,
 })
@@ -10903,7 +10816,7 @@ export type ClaimResponseTotal = z.infer<typeof ClaimResponseTotalSchema>
  * Payment Details
  * Payment details for the adjudication of the claim.
  */
-export const ClaimResponsePaymentSchema = BackboneElementSchema.extend({
+export const ClaimResponsePaymentSchema = _BackboneElementBase.extend({
   type: CodeableConceptSchema,
   adjustment: MoneySchema.optional(),
   adjustmentReason: CodeableConceptSchema.optional(),
@@ -10918,7 +10831,7 @@ export type ClaimResponsePayment = z.infer<typeof ClaimResponsePaymentSchema>
  * Note concerning adjudication
  * A note that describes or explains adjudication results in a human readable form.
  */
-export const ClaimResponseProcessNoteSchema = BackboneElementSchema.extend({
+export const ClaimResponseProcessNoteSchema = _BackboneElementBase.extend({
   number: z.number().optional(),
   _number: ElementSchema.optional(),
   type: CodeableConceptSchema.optional(),
@@ -10933,7 +10846,7 @@ export type ClaimResponseProcessNote = z.infer<typeof ClaimResponseProcessNoteSc
  * Financial instruments for reimbursement for the health care products and services specified on the claim.
  * All insurance coverages for the patient which may be applicable for reimbursement, of the products and services listed in the claim, are typically provided in the claim to allow insurers to confirm the ordering of the insurance coverages relative to local 'coordination of benefit' rules. One coverage (and only one) with 'focal=true' is to be used in the adjudication of this claim. Coverages appearing before the focal Coverage in the list, and where 'subrogation=false', should provide a reference to the ClaimResponse containing the adjudication results of the prior claim.
  */
-export const ClaimResponseInsuranceSchema = BackboneElementSchema.extend({
+export const ClaimResponseInsuranceSchema = _BackboneElementBase.extend({
   sequence: z.number(),
   _sequence: ElementSchema.optional(),
   focal: z.boolean(),
@@ -10950,7 +10863,7 @@ export type ClaimResponseInsurance = z.infer<typeof ClaimResponseInsuranceSchema
  * Errors encountered during the processing of the adjudication.
  * If the request contains errors then an error element should be provided and no adjudication related sections (item, addItem, or payment) should be present.
  */
-export const ClaimResponseErrorSchema = BackboneElementSchema.extend({
+export const ClaimResponseErrorSchema = _BackboneElementBase.extend({
   itemSequence: z.number().optional(),
   _itemSequence: ElementSchema.optional(),
   detailSequence: z.number().optional(),
@@ -10996,7 +10909,7 @@ export const ClaimResponseSchema = DomainResourceSchema.extend({
   diagnosisRelatedGroup: CodeableConceptSchema.optional(),
   item: z.array(ClaimResponseItemSchema).optional(),
   addItem: z.array(ClaimResponseAddItemSchema).optional(),
-  adjudication: z.lazy(() => z.array(ClaimResponseItemAdjudicationSchema)).optional(),
+  adjudication: (z.lazy(() => z.array(ClaimResponseItemAdjudicationSchema)) as unknown as z.ZodArray<z.ZodTypeAny>).optional(),
   total: z.array(ClaimResponseTotalSchema).optional(),
   payment: ClaimResponsePaymentSchema.optional(),
   fundsReserve: CodeableConceptSchema.optional(),
@@ -11013,7 +10926,7 @@ export type ClaimResponse = z.infer<typeof ClaimResponseSchema>
  * Contract precursor content
  * Precusory content developed with a focus and intent of supporting the formation a Contract instance, which may be associated with and transformable into a Contract.
  */
-export const ContractContentDefinitionSchema = BackboneElementSchema.extend({
+export const ContractContentDefinitionSchema = _BackboneElementBase.extend({
   type: CodeableConceptSchema,
   subType: CodeableConceptSchema.optional(),
   publisher: ReferenceSchema.optional(),
@@ -11031,7 +10944,7 @@ export type ContractContentDefinition = z.infer<typeof ContractContentDefinition
  * Security labels that protect the handling of information about the term and its elements, which may be specifically identified.
  * Within a Contract, a security label may apply to the one to many nested group of terms or to a term, whether inside a group or a singleton.  The security label on the entire set of term provision elements may be different from the security labels on a contained offer, asset, valuedItem, or data such as sensitive information, and must be the high water mark of all security labels within the term. Rationale is that a labelled term, which may be disaggregated from the Contract, and must persist the label on the term and on contained elements within other contexts. If more than one policy dictates a level of confidentiality of the term, then each applicable policy may be represented by a security label specific to its requirements.
  */
-export const ContractTermSecurityLabelSchema = BackboneElementSchema.extend({
+export const ContractTermSecurityLabelSchema = _BackboneElementBase.extend({
   number: z.array(z.number()).optional(),
   _number: ElementSchema.optional(),
   classification: CodingSchema,
@@ -11043,7 +10956,7 @@ export type ContractTermSecurityLabel = z.infer<typeof ContractTermSecurityLabel
 /**
  * Offer Recipient
  */
-export const ContractTermOfferPartySchema = BackboneElementSchema.extend({
+export const ContractTermOfferPartySchema = _BackboneElementBase.extend({
   reference: z.array(ReferenceSchema),
   role: CodeableConceptSchema,
 })
@@ -11076,23 +10989,23 @@ export interface ContractTermOfferAnswer extends BackboneElement {
 }
 
 export const ContractTermOfferAnswerSchema: z.ZodType<ContractTermOfferAnswer> = z.lazy(() =>
-  BackboneElementSchema.extend({
+  _BackboneElementBase.extend({
     valueBoolean: z.boolean().optional(),
-      _valueBoolean: ElementSchema.optional(),
+    _valueBoolean: ElementSchema.optional(),
     valueDecimal: z.number().optional(),
-      _valueDecimal: ElementSchema.optional(),
+    _valueDecimal: ElementSchema.optional(),
     valueInteger: z.number().optional(),
-      _valueInteger: ElementSchema.optional(),
+    _valueInteger: ElementSchema.optional(),
     valueDate: z.string().optional(),
-      _valueDate: ElementSchema.optional(),
+    _valueDate: ElementSchema.optional(),
     valueDateTime: z.string().optional(),
-      _valueDateTime: ElementSchema.optional(),
+    _valueDateTime: ElementSchema.optional(),
     valueTime: z.string().optional(),
-      _valueTime: ElementSchema.optional(),
+    _valueTime: ElementSchema.optional(),
     valueString: z.string().optional(),
-      _valueString: ElementSchema.optional(),
+    _valueString: ElementSchema.optional(),
     valueUri: z.string().optional(),
-      _valueUri: ElementSchema.optional(),
+    _valueUri: ElementSchema.optional(),
     valueAttachment: AttachmentSchema.optional(),
     valueCoding: CodingSchema.optional(),
     valueQuantity: QuantitySchema.optional(),
@@ -11104,7 +11017,7 @@ export const ContractTermOfferAnswerSchema: z.ZodType<ContractTermOfferAnswer> =
  * Context of the Contract term
  * The matter of concern in the context of this provision of the agrement.
  */
-export const ContractTermOfferSchema = BackboneElementSchema.extend({
+export const ContractTermOfferSchema = _BackboneElementBase.extend({
   identifier: z.array(IdentifierSchema).optional(),
   party: z.array(ContractTermOfferPartySchema).optional(),
   topic: ReferenceSchema.optional(),
@@ -11124,7 +11037,7 @@ export type ContractTermOffer = z.infer<typeof ContractTermOfferSchema>
 /**
  * Circumstance of the asset
  */
-export const ContractTermAssetContextSchema = BackboneElementSchema.extend({
+export const ContractTermAssetContextSchema = _BackboneElementBase.extend({
   reference: ReferenceSchema.optional(),
   code: z.array(CodeableConceptSchema).optional(),
   text: z.string().optional(),
@@ -11135,7 +11048,7 @@ export type ContractTermAssetContext = z.infer<typeof ContractTermAssetContextSc
 /**
  * Contract Valued Item List
  */
-export const ContractTermAssetValuedItemSchema = BackboneElementSchema.extend({
+export const ContractTermAssetValuedItemSchema = _BackboneElementBase.extend({
   entityCodeableConcept: CodeableConceptSchema.optional(),
   entityReference: ReferenceSchema.optional(),
   identifier: IdentifierSchema.optional(),
@@ -11164,7 +11077,7 @@ export type ContractTermAssetValuedItem = z.infer<typeof ContractTermAssetValued
 /**
  * Contract Term Asset List
  */
-export const ContractTermAssetSchema = BackboneElementSchema.extend({
+export const ContractTermAssetSchema = _BackboneElementBase.extend({
   scope: CodeableConceptSchema.optional(),
   type: z.array(CodeableConceptSchema).optional(),
   typeReference: z.array(ReferenceSchema).optional(),
@@ -11180,7 +11093,7 @@ export const ContractTermAssetSchema = BackboneElementSchema.extend({
   _text: ElementSchema.optional(),
   linkId: z.array(z.string()).optional(),
   _linkId: ElementSchema.optional(),
-  answer: z.lazy(() => z.array(ContractTermOfferAnswerSchema)).optional(),
+  answer: (z.lazy(() => z.array(ContractTermOfferAnswerSchema)) as unknown as z.ZodArray<z.ZodTypeAny>).optional(),
   securityLabelNumber: z.array(z.number()).optional(),
   _securityLabelNumber: ElementSchema.optional(),
   valuedItem: z.array(ContractTermAssetValuedItemSchema).optional(),
@@ -11190,7 +11103,7 @@ export type ContractTermAsset = z.infer<typeof ContractTermAssetSchema>
 /**
  * Entity of the action
  */
-export const ContractTermActionSubjectSchema = BackboneElementSchema.extend({
+export const ContractTermActionSubjectSchema = _BackboneElementBase.extend({
   reference: z.array(ReferenceSchema),
   role: CodeableConceptSchema.optional(),
 })
@@ -11201,7 +11114,7 @@ export type ContractTermActionSubject = z.infer<typeof ContractTermActionSubject
  * An actor taking a role in an activity for which it can be assigned some degree of responsibility for the activity taking place.
  * Several agents may be associated (i.e. has some responsibility for an activity) with an activity and vice-versa.For example, in cases of actions initiated by one user for other users, or in events that involve more than one user, hardware device, software, or system process. However, only one user may be the initiator/requestor for the event.
  */
-export const ContractTermActionSchema = BackboneElementSchema.extend({
+export const ContractTermActionSchema = _BackboneElementBase.extend({
   doNotPerform: z.boolean().optional(),
   _doNotPerform: ElementSchema.optional(),
   type: CodeableConceptSchema,
@@ -11257,22 +11170,22 @@ export interface ContractTerm extends BackboneElement {
 }
 
 export const ContractTermSchema: z.ZodType<ContractTerm> = z.lazy(() =>
-  BackboneElementSchema.extend({
+  _BackboneElementBase.extend({
     identifier: IdentifierSchema.optional(),
     issued: z.string().optional(),
-      _issued: ElementSchema.optional(),
+    _issued: ElementSchema.optional(),
     applies: PeriodSchema.optional(),
     topicCodeableConcept: CodeableConceptSchema.optional(),
     topicReference: ReferenceSchema.optional(),
     type: CodeableConceptSchema.optional(),
     subType: CodeableConceptSchema.optional(),
     text: z.string().optional(),
-      _text: ElementSchema.optional(),
+    _text: ElementSchema.optional(),
     securityLabel: z.array(ContractTermSecurityLabelSchema).optional(),
     offer: ContractTermOfferSchema,
     asset: z.array(ContractTermAssetSchema).optional(),
     action: z.array(ContractTermActionSchema).optional(),
-    group: z.lazy(() => z.array(ContractTermSchema)).optional(),
+    group: (z.lazy(() => z.array(ContractTermSchema)) as unknown as z.ZodArray<z.ZodTypeAny>).optional(),
   })
 )
 
@@ -11281,7 +11194,7 @@ export const ContractTermSchema: z.ZodType<ContractTerm> = z.lazy(() =>
  * Parties with legal standing in the Contract, including the principal parties, the grantor(s) and grantee(s), which are any person or organization bound by the contract, and any ancillary parties, which facilitate the execution of the contract such as a notary or witness.
  * Signers who are principal parties to the contract are bound by the Contract.activity related to the Contract.topic, and the Contract.term(s), which either extend or restrict the overall action on the topic by, for example, stipulating specific policies or obligations constraining actions, action reason, or agents with respect to some or all of the topic.For example, specifying how policies or obligations shall constrain actions and action reasons permitted or denied on all or a subset of the Contract.topic (e.g., all or a portion of property being transferred by the contract), agents (e.g., who can resell, assign interests, or alter the property being transferred by the contract), actions, and action reasons; or with respect to Contract.terms, stipulating, extending, or limiting the Contract.period of applicability or valuation of items under consideration.
  */
-export const ContractSignerSchema = BackboneElementSchema.extend({
+export const ContractSignerSchema = _BackboneElementBase.extend({
   type: CodingSchema,
   party: ReferenceSchema,
   signature: z.array(SignatureSchema),
@@ -11292,7 +11205,7 @@ export type ContractSigner = z.infer<typeof ContractSignerSchema>
  * Contract Friendly Language
  * The "patient friendly language" versionof the Contract in whole or in parts. "Patient friendly language" means the representation of the Contract and Contract Provisions in a manner that is readily accessible and understandable by a layperson in accordance with best practices for communication styles that ensure that those agreeing to or signing the Contract understand the roles, actions, obligations, responsibilities, and implication of the agreement.
  */
-export const ContractFriendlySchema = BackboneElementSchema.extend({
+export const ContractFriendlySchema = _BackboneElementBase.extend({
   contentAttachment: AttachmentSchema.optional(),
   contentReference: ReferenceSchema.optional(),
 })
@@ -11302,7 +11215,7 @@ export type ContractFriendly = z.infer<typeof ContractFriendlySchema>
  * Contract Legal Language
  * List of Legal expressions or representations of this Contract.
  */
-export const ContractLegalSchema = BackboneElementSchema.extend({
+export const ContractLegalSchema = _BackboneElementBase.extend({
   contentAttachment: AttachmentSchema.optional(),
   contentReference: ReferenceSchema.optional(),
 })
@@ -11312,7 +11225,7 @@ export type ContractLegal = z.infer<typeof ContractLegalSchema>
  * Computable Contract Language
  * List of Computable Policy Rule Language Representations of this Contract.
  */
-export const ContractRuleSchema = BackboneElementSchema.extend({
+export const ContractRuleSchema = _BackboneElementBase.extend({
   contentAttachment: AttachmentSchema.optional(),
   contentReference: ReferenceSchema.optional(),
 })
@@ -11373,7 +11286,7 @@ export type Contract = z.infer<typeof ContractSchema>
 /**
  * How this product was collected
  */
-export const BiologicallyDerivedProductCollectionSchema = BackboneElementSchema.extend({
+export const BiologicallyDerivedProductCollectionSchema = _BackboneElementBase.extend({
   collector: ReferenceSchema.optional(),
   source: ReferenceSchema.optional(),
   collectedDateTime: z.string().optional(),
@@ -11386,7 +11299,7 @@ export type BiologicallyDerivedProductCollection = z.infer<typeof BiologicallyDe
  * A property that is specific to this BiologicallyDerviedProduct instance
  * Property can be used to provide information on a wide range of additional information specific to a particular biologicallyDerivedProduct.
  */
-export const BiologicallyDerivedProductPropertySchema = BackboneElementSchema.extend({
+export const BiologicallyDerivedProductPropertySchema = _BackboneElementBase.extend({
   type: CodeableConceptSchema,
   valueBoolean: z.boolean().optional(),
   _valueBoolean: ElementSchema.optional(),
@@ -11430,7 +11343,7 @@ export type BiologicallyDerivedProduct = z.infer<typeof BiologicallyDerivedProdu
  * The item name(s) - the brand name, or common name, functional name, generic name or others
  * The item name(s) - the brand name, or common name, functional name, generic name.
  */
-export const InventoryItemNameSchema = BackboneElementSchema.extend({
+export const InventoryItemNameSchema = _BackboneElementBase.extend({
   nameType: CodingSchema,
   language: z.enum(['ar', 'bg', 'bg-BG', 'bn', 'cs', 'cs-CZ', 'bs', 'bs-BA', 'da', 'da-DK', 'de', 'de-AT', 'de-CH', 'de-DE', 'el', 'el-GR', 'en', 'en-AU', 'en-CA', 'en-GB', 'en-IN', 'en-NZ', 'en-SG', 'en-US', 'es', 'es-AR', 'es-ES', 'es-UY', 'et', 'et-EE', 'fi', 'fr', 'fr-BE', 'fr-CH', 'fr-FR', 'fi-FI', 'fr-CA', 'fy', 'fy-NL', 'hi', 'hr', 'hr-HR', 'is', 'is-IS', 'it', 'it-CH', 'it-IT', 'ja', 'ko', 'lt', 'lt-LT', 'lv', 'lv-LV', 'nl', 'nl-BE', 'nl-NL', 'no', 'no-NO', 'pa', 'pl', 'pl-PL', 'pt', 'pt-PT', 'pt-BR', 'ro', 'ro-RO', 'ru', 'ru-RU', 'sk', 'sk-SK', 'sl', 'sl-SI', 'sr', 'sr-RS', 'sv', 'sv-SE', 'te', 'zh', 'zh-CN', 'zh-HK', 'zh-SG', 'zh-TW']),
   _language: ElementSchema.optional(),
@@ -11442,7 +11355,7 @@ export type InventoryItemName = z.infer<typeof InventoryItemNameSchema>
 /**
  * Organization(s) responsible for the product
  */
-export const InventoryItemResponsibleOrganizationSchema = BackboneElementSchema.extend({
+export const InventoryItemResponsibleOrganizationSchema = _BackboneElementBase.extend({
   role: CodeableConceptSchema,
   organization: ReferenceSchema,
 })
@@ -11452,7 +11365,7 @@ export type InventoryItemResponsibleOrganization = z.infer<typeof InventoryItemR
  * Descriptive characteristics of the item
  * The descriptive characteristics of the inventory item.
  */
-export const InventoryItemDescriptionSchema = BackboneElementSchema.extend({
+export const InventoryItemDescriptionSchema = _BackboneElementBase.extend({
   language: z.enum(['ar', 'bg', 'bg-BG', 'bn', 'cs', 'cs-CZ', 'bs', 'bs-BA', 'da', 'da-DK', 'de', 'de-AT', 'de-CH', 'de-DE', 'el', 'el-GR', 'en', 'en-AU', 'en-CA', 'en-GB', 'en-IN', 'en-NZ', 'en-SG', 'en-US', 'es', 'es-AR', 'es-ES', 'es-UY', 'et', 'et-EE', 'fi', 'fr', 'fr-BE', 'fr-CH', 'fr-FR', 'fi-FI', 'fr-CA', 'fy', 'fy-NL', 'hi', 'hr', 'hr-HR', 'is', 'is-IS', 'it', 'it-CH', 'it-IT', 'ja', 'ko', 'lt', 'lt-LT', 'lv', 'lv-LV', 'nl', 'nl-BE', 'nl-NL', 'no', 'no-NO', 'pa', 'pl', 'pl-PL', 'pt', 'pt-PT', 'pt-BR', 'ro', 'ro-RO', 'ru', 'ru-RU', 'sk', 'sk-SK', 'sl', 'sl-SI', 'sr', 'sr-RS', 'sv', 'sv-SE', 'te', 'zh', 'zh-CN', 'zh-HK', 'zh-SG', 'zh-TW']).optional(),
   _language: ElementSchema.optional(),
   description: z.string().optional(),
@@ -11463,7 +11376,7 @@ export type InventoryItemDescription = z.infer<typeof InventoryItemDescriptionSc
 /**
  * Association with other items or products
  */
-export const InventoryItemAssociationSchema = BackboneElementSchema.extend({
+export const InventoryItemAssociationSchema = _BackboneElementBase.extend({
   associationType: CodeableConceptSchema,
   relatedItem: ReferenceSchema,
   quantity: RatioSchema,
@@ -11474,7 +11387,7 @@ export type InventoryItemAssociation = z.infer<typeof InventoryItemAssociationSc
  * Characteristic of the item
  * The descriptive or identifying characteristics of the item.
  */
-export const InventoryItemCharacteristicSchema = BackboneElementSchema.extend({
+export const InventoryItemCharacteristicSchema = _BackboneElementBase.extend({
   characteristicType: CodeableConceptSchema,
   valueString: z.string().optional(),
   _valueString: ElementSchema.optional(),
@@ -11501,7 +11414,7 @@ export type InventoryItemCharacteristic = z.infer<typeof InventoryItemCharacteri
 /**
  * Instances or occurrences of the product
  */
-export const InventoryItemInstanceSchema = BackboneElementSchema.extend({
+export const InventoryItemInstanceSchema = _BackboneElementBase.extend({
   identifier: z.array(IdentifierSchema).optional(),
   lotNumber: z.string().optional(),
   _lotNumber: ElementSchema.optional(),
@@ -11539,7 +11452,7 @@ export type InventoryItem = z.infer<typeof InventoryItemSchema>
  * The required criteria to execute the test plan - e.g. preconditions, previous tests
  * The required criteria to execute the test plan - e.g. preconditions, previous tests...
  */
-export const TestPlanDependencySchema = BackboneElementSchema.extend({
+export const TestPlanDependencySchema = _BackboneElementBase.extend({
   description: z.string().optional(),
   _description: ElementSchema.optional(),
   predecessor: ReferenceSchema.optional(),
@@ -11550,7 +11463,7 @@ export type TestPlanDependency = z.infer<typeof TestPlanDependencySchema>
  * Required criteria to execute the test case
  * The required criteria to execute the test case - e.g. preconditions, previous tests.
  */
-export const TestPlanTestCaseDependencySchema = BackboneElementSchema.extend({
+export const TestPlanTestCaseDependencySchema = _BackboneElementBase.extend({
   description: z.string().optional(),
   _description: ElementSchema.optional(),
   predecessor: ReferenceSchema.optional(),
@@ -11560,7 +11473,7 @@ export type TestPlanTestCaseDependency = z.infer<typeof TestPlanTestCaseDependen
 /**
  * The test cases in a structured language e.g. gherkin, Postman, or FHIR TestScript
  */
-export const TestPlanTestCaseTestRunScriptSchema = BackboneElementSchema.extend({
+export const TestPlanTestCaseTestRunScriptSchema = _BackboneElementBase.extend({
   language: CodeableConceptSchema.optional(),
   sourceString: z.string().optional(),
   _sourceString: ElementSchema.optional(),
@@ -11571,7 +11484,7 @@ export type TestPlanTestCaseTestRunScript = z.infer<typeof TestPlanTestCaseTestR
 /**
  * The actual test to be executed
  */
-export const TestPlanTestCaseTestRunSchema = BackboneElementSchema.extend({
+export const TestPlanTestCaseTestRunSchema = _BackboneElementBase.extend({
   narrative: z.string().optional(),
   _narrative: ElementSchema.optional(),
   script: TestPlanTestCaseTestRunScriptSchema.optional(),
@@ -11581,7 +11494,7 @@ export type TestPlanTestCaseTestRun = z.infer<typeof TestPlanTestCaseTestRunSche
 /**
  * The test data used in the test case
  */
-export const TestPlanTestCaseTestDataSchema = BackboneElementSchema.extend({
+export const TestPlanTestCaseTestDataSchema = _BackboneElementBase.extend({
   type: CodingSchema,
   content: ReferenceSchema.optional(),
   sourceString: z.string().optional(),
@@ -11594,7 +11507,7 @@ export type TestPlanTestCaseTestData = z.infer<typeof TestPlanTestCaseTestDataSc
  * Test assertions or expectations
  * The test assertions - the expectations of test results from the execution of the test case.
  */
-export const TestPlanTestCaseAssertionSchema = BackboneElementSchema.extend({
+export const TestPlanTestCaseAssertionSchema = _BackboneElementBase.extend({
   type: z.array(CodeableConceptSchema).optional(),
   object: z.array(CodeableReferenceSchema).optional(),
   result: z.array(CodeableReferenceSchema).optional(),
@@ -11605,7 +11518,7 @@ export type TestPlanTestCaseAssertion = z.infer<typeof TestPlanTestCaseAssertion
  * The test cases that constitute this plan
  * The individual test cases that are part of this plan, when they they are made explicit.
  */
-export const TestPlanTestCaseSchema = BackboneElementSchema.extend({
+export const TestPlanTestCaseSchema = _BackboneElementBase.extend({
   sequence: z.number().optional(),
   _sequence: ElementSchema.optional(),
   scope: z.array(ReferenceSchema).optional(),
@@ -11664,28 +11577,10 @@ export const TestPlanSchema = DomainResourceSchema.extend({
 export type TestPlan = z.infer<typeof TestPlanSchema>
 
 /**
- * date Type: A date or partial date (e.g. just year or year + month). There is no UTC offset. The format is a union of the schema types gYear, gYearMonth and date.  Dates SHALL be valid dates.
- */
-export const dateSchema = PrimitiveTypeSchema.extend({
-  value: z.string().optional(),
-  _value: ElementSchema.optional(),
-})
-export type date = z.infer<typeof dateSchema>
-
-/**
- * integer64 Type: A very large whole number
- */
-export const integer64Schema = PrimitiveTypeSchema.extend({
-  value: z.number().optional(),
-  _value: ElementSchema.optional(),
-})
-export type integer64 = z.infer<typeof integer64Schema>
-
-/**
  * Software that is covered by this terminology capability statement
  * Software that is covered by this terminology capability statement.  It is used when the statement describes the capabilities of a particular software version, independent of an installation.
  */
-export const TerminologyCapabilitiesSoftwareSchema = BackboneElementSchema.extend({
+export const TerminologyCapabilitiesSoftwareSchema = _BackboneElementBase.extend({
   name: z.string(),
   _name: ElementSchema.optional(),
   version: z.string().optional(),
@@ -11697,7 +11592,7 @@ export type TerminologyCapabilitiesSoftware = z.infer<typeof TerminologyCapabili
  * If this describes a specific instance
  * Identifies a specific implementation instance that is described by the terminology capability statement - i.e. a particular installation, rather than the capabilities of a software program.
  */
-export const TerminologyCapabilitiesImplementationSchema = BackboneElementSchema.extend({
+export const TerminologyCapabilitiesImplementationSchema = _BackboneElementBase.extend({
   description: z.string(),
   _description: ElementSchema.optional(),
   url: z.string().optional(),
@@ -11708,7 +11603,7 @@ export type TerminologyCapabilitiesImplementation = z.infer<typeof TerminologyCa
 /**
  * Filter Properties supported
  */
-export const TerminologyCapabilitiesCodeSystemVersionFilterSchema = BackboneElementSchema.extend({
+export const TerminologyCapabilitiesCodeSystemVersionFilterSchema = _BackboneElementBase.extend({
   code: z.string(),
   _code: ElementSchema.optional(),
   op: z.array(z.string()),
@@ -11721,7 +11616,7 @@ export type TerminologyCapabilitiesCodeSystemVersionFilter = z.infer<typeof Term
  * For the code system, a list of versions that are supported by the server.
  * Language translations might not be available for all codes.
  */
-export const TerminologyCapabilitiesCodeSystemVersionSchema = BackboneElementSchema.extend({
+export const TerminologyCapabilitiesCodeSystemVersionSchema = _BackboneElementBase.extend({
   code: z.string().optional(),
   _code: ElementSchema.optional(),
   isDefault: z.boolean().optional(),
@@ -11741,7 +11636,7 @@ export type TerminologyCapabilitiesCodeSystemVersion = z.infer<typeof Terminolog
  * Identifies a code system that is supported by the server. If there is a no code system URL, then this declares the general assumptions a client can make about support for any CodeSystem resource.
  * The code system - identified by its system URL - may also be declared explicitly as a Code System Resource at /CodeSystem, but it might not be.
  */
-export const TerminologyCapabilitiesCodeSystemSchema = BackboneElementSchema.extend({
+export const TerminologyCapabilitiesCodeSystemSchema = _BackboneElementBase.extend({
   uri: z.string().optional(),
   _uri: ElementSchema.optional(),
   version: z.array(TerminologyCapabilitiesCodeSystemVersionSchema).optional(),
@@ -11755,7 +11650,7 @@ export type TerminologyCapabilitiesCodeSystem = z.infer<typeof TerminologyCapabi
 /**
  * Supported expansion parameter
  */
-export const TerminologyCapabilitiesExpansionParameterSchema = BackboneElementSchema.extend({
+export const TerminologyCapabilitiesExpansionParameterSchema = _BackboneElementBase.extend({
   name: z.string(),
   _name: ElementSchema.optional(),
   documentation: z.string().optional(),
@@ -11766,7 +11661,7 @@ export type TerminologyCapabilitiesExpansionParameter = z.infer<typeof Terminolo
 /**
  * Information about the [ValueSet/$expand](valueset-operation-expand.html) operation
  */
-export const TerminologyCapabilitiesExpansionSchema = BackboneElementSchema.extend({
+export const TerminologyCapabilitiesExpansionSchema = _BackboneElementBase.extend({
   hierarchical: z.boolean().optional(),
   _hierarchical: ElementSchema.optional(),
   paging: z.boolean().optional(),
@@ -11782,7 +11677,7 @@ export type TerminologyCapabilitiesExpansion = z.infer<typeof TerminologyCapabil
 /**
  * Information about the [ValueSet/$validate-code](valueset-operation-validate-code.html) operation
  */
-export const TerminologyCapabilitiesValidateCodeSchema = BackboneElementSchema.extend({
+export const TerminologyCapabilitiesValidateCodeSchema = _BackboneElementBase.extend({
   translations: z.boolean(),
   _translations: ElementSchema.optional(),
 })
@@ -11791,7 +11686,7 @@ export type TerminologyCapabilitiesValidateCode = z.infer<typeof TerminologyCapa
 /**
  * Information about the [ConceptMap/$translate](conceptmap-operation-translate.html) operation
  */
-export const TerminologyCapabilitiesTranslationSchema = BackboneElementSchema.extend({
+export const TerminologyCapabilitiesTranslationSchema = _BackboneElementBase.extend({
   needsMap: z.boolean(),
   _needsMap: ElementSchema.optional(),
 })
@@ -11801,7 +11696,7 @@ export type TerminologyCapabilitiesTranslation = z.infer<typeof TerminologyCapab
  * Information about the [ConceptMap/$closure](conceptmap-operation-closure.html) operation
  * Whether the $closure operation is supported.
  */
-export const TerminologyCapabilitiesClosureSchema = BackboneElementSchema.extend({
+export const TerminologyCapabilitiesClosureSchema = _BackboneElementBase.extend({
   translation: z.boolean().optional(),
   _translation: ElementSchema.optional(),
 })
@@ -11869,7 +11764,7 @@ export interface ClinicalUseDefinitionContraindicationOtherTherapy extends Backb
 }
 
 export const ClinicalUseDefinitionContraindicationOtherTherapySchema: z.ZodType<ClinicalUseDefinitionContraindicationOtherTherapy> = z.lazy(() =>
-  BackboneElementSchema.extend({
+  _BackboneElementBase.extend({
     relationshipType: CodeableConceptSchema,
     treatment: CodeableReferenceSchema,
   })
@@ -11878,7 +11773,7 @@ export const ClinicalUseDefinitionContraindicationOtherTherapySchema: z.ZodType<
 /**
  * Specifics for when this is a contraindication
  */
-export const ClinicalUseDefinitionContraindicationSchema = BackboneElementSchema.extend({
+export const ClinicalUseDefinitionContraindicationSchema = _BackboneElementBase.extend({
   diseaseSymptomProcedure: CodeableReferenceSchema.optional(),
   diseaseStatus: CodeableReferenceSchema.optional(),
   comorbidity: z.array(CodeableReferenceSchema).optional(),
@@ -11891,7 +11786,7 @@ export type ClinicalUseDefinitionContraindication = z.infer<typeof ClinicalUseDe
 /**
  * Specifics for when this is an indication
  */
-export const ClinicalUseDefinitionIndicationSchema = BackboneElementSchema.extend({
+export const ClinicalUseDefinitionIndicationSchema = _BackboneElementBase.extend({
   diseaseSymptomProcedure: CodeableReferenceSchema.optional(),
   diseaseStatus: CodeableReferenceSchema.optional(),
   comorbidity: z.array(CodeableReferenceSchema).optional(),
@@ -11901,7 +11796,7 @@ export const ClinicalUseDefinitionIndicationSchema = BackboneElementSchema.exten
   _durationString: ElementSchema.optional(),
   undesirableEffect: z.array(ReferenceSchema).optional(),
   applicability: ExpressionSchema.optional(),
-  otherTherapy: z.lazy(() => z.array(ClinicalUseDefinitionContraindicationOtherTherapySchema)).optional(),
+  otherTherapy: (z.lazy(() => z.array(ClinicalUseDefinitionContraindicationOtherTherapySchema)) as unknown as z.ZodArray<z.ZodTypeAny>).optional(),
 })
 export type ClinicalUseDefinitionIndication = z.infer<typeof ClinicalUseDefinitionIndicationSchema>
 
@@ -11909,7 +11804,7 @@ export type ClinicalUseDefinitionIndication = z.infer<typeof ClinicalUseDefiniti
  * The specific medication, product, food etc. or laboratory test that interacts
  * The specific medication, product, food, substance etc. or laboratory test that interacts.
  */
-export const ClinicalUseDefinitionInteractionInteractantSchema = BackboneElementSchema.extend({
+export const ClinicalUseDefinitionInteractionInteractantSchema = _BackboneElementBase.extend({
   itemReference: ReferenceSchema.optional(),
   itemCodeableConcept: CodeableConceptSchema.optional(),
 })
@@ -11918,7 +11813,7 @@ export type ClinicalUseDefinitionInteractionInteractant = z.infer<typeof Clinica
 /**
  * Specifics for when this is an interaction
  */
-export const ClinicalUseDefinitionInteractionSchema = BackboneElementSchema.extend({
+export const ClinicalUseDefinitionInteractionSchema = _BackboneElementBase.extend({
   interactant: z.array(ClinicalUseDefinitionInteractionInteractantSchema).optional(),
   type: CodeableConceptSchema.optional(),
   effect: CodeableReferenceSchema.optional(),
@@ -11931,7 +11826,7 @@ export type ClinicalUseDefinitionInteraction = z.infer<typeof ClinicalUseDefinit
  * A possible negative outcome from the use of this treatment
  * Describe the possible undesirable effects (negative outcomes) from the use of the medicinal product as treatment.
  */
-export const ClinicalUseDefinitionUndesirableEffectSchema = BackboneElementSchema.extend({
+export const ClinicalUseDefinitionUndesirableEffectSchema = _BackboneElementBase.extend({
   symptomConditionEffect: CodeableReferenceSchema.optional(),
   classification: CodeableConceptSchema.optional(),
   frequencyOfOccurrence: CodeableConceptSchema.optional(),
@@ -11942,7 +11837,7 @@ export type ClinicalUseDefinitionUndesirableEffect = z.infer<typeof ClinicalUseD
  * Critical environmental, health or physical risks or hazards. For example 'Do not operate heavy machinery', 'May cause drowsiness'
  * A critical piece of information about environmental, health or physical risks or hazards that serve as caution to the user. For example 'Do not operate heavy machinery', 'May cause drowsiness', or 'Get medical advice/attention if you feel unwell'.
  */
-export const ClinicalUseDefinitionWarningSchema = BackboneElementSchema.extend({
+export const ClinicalUseDefinitionWarningSchema = _BackboneElementBase.extend({
   description: z.string().optional(),
   _description: ElementSchema.optional(),
   code: CodeableConceptSchema.optional(),
@@ -11975,7 +11870,7 @@ export type ClinicalUseDefinition = z.infer<typeof ClinicalUseDefinitionSchema>
  * Additive associated with container
  * Substance introduced in the kind of container to preserve, maintain or enhance the specimen. Examples: Formalin, Citrate, EDTA.
  */
-export const SpecimenDefinitionTypeTestedContainerAdditiveSchema = BackboneElementSchema.extend({
+export const SpecimenDefinitionTypeTestedContainerAdditiveSchema = _BackboneElementBase.extend({
   additiveCodeableConcept: CodeableConceptSchema.optional(),
   additiveReference: ReferenceSchema.optional(),
 })
@@ -11984,7 +11879,7 @@ export type SpecimenDefinitionTypeTestedContainerAdditive = z.infer<typeof Speci
 /**
  * The specimen's container
  */
-export const SpecimenDefinitionTypeTestedContainerSchema = BackboneElementSchema.extend({
+export const SpecimenDefinitionTypeTestedContainerSchema = _BackboneElementBase.extend({
   material: CodeableConceptSchema.optional(),
   type: CodeableConceptSchema.optional(),
   cap: CodeableConceptSchema.optional(),
@@ -12004,7 +11899,7 @@ export type SpecimenDefinitionTypeTestedContainer = z.infer<typeof SpecimenDefin
  * Specimen handling before testing
  * Set of instructions for preservation/transport of the specimen at a defined temperature interval, prior the testing process.
  */
-export const SpecimenDefinitionTypeTestedHandlingSchema = BackboneElementSchema.extend({
+export const SpecimenDefinitionTypeTestedHandlingSchema = _BackboneElementBase.extend({
   temperatureQualifier: CodeableConceptSchema.optional(),
   temperatureRange: RangeSchema.optional(),
   maxDuration: DurationSchema.optional(),
@@ -12017,7 +11912,7 @@ export type SpecimenDefinitionTypeTestedHandling = z.infer<typeof SpecimenDefini
  * Specimen in container intended for testing by lab
  * Specimen conditioned in a container as expected by the testing laboratory.
  */
-export const SpecimenDefinitionTypeTestedSchema = BackboneElementSchema.extend({
+export const SpecimenDefinitionTypeTestedSchema = _BackboneElementBase.extend({
   isDerived: z.boolean().optional(),
   _isDerived: ElementSchema.optional(),
   type: CodeableConceptSchema.optional(),
@@ -12096,7 +11991,7 @@ export type SpecimenDefinition = z.infer<typeof SpecimenDefinitionSchema>
  * The location of the patient at this point in the encounter, the multiple cardinality permits de-normalizing the levels of the location hierarchy, such as site/ward/room/bed.
  * Virtual encounters can be recorded in the Encounter by specifying a location reference to a location of type "kind" such as "client's home" and an encounter.class = "virtual".
  */
-export const EncounterHistoryLocationSchema = BackboneElementSchema.extend({
+export const EncounterHistoryLocationSchema = _BackboneElementBase.extend({
   location: ReferenceSchema,
   form: CodeableConceptSchema.optional(),
 })
@@ -12131,7 +12026,7 @@ export type EncounterHistory = z.infer<typeof EncounterHistorySchema>
  * A property defines a slot through which additional information can be provided about a map from source -> target.
  * Properties may be used to supply for example, mapping priority, provenance, presentation hints, flag as experimental, and additional documentation. Multiple occurrences of ConceptMap.group.element.target.property may occur for a ConceptMap.property where ConceptMap.group.element.target.property.code is the same and the values in ConceptMap.group.element.target.property.value differ.
  */
-export const ConceptMapPropertySchema = BackboneElementSchema.extend({
+export const ConceptMapPropertySchema = _BackboneElementBase.extend({
   code: z.string(),
   _code: ElementSchema.optional(),
   uri: z.string().optional(),
@@ -12150,7 +12045,7 @@ export type ConceptMapProperty = z.infer<typeof ConceptMapPropertySchema>
  * An additionalAttribute defines an additional data element found in the source or target data model where the data will come from or be mapped to. Some mappings are based on data in addition to the source data element, where codes in multiple fields are combined to a single field (or vice versa).
  * Additional attributes are used to define additional data elements where mapping data can be found. For an example, see [Specimen Type v2 -> SNOMED CT Mapping(conceptmap-example-specimen-type.html)
  */
-export const ConceptMapAdditionalAttributeSchema = BackboneElementSchema.extend({
+export const ConceptMapAdditionalAttributeSchema = _BackboneElementBase.extend({
   code: z.string(),
   _code: ElementSchema.optional(),
   uri: z.string().optional(),
@@ -12166,7 +12061,7 @@ export type ConceptMapAdditionalAttribute = z.infer<typeof ConceptMapAdditionalA
  * Property value for the source -> target mapping
  * A property value for this source -> target mapping.
  */
-export const ConceptMapGroupElementTargetPropertySchema = BackboneElementSchema.extend({
+export const ConceptMapGroupElementTargetPropertySchema = _BackboneElementBase.extend({
   code: z.string(),
   _code: ElementSchema.optional(),
   valueCoding: CodingSchema.optional(),
@@ -12205,19 +12100,19 @@ export interface ConceptMapGroupElementTargetDependsOn extends BackboneElement {
 }
 
 export const ConceptMapGroupElementTargetDependsOnSchema: z.ZodType<ConceptMapGroupElementTargetDependsOn> = z.lazy(() =>
-  BackboneElementSchema.extend({
+  _BackboneElementBase.extend({
     attribute: z.string(),
-      _attribute: ElementSchema.optional(),
+    _attribute: ElementSchema.optional(),
     valueCode: z.string().optional(),
-      _valueCode: ElementSchema.optional(),
+    _valueCode: ElementSchema.optional(),
     valueCoding: CodingSchema.optional(),
     valueString: z.string().optional(),
-      _valueString: ElementSchema.optional(),
+    _valueString: ElementSchema.optional(),
     valueBoolean: z.boolean().optional(),
-      _valueBoolean: ElementSchema.optional(),
+    _valueBoolean: ElementSchema.optional(),
     valueQuantity: QuantitySchema.optional(),
     valueSet: z.string().optional(),
-      _valueSet: ElementSchema.optional(),
+    _valueSet: ElementSchema.optional(),
   })
 )
 
@@ -12226,7 +12121,7 @@ export const ConceptMapGroupElementTargetDependsOnSchema: z.ZodType<ConceptMapGr
  * A concept from the target value set that this concept maps to.
  * Ideally there would only be one map, with an 'equivalent' mapping. But multiple maps are allowed for several narrower (i.e. source-is-broader-than-target) options, or to assert that other concepts are not related.
  */
-export const ConceptMapGroupElementTargetSchema = BackboneElementSchema.extend({
+export const ConceptMapGroupElementTargetSchema = _BackboneElementBase.extend({
   code: z.string().optional(),
   _code: ElementSchema.optional(),
   display: z.string().optional(),
@@ -12239,7 +12134,7 @@ export const ConceptMapGroupElementTargetSchema = BackboneElementSchema.extend({
   _comment: ElementSchema.optional(),
   property: z.array(ConceptMapGroupElementTargetPropertySchema).optional(),
   dependsOn: z.array(ConceptMapGroupElementTargetDependsOnSchema).optional(),
-  product: z.lazy(() => z.array(ConceptMapGroupElementTargetDependsOnSchema)).optional(),
+  product: (z.lazy(() => z.array(ConceptMapGroupElementTargetDependsOnSchema)) as unknown as z.ZodArray<z.ZodTypeAny>).optional(),
 })
 export type ConceptMapGroupElementTarget = z.infer<typeof ConceptMapGroupElementTargetSchema>
 
@@ -12248,7 +12143,7 @@ export type ConceptMapGroupElementTarget = z.infer<typeof ConceptMapGroupElement
  * Mappings for an individual concept in the source to one or more concepts in the target.
  * Generally, the ideal is that there would only be one mapping for each concept in the source value set, but a given concept may be mapped multiple times with different comments or dependencies.
  */
-export const ConceptMapGroupElementSchema = BackboneElementSchema.extend({
+export const ConceptMapGroupElementSchema = _BackboneElementBase.extend({
   code: z.string().optional(),
   _code: ElementSchema.optional(),
   display: z.string().optional(),
@@ -12266,7 +12161,7 @@ export type ConceptMapGroupElement = z.infer<typeof ConceptMapGroupElementSchema
  * What to do when there is no mapping to a target concept from the source concept and ConceptMap.group.element.noMap is not true. This provides the "default" to be applied when there is no target concept mapping specified or the expansion of ConceptMap.group.element.target.valueSet is empty.
  * The 'unmapped' element is ignored if a code is specified to have relationship = not-related-to or if ConceptMap.group.element.noMap = true.
  */
-export const ConceptMapGroupUnmappedSchema = BackboneElementSchema.extend({
+export const ConceptMapGroupUnmappedSchema = _BackboneElementBase.extend({
   mode: z.enum(['use-source-code', 'fixed', 'other-map']),
   _mode: ElementSchema.optional(),
   code: z.string().optional(),
@@ -12286,7 +12181,7 @@ export type ConceptMapGroupUnmapped = z.infer<typeof ConceptMapGroupUnmappedSche
  * Same source and target systems
  * A group of mappings that all have the same source and target system.
  */
-export const ConceptMapGroupSchema = BackboneElementSchema.extend({
+export const ConceptMapGroupSchema = _BackboneElementBase.extend({
   source: z.string().optional(),
   _source: ElementSchema.optional(),
   target: z.string().optional(),
@@ -12361,7 +12256,7 @@ export type ConceptMap = z.infer<typeof ConceptMapSchema>
  * Participant in creation of this Invoice
  * Indicates who or what performed or participated in the charged service.
  */
-export const InvoiceParticipantSchema = BackboneElementSchema.extend({
+export const InvoiceParticipantSchema = _BackboneElementBase.extend({
   role: CodeableConceptSchema.optional(),
   actor: ReferenceSchema,
 })
@@ -12371,7 +12266,7 @@ export type InvoiceParticipant = z.infer<typeof InvoiceParticipantSchema>
  * Line items of this Invoice
  * Each line item represents one charge for goods and services rendered. Details such.ofType(date), code and amount are found in the referenced ChargeItem resource.
  */
-export const InvoiceLineItemSchema = BackboneElementSchema.extend({
+export const InvoiceLineItemSchema = _BackboneElementBase.extend({
   sequence: z.number().optional(),
   _sequence: ElementSchema.optional(),
   servicedDate: z.string().optional(),
@@ -12417,19 +12312,10 @@ export const InvoiceSchema = DomainResourceSchema.extend({
 export type Invoice = z.infer<typeof InvoiceSchema>
 
 /**
- * url type: A URI that is a literal reference
- */
-export const urlSchema = uriSchema.extend({
-  value: z.string().optional(),
-  _value: ElementSchema.optional(),
-})
-export type url = z.infer<typeof urlSchema>
-
-/**
  * External specification that the content is mapped to
  * An external specification that the content is mapped to.
  */
-export const StructureDefinitionMappingSchema = BackboneElementSchema.extend({
+export const StructureDefinitionMappingSchema = _BackboneElementBase.extend({
   identity: z.string(),
   _identity: ElementSchema.optional(),
   uri: z.string().optional(),
@@ -12445,7 +12331,7 @@ export type StructureDefinitionMapping = z.infer<typeof StructureDefinitionMappi
  * If an extension, where it can be used in instances
  * Identifies the types of resource or data type elements to which the extension can be applied. For more guidance on using the 'context' element, see the [defining extensions page](defining-extensions.html#context).
  */
-export const StructureDefinitionContextSchema = BackboneElementSchema.extend({
+export const StructureDefinitionContextSchema = _BackboneElementBase.extend({
   type: z.enum(['fhirpath', 'element', 'extension']),
   _type: ElementSchema.optional(),
   expression: z.string(),
@@ -12457,7 +12343,7 @@ export type StructureDefinitionContext = z.infer<typeof StructureDefinitionConte
  * Snapshot view of the structure
  * A snapshot view is expressed in a standalone form that can be used and interpreted without considering the base StructureDefinition.
  */
-export const StructureDefinitionSnapshotSchema = BackboneElementSchema.extend({
+export const StructureDefinitionSnapshotSchema = _BackboneElementBase.extend({
   element: z.array(ElementDefinitionSchema),
 })
 export type StructureDefinitionSnapshot = z.infer<typeof StructureDefinitionSnapshotSchema>
@@ -12466,7 +12352,7 @@ export type StructureDefinitionSnapshot = z.infer<typeof StructureDefinitionSnap
  * Differential view of the structure
  * A differential view is expressed relative to the base StructureDefinition - a statement of differences that it applies.
  */
-export const StructureDefinitionDifferentialSchema = BackboneElementSchema.extend({
+export const StructureDefinitionDifferentialSchema = _BackboneElementBase.extend({
   element: z.array(ElementDefinitionSchema),
 })
 export type StructureDefinitionDifferential = z.infer<typeof StructureDefinitionDifferentialSchema>
@@ -12532,7 +12418,7 @@ export type StructureDefinition = z.infer<typeof StructureDefinitionSchema>
 /**
  * Observations particularly relevant to this condition
  */
-export const ConditionDefinitionObservationSchema = BackboneElementSchema.extend({
+export const ConditionDefinitionObservationSchema = _BackboneElementBase.extend({
   category: CodeableConceptSchema.optional(),
   code: CodeableConceptSchema.optional(),
 })
@@ -12541,7 +12427,7 @@ export type ConditionDefinitionObservation = z.infer<typeof ConditionDefinitionO
 /**
  * Medications particularly relevant for this condition
  */
-export const ConditionDefinitionMedicationSchema = BackboneElementSchema.extend({
+export const ConditionDefinitionMedicationSchema = _BackboneElementBase.extend({
   category: CodeableConceptSchema.optional(),
   code: CodeableConceptSchema.optional(),
 })
@@ -12551,7 +12437,7 @@ export type ConditionDefinitionMedication = z.infer<typeof ConditionDefinitionMe
  * Observation that suggets this condition
  * An observation that suggests that this condition applies.
  */
-export const ConditionDefinitionPreconditionSchema = BackboneElementSchema.extend({
+export const ConditionDefinitionPreconditionSchema = _BackboneElementBase.extend({
   type: z.enum(['sensitive', 'specific']),
   _type: ElementSchema.optional(),
   code: CodeableConceptSchema,
@@ -12563,7 +12449,7 @@ export type ConditionDefinitionPrecondition = z.infer<typeof ConditionDefinition
 /**
  * Questionnaire for this condition
  */
-export const ConditionDefinitionQuestionnaireSchema = BackboneElementSchema.extend({
+export const ConditionDefinitionQuestionnaireSchema = _BackboneElementBase.extend({
   purpose: z.enum(['preadmit', 'diff-diagnosis', 'outcome']),
   _purpose: ElementSchema.optional(),
   reference: ReferenceSchema,
@@ -12573,7 +12459,7 @@ export type ConditionDefinitionQuestionnaire = z.infer<typeof ConditionDefinitio
 /**
  * Plan that is appropriate
  */
-export const ConditionDefinitionPlanSchema = BackboneElementSchema.extend({
+export const ConditionDefinitionPlanSchema = _BackboneElementBase.extend({
   role: CodeableConceptSchema.optional(),
   reference: ReferenceSchema,
 })
@@ -12636,7 +12522,7 @@ export type ConditionDefinition = z.infer<typeof ConditionDefinitionSchema>
  * Message payload
  * Text, attachment(s), or resource(s) to be communicated to the recipient.
  */
-export const CommunicationRequestPayloadSchema = BackboneElementSchema.extend({
+export const CommunicationRequestPayloadSchema = _BackboneElementBase.extend({
   contentAttachment: AttachmentSchema.optional(),
   contentReference: ReferenceSchema.optional(),
   contentCodeableConcept: CodeableConceptSchema.optional(),
@@ -12773,7 +12659,7 @@ export type CanonicalResource = z.infer<typeof CanonicalResourceSchema>
  * Supporting evidence
  * Supporting evidence or manifestations that provide the basis for identifying the detected issue such as a GuidanceResponse or MeasureReport.
  */
-export const DetectedIssueEvidenceSchema = BackboneElementSchema.extend({
+export const DetectedIssueEvidenceSchema = _BackboneElementBase.extend({
   code: z.array(CodeableConceptSchema).optional(),
   detail: z.array(ReferenceSchema).optional(),
 })
@@ -12783,7 +12669,7 @@ export type DetectedIssueEvidence = z.infer<typeof DetectedIssueEvidenceSchema>
  * Step taken to address
  * Indicates an action that has been taken or is committed to reduce or eliminate the likelihood of the risk identified by the detected issue from manifesting.  Can also reflect an observation of known mitigating factors that may reduce/eliminate the need for any action.
  */
-export const DetectedIssueMitigationSchema = BackboneElementSchema.extend({
+export const DetectedIssueMitigationSchema = _BackboneElementBase.extend({
   action: CodeableConceptSchema,
   date: z.string().optional(),
   _date: ElementSchema.optional(),
@@ -12824,7 +12710,7 @@ export type DetectedIssue = z.infer<typeof DetectedIssueSchema>
  * Defines the characteristic using type and value
  * Defines the characteristic using both a type and value[x] elements.
  */
-export const EvidenceVariableCharacteristicDefinitionByTypeAndValueSchema = BackboneElementSchema.extend({
+export const EvidenceVariableCharacteristicDefinitionByTypeAndValueSchema = _BackboneElementBase.extend({
   type: CodeableConceptSchema,
   method: z.array(CodeableConceptSchema).optional(),
   device: ReferenceSchema.optional(),
@@ -12844,19 +12730,19 @@ export type EvidenceVariableCharacteristicDefinitionByTypeAndValue = z.infer<typ
  * Used to specify how two or more characteristics are combined
  * Defines the characteristic as a combination of two or more characteristics.
  */
-export const EvidenceVariableCharacteristicDefinitionByCombinationSchema = BackboneElementSchema.extend({
+export const EvidenceVariableCharacteristicDefinitionByCombinationSchema = _BackboneElementBase.extend({
   code: z.enum(['all-of', 'any-of', 'at-least', 'at-most', 'statistical', 'net-effect', 'dataset']),
   _code: ElementSchema.optional(),
   threshold: z.number().optional(),
   _threshold: ElementSchema.optional(),
-  characteristic: z.lazy(() => z.array(EvidenceVariableCharacteristicSchema)),
+  characteristic: (z.lazy(() => z.array(EvidenceVariableCharacteristicSchema)) as unknown as z.ZodArray<z.ZodTypeAny>),
 })
 export type EvidenceVariableCharacteristicDefinitionByCombination = z.infer<typeof EvidenceVariableCharacteristicDefinitionByCombinationSchema>
 
 /**
  * Timing in which the characteristic is determined
  */
-export const EvidenceVariableCharacteristicTimeFromEventSchema = BackboneElementSchema.extend({
+export const EvidenceVariableCharacteristicTimeFromEventSchema = _BackboneElementBase.extend({
   description: z.string().optional(),
   _description: ElementSchema.optional(),
   note: z.array(AnnotationSchema).optional(),
@@ -12901,21 +12787,21 @@ export interface EvidenceVariableCharacteristic extends BackboneElement {
 }
 
 export const EvidenceVariableCharacteristicSchema: z.ZodType<EvidenceVariableCharacteristic> = z.lazy(() =>
-  BackboneElementSchema.extend({
+  _BackboneElementBase.extend({
     linkId: z.string().optional(),
-      _linkId: ElementSchema.optional(),
+    _linkId: ElementSchema.optional(),
     description: z.string().optional(),
-      _description: ElementSchema.optional(),
+    _description: ElementSchema.optional(),
     note: z.array(AnnotationSchema).optional(),
     exclude: z.boolean().optional(),
-      _exclude: ElementSchema.optional(),
+    _exclude: ElementSchema.optional(),
     definitionReference: ReferenceSchema.optional(),
     definitionCanonical: z.string().optional(),
-      _definitionCanonical: ElementSchema.optional(),
+    _definitionCanonical: ElementSchema.optional(),
     definitionCodeableConcept: CodeableConceptSchema.optional(),
     definitionExpression: ExpressionSchema.optional(),
     definitionId: z.string().optional(),
-      _definitionId: ElementSchema.optional(),
+    _definitionId: ElementSchema.optional(),
     definitionByTypeAndValue: EvidenceVariableCharacteristicDefinitionByTypeAndValueSchema.optional(),
     definitionByCombination: EvidenceVariableCharacteristicDefinitionByCombinationSchema.optional(),
     instancesQuantity: QuantitySchema.optional(),
@@ -12929,7 +12815,7 @@ export const EvidenceVariableCharacteristicSchema: z.ZodType<EvidenceVariableCha
 /**
  * A grouping for ordinal or polychotomous variables
  */
-export const EvidenceVariableCategorySchema = BackboneElementSchema.extend({
+export const EvidenceVariableCategorySchema = _BackboneElementBase.extend({
   name: z.string().optional(),
   _name: ElementSchema.optional(),
   valueCodeableConcept: CodeableConceptSchema.optional(),
@@ -12996,15 +12882,6 @@ export const EvidenceVariableSchema = DomainResourceSchema.extend({
 export type EvidenceVariable = z.infer<typeof EvidenceVariableSchema>
 
 /**
- * instant Type: An instant in time - known at least to the second
- */
-export const instantSchema = PrimitiveTypeSchema.extend({
-  value: z.string().optional(),
-  _value: ElementSchema.optional(),
-})
-export type instant = z.infer<typeof instantSchema>
-
-/**
  * Links related to this Bundle
  * A series of links that provide context to this bundle.
  * Both Bundle.link and Bundle.entry.link are defined to support providing additional context when Bundles are used (e.g. [HATEOAS](http://en.wikipedia.org/wiki/HATEOAS)). 
@@ -13017,11 +12894,11 @@ export interface BundleLink extends BackboneElement {
 }
 
 export const BundleLinkSchema: z.ZodType<BundleLink> = z.lazy(() =>
-  BackboneElementSchema.extend({
+  _BackboneElementBase.extend({
     relation: z.enum(['about', 'acl', 'alternate', 'amphtml', 'appendix', 'apple-touch-icon', 'apple-touch-startup-image', 'archives', 'author', 'blocked-by', 'bookmark', 'canonical', 'chapter', 'cite-as', 'collection', 'contents', 'convertedFrom', 'copyright', 'create-form', 'current', 'describedby', 'describes', 'disclosure', 'dns-prefetch', 'duplicate', 'edit', 'edit-form', 'edit-media', 'enclosure', 'external', 'first', 'glossary', 'help', 'hosts', 'hub', 'icon', 'index', 'intervalAfter', 'intervalBefore', 'intervalContains', 'intervalDisjoint', 'intervalDuring', 'intervalEquals', 'intervalFinishedBy', 'intervalFinishes', 'intervalIn', 'intervalMeets', 'intervalMetBy', 'intervalOverlappedBy', 'intervalOverlaps', 'intervalStartedBy', 'intervalStarts', 'item', 'last', 'latest-version', 'license', 'linkset', 'lrdd', 'manifest', 'mask-icon', 'media-feed', 'memento', 'micropub', 'modulepreload', 'monitor', 'monitor-group', 'next', 'next-archive', 'nofollow', 'noopener', 'noreferrer', 'opener', 'openid2.local_id', 'openid2.provider', 'original', 'P3Pv1', 'payment', 'pingback', 'preconnect', 'predecessor-version', 'prefetch', 'preload', 'prerender', 'prev', 'preview', 'previous', 'prev-archive', 'privacy-policy', 'profile', 'publication', 'related', 'restconf', 'replies', 'ruleinput', 'search', 'section', 'self', 'service', 'service-desc', 'service-doc', 'service-meta', 'sponsored', 'start', 'status', 'stylesheet', 'subsection', 'successor-version', 'sunset', 'tag', 'terms-of-service', 'timegate', 'timemap', 'type', 'ugc', 'up', 'version-history', 'via', 'webmention', 'working-copy', 'working-copy-of']),
-      _relation: ElementSchema.optional(),
+    _relation: ElementSchema.optional(),
     url: z.string(),
-      _url: ElementSchema.optional(),
+    _url: ElementSchema.optional(),
   })
 )
 
@@ -13029,7 +12906,7 @@ export const BundleLinkSchema: z.ZodType<BundleLink> = z.lazy(() =>
  * Search related information
  * Information about the search process that lead to the creation of this entry.
  */
-export const BundleEntrySearchSchema = BackboneElementSchema.extend({
+export const BundleEntrySearchSchema = _BackboneElementBase.extend({
   mode: z.enum(['match', 'include', 'outcome']).optional(),
   _mode: ElementSchema.optional(),
   score: z.number().optional(),
@@ -13041,7 +12918,7 @@ export type BundleEntrySearch = z.infer<typeof BundleEntrySearchSchema>
  * Additional execution information (transaction/batch/history)
  * Additional information about how this entry should be processed as part of a transaction or batch.  For history, it shows how the entry was processed to create the version contained in the entry.
  */
-export const BundleEntryRequestSchema = BackboneElementSchema.extend({
+export const BundleEntryRequestSchema = _BackboneElementBase.extend({
   method: z.enum(['GET', 'HEAD', 'POST', 'PUT', 'DELETE', 'PATCH']),
   _method: ElementSchema.optional(),
   url: z.string(),
@@ -13061,7 +12938,7 @@ export type BundleEntryRequest = z.infer<typeof BundleEntryRequestSchema>
  * Results of execution (transaction/batch/history)
  * Indicates the results of processing the corresponding 'request' entry in the batch or transaction being responded to or what the results of an operation where when returning history.
  */
-export const BundleEntryResponseSchema = BackboneElementSchema.extend({
+export const BundleEntryResponseSchema = _BackboneElementBase.extend({
   status: z.string(),
   _status: ElementSchema.optional(),
   location: z.string().optional(),
@@ -13078,8 +12955,8 @@ export type BundleEntryResponse = z.infer<typeof BundleEntryResponseSchema>
  * Entry in the bundle - will have a resource or information
  * An entry in a bundle resource - will either contain a resource or information about a resource (transactions and history only).
  */
-export const BundleEntrySchema = BackboneElementSchema.extend({
-  link: z.lazy(() => z.array(BundleLinkSchema)).optional(),
+export const BundleEntrySchema = _BackboneElementBase.extend({
+  link: (z.lazy(() => z.array(BundleLinkSchema)) as unknown as z.ZodArray<z.ZodTypeAny>).optional(),
   fullUrl: z.string().optional(),
   _fullUrl: ElementSchema.optional(),
   resource: ResourceSchema.optional(),
@@ -13112,7 +12989,7 @@ export type Bundle = z.infer<typeof BundleSchema>
  * Resource(s) that are the subject of the event
  * Identifies the resource (or resources) that are being addressed by the event.  For example, the Encounter for an admit message or two Account records for a merge.
  */
-export const MessageDefinitionFocusSchema = BackboneElementSchema.extend({
+export const MessageDefinitionFocusSchema = _BackboneElementBase.extend({
   code: z.enum(['Account', 'ActivityDefinition', 'ActorDefinition', 'AdministrableProductDefinition', 'AdverseEvent', 'AllergyIntolerance', 'Appointment', 'AppointmentResponse', 'ArtifactAssessment', 'AuditEvent', 'Basic', 'Binary', 'BiologicallyDerivedProduct', 'BiologicallyDerivedProductDispense', 'BodyStructure', 'Bundle', 'CapabilityStatement', 'CarePlan', 'CareTeam', 'ChargeItem', 'ChargeItemDefinition', 'Citation', 'Claim', 'ClaimResponse', 'ClinicalImpression', 'ClinicalUseDefinition', 'CodeSystem', 'Communication', 'CommunicationRequest', 'CompartmentDefinition', 'Composition', 'ConceptMap', 'Condition', 'ConditionDefinition', 'Consent', 'Contract', 'Coverage', 'CoverageEligibilityRequest', 'CoverageEligibilityResponse', 'DetectedIssue', 'Device', 'DeviceAssociation', 'DeviceDefinition', 'DeviceDispense', 'DeviceMetric', 'DeviceRequest', 'DeviceUsage', 'DiagnosticReport', 'DocumentReference', 'Encounter', 'EncounterHistory', 'Endpoint', 'EnrollmentRequest', 'EnrollmentResponse', 'EpisodeOfCare', 'EventDefinition', 'Evidence', 'EvidenceReport', 'EvidenceVariable', 'ExampleScenario', 'ExplanationOfBenefit', 'FamilyMemberHistory', 'Flag', 'FormularyItem', 'GenomicStudy', 'Goal', 'GraphDefinition', 'Group', 'GuidanceResponse', 'HealthcareService', 'ImagingSelection', 'ImagingStudy', 'Immunization', 'ImmunizationEvaluation', 'ImmunizationRecommendation', 'ImplementationGuide', 'Ingredient', 'InsurancePlan', 'InventoryItem', 'InventoryReport', 'Invoice', 'Library', 'Linkage', 'List', 'Location', 'ManufacturedItemDefinition', 'Measure', 'MeasureReport', 'Medication', 'MedicationAdministration', 'MedicationDispense', 'MedicationKnowledge', 'MedicationRequest', 'MedicationStatement', 'MedicinalProductDefinition', 'MessageDefinition', 'MessageHeader', 'MolecularSequence', 'NamingSystem', 'NutritionIntake', 'NutritionOrder', 'NutritionProduct', 'Observation', 'ObservationDefinition', 'OperationDefinition', 'OperationOutcome', 'Organization', 'OrganizationAffiliation', 'PackagedProductDefinition', 'Parameters', 'Patient', 'PaymentNotice', 'PaymentReconciliation', 'Permission', 'Person', 'PlanDefinition', 'Practitioner', 'PractitionerRole', 'Procedure', 'Provenance', 'Questionnaire', 'QuestionnaireResponse', 'RegulatedAuthorization', 'RelatedPerson', 'RequestOrchestration', 'Requirements', 'ResearchStudy', 'ResearchSubject', 'RiskAssessment', 'Schedule', 'SearchParameter', 'ServiceRequest', 'Slot', 'Specimen', 'SpecimenDefinition', 'StructureDefinition', 'StructureMap', 'Subscription', 'SubscriptionStatus', 'SubscriptionTopic', 'Substance', 'SubstanceDefinition', 'SubstanceNucleicAcid', 'SubstancePolymer', 'SubstanceProtein', 'SubstanceReferenceInformation', 'SubstanceSourceMaterial', 'SupplyDelivery', 'SupplyRequest', 'Task', 'TerminologyCapabilities', 'TestPlan', 'TestReport', 'TestScript', 'Transport', 'ValueSet', 'VerificationResult', 'VisionPrescription']),
   _code: ElementSchema.optional(),
   profile: z.string().optional(),
@@ -13129,7 +13006,7 @@ export type MessageDefinitionFocus = z.infer<typeof MessageDefinitionFocusSchema
  * Indicates what types of messages may be sent as an application-level response to this message.
  * This indicates an application level response to "close" a transaction implicit in a particular request message.  To define a complete workflow scenario, look to the [[PlanDefinition]] resource which allows the definition of complex orchestrations, conditionality, etc.
  */
-export const MessageDefinitionAllowedResponseSchema = BackboneElementSchema.extend({
+export const MessageDefinitionAllowedResponseSchema = _BackboneElementBase.extend({
   message: z.string(),
   _message: ElementSchema.optional(),
   situation: z.string().optional(),
@@ -13197,7 +13074,7 @@ export type MessageDefinition = z.infer<typeof MessageDefinitionSchema>
  * Another Implementation guide this depends on
  * Another implementation guide that this implementation depends on. Typically, an implementation guide uses value sets, profiles etc.defined in other implementation guides.
  */
-export const ImplementationGuideDependsOnSchema = BackboneElementSchema.extend({
+export const ImplementationGuideDependsOnSchema = _BackboneElementBase.extend({
   uri: z.string(),
   _uri: ElementSchema.optional(),
   packageId: z.string().optional(),
@@ -13214,7 +13091,7 @@ export type ImplementationGuideDependsOn = z.infer<typeof ImplementationGuideDep
  * A set of profiles that all resources covered by this implementation guide must conform to.
  * See [Default Profiles](implementationguide.html#default) for a discussion of which resources are 'covered' by an implementation guide.
  */
-export const ImplementationGuideGlobalSchema = BackboneElementSchema.extend({
+export const ImplementationGuideGlobalSchema = _BackboneElementBase.extend({
   type: z.enum(['Account', 'ActivityDefinition', 'ActorDefinition', 'AdministrableProductDefinition', 'AdverseEvent', 'AllergyIntolerance', 'Appointment', 'AppointmentResponse', 'ArtifactAssessment', 'AuditEvent', 'Basic', 'Binary', 'BiologicallyDerivedProduct', 'BiologicallyDerivedProductDispense', 'BodyStructure', 'Bundle', 'CapabilityStatement', 'CarePlan', 'CareTeam', 'ChargeItem', 'ChargeItemDefinition', 'Citation', 'Claim', 'ClaimResponse', 'ClinicalImpression', 'ClinicalUseDefinition', 'CodeSystem', 'Communication', 'CommunicationRequest', 'CompartmentDefinition', 'Composition', 'ConceptMap', 'Condition', 'ConditionDefinition', 'Consent', 'Contract', 'Coverage', 'CoverageEligibilityRequest', 'CoverageEligibilityResponse', 'DetectedIssue', 'Device', 'DeviceAssociation', 'DeviceDefinition', 'DeviceDispense', 'DeviceMetric', 'DeviceRequest', 'DeviceUsage', 'DiagnosticReport', 'DocumentReference', 'Encounter', 'EncounterHistory', 'Endpoint', 'EnrollmentRequest', 'EnrollmentResponse', 'EpisodeOfCare', 'EventDefinition', 'Evidence', 'EvidenceReport', 'EvidenceVariable', 'ExampleScenario', 'ExplanationOfBenefit', 'FamilyMemberHistory', 'Flag', 'FormularyItem', 'GenomicStudy', 'Goal', 'GraphDefinition', 'Group', 'GuidanceResponse', 'HealthcareService', 'ImagingSelection', 'ImagingStudy', 'Immunization', 'ImmunizationEvaluation', 'ImmunizationRecommendation', 'ImplementationGuide', 'Ingredient', 'InsurancePlan', 'InventoryItem', 'InventoryReport', 'Invoice', 'Library', 'Linkage', 'List', 'Location', 'ManufacturedItemDefinition', 'Measure', 'MeasureReport', 'Medication', 'MedicationAdministration', 'MedicationDispense', 'MedicationKnowledge', 'MedicationRequest', 'MedicationStatement', 'MedicinalProductDefinition', 'MessageDefinition', 'MessageHeader', 'MolecularSequence', 'NamingSystem', 'NutritionIntake', 'NutritionOrder', 'NutritionProduct', 'Observation', 'ObservationDefinition', 'OperationDefinition', 'OperationOutcome', 'Organization', 'OrganizationAffiliation', 'PackagedProductDefinition', 'Parameters', 'Patient', 'PaymentNotice', 'PaymentReconciliation', 'Permission', 'Person', 'PlanDefinition', 'Practitioner', 'PractitionerRole', 'Procedure', 'Provenance', 'Questionnaire', 'QuestionnaireResponse', 'RegulatedAuthorization', 'RelatedPerson', 'RequestOrchestration', 'Requirements', 'ResearchStudy', 'ResearchSubject', 'RiskAssessment', 'Schedule', 'SearchParameter', 'ServiceRequest', 'Slot', 'Specimen', 'SpecimenDefinition', 'StructureDefinition', 'StructureMap', 'Subscription', 'SubscriptionStatus', 'SubscriptionTopic', 'Substance', 'SubstanceDefinition', 'SubstanceNucleicAcid', 'SubstancePolymer', 'SubstanceProtein', 'SubstanceReferenceInformation', 'SubstanceSourceMaterial', 'SupplyDelivery', 'SupplyRequest', 'Task', 'TerminologyCapabilities', 'TestPlan', 'TestReport', 'TestScript', 'Transport', 'ValueSet', 'VerificationResult', 'VisionPrescription']),
   _type: ElementSchema.optional(),
   profile: z.string(),
@@ -13227,7 +13104,7 @@ export type ImplementationGuideGlobal = z.infer<typeof ImplementationGuideGlobal
  * A logical group of resources. Logical groups can be used when building pages.
  * Groupings are arbitrary sub-divisions of content. Typically, they are used to help build Table of Contents automatically.
  */
-export const ImplementationGuideDefinitionGroupingSchema = BackboneElementSchema.extend({
+export const ImplementationGuideDefinitionGroupingSchema = _BackboneElementBase.extend({
   name: z.string(),
   _name: ElementSchema.optional(),
   description: z.string().optional(),
@@ -13239,7 +13116,7 @@ export type ImplementationGuideDefinitionGrouping = z.infer<typeof Implementatio
  * Resource in the implementation guide
  * A resource that is part of the implementation guide. Conformance resources (value set, structure definition, capability statements etc.) are obvious candidates for inclusion, but any kind of resource can be included as an example resource.
  */
-export const ImplementationGuideDefinitionResourceSchema = BackboneElementSchema.extend({
+export const ImplementationGuideDefinitionResourceSchema = _BackboneElementBase.extend({
   reference: ReferenceSchema,
   fhirVersion: z.array(z.enum(['0.01', '0.05', '0.06', '0.11', '0.0', '0.0.80', '0.0.81', '0.0.82', '0.4', '0.4.0', '0.5', '0.5.0', '1.0', '1.0.0', '1.0.1', '1.0.2', '1.1', '1.1.0', '1.4', '1.4.0', '1.6', '1.6.0', '1.8', '1.8.0', '3.0', '3.0.0', '3.0.1', '3.0.2', '3.3', '3.3.0', '3.5', '3.5.0', '4.0', '4.0.0', '4.0.1', '4.1', '4.1.0', '4.2', '4.2.0', '4.3', '4.3.0', '4.3.0-cibuild', '4.3.0-snapshot1', '4.4', '4.4.0', '4.5', '4.5.0', '4.6', '4.6.0', '5.0', '5.0.0', '5.0.0-cibuild', '5.0.0-snapshot1', '5.0.0-snapshot2', '5.0.0-ballot', '5.0.0-snapshot3', '5.0.0-draft-final'])).optional(),
   _fhirVersion: ElementSchema.optional(),
@@ -13278,20 +13155,20 @@ export interface ImplementationGuideDefinitionPage extends BackboneElement {
 }
 
 export const ImplementationGuideDefinitionPageSchema: z.ZodType<ImplementationGuideDefinitionPage> = z.lazy(() =>
-  BackboneElementSchema.extend({
+  _BackboneElementBase.extend({
     sourceUrl: z.string().optional(),
-      _sourceUrl: ElementSchema.optional(),
+    _sourceUrl: ElementSchema.optional(),
     sourceString: z.string().optional(),
-      _sourceString: ElementSchema.optional(),
+    _sourceString: ElementSchema.optional(),
     sourceMarkdown: z.string().optional(),
-      _sourceMarkdown: ElementSchema.optional(),
+    _sourceMarkdown: ElementSchema.optional(),
     name: z.string(),
-      _name: ElementSchema.optional(),
+    _name: ElementSchema.optional(),
     title: z.string(),
-      _title: ElementSchema.optional(),
+    _title: ElementSchema.optional(),
     generation: z.enum(['html', 'markdown', 'xml', 'generated']),
-      _generation: ElementSchema.optional(),
-    page: z.lazy(() => z.array(ImplementationGuideDefinitionPageSchema)).optional(),
+    _generation: ElementSchema.optional(),
+    page: (z.lazy(() => z.array(ImplementationGuideDefinitionPageSchema)) as unknown as z.ZodArray<z.ZodTypeAny>).optional(),
   })
 )
 
@@ -13300,7 +13177,7 @@ export const ImplementationGuideDefinitionPageSchema: z.ZodType<ImplementationGu
  * A set of parameters that defines how the implementation guide is built. The parameters are defined by the relevant tools that build the implementation guides.
  * see [confluence](https://confluence.hl7.org/display/FHIR/Implementation+Guide+Parameters) for the parameters defined by the HL7 IG publisher.
  */
-export const ImplementationGuideDefinitionParameterSchema = BackboneElementSchema.extend({
+export const ImplementationGuideDefinitionParameterSchema = _BackboneElementBase.extend({
   code: CodingSchema,
   value: z.string(),
   _value: ElementSchema.optional(),
@@ -13310,7 +13187,7 @@ export type ImplementationGuideDefinitionParameter = z.infer<typeof Implementati
 /**
  * A template for building resources
  */
-export const ImplementationGuideDefinitionTemplateSchema = BackboneElementSchema.extend({
+export const ImplementationGuideDefinitionTemplateSchema = _BackboneElementBase.extend({
   code: z.string(),
   _code: ElementSchema.optional(),
   source: z.string(),
@@ -13325,7 +13202,7 @@ export type ImplementationGuideDefinitionTemplate = z.infer<typeof Implementatio
  * The information needed by an IG publisher tool to publish the whole implementation guide.
  * Principally, this consists of information abuot source resource and file locations, and build parameters and templates.
  */
-export const ImplementationGuideDefinitionSchema = BackboneElementSchema.extend({
+export const ImplementationGuideDefinitionSchema = _BackboneElementBase.extend({
   grouping: z.array(ImplementationGuideDefinitionGroupingSchema).optional(),
   resource: z.array(ImplementationGuideDefinitionResourceSchema).optional(),
   page: ImplementationGuideDefinitionPageSchema.optional(),
@@ -13338,7 +13215,7 @@ export type ImplementationGuideDefinition = z.infer<typeof ImplementationGuideDe
  * Resource in the implementation guide
  * A resource that is part of the implementation guide. Conformance resources (value set, structure definition, capability statements etc.) are obvious candidates for inclusion, but any kind of resource can be included as an example resource.
  */
-export const ImplementationGuideManifestResourceSchema = BackboneElementSchema.extend({
+export const ImplementationGuideManifestResourceSchema = _BackboneElementBase.extend({
   reference: ReferenceSchema,
   isExample: z.boolean().optional(),
   _isExample: ElementSchema.optional(),
@@ -13353,7 +13230,7 @@ export type ImplementationGuideManifestResource = z.infer<typeof ImplementationG
  * HTML page within the parent IG
  * Information about a page within the IG.
  */
-export const ImplementationGuideManifestPageSchema = BackboneElementSchema.extend({
+export const ImplementationGuideManifestPageSchema = _BackboneElementBase.extend({
   name: z.string(),
   _name: ElementSchema.optional(),
   title: z.string().optional(),
@@ -13367,7 +13244,7 @@ export type ImplementationGuideManifestPage = z.infer<typeof ImplementationGuide
  * Information about an assembled IG
  * Information about an assembled implementation guide, created by the publication tooling.
  */
-export const ImplementationGuideManifestSchema = BackboneElementSchema.extend({
+export const ImplementationGuideManifestSchema = _BackboneElementBase.extend({
   rendering: z.string().optional(),
   _rendering: ElementSchema.optional(),
   resource: z.array(ImplementationGuideManifestResourceSchema),
@@ -13432,7 +13309,7 @@ export type ImplementationGuide = z.infer<typeof ImplementationGuideSchema>
  * Scheduling information for oral diets
  * Schedule information for an oral diet.
  */
-export const NutritionOrderOralDietScheduleSchema = BackboneElementSchema.extend({
+export const NutritionOrderOralDietScheduleSchema = _BackboneElementBase.extend({
   timing: z.array(TimingSchema).optional(),
   asNeeded: z.boolean().optional(),
   _asNeeded: ElementSchema.optional(),
@@ -13444,7 +13321,7 @@ export type NutritionOrderOralDietSchedule = z.infer<typeof NutritionOrderOralDi
  * Required  nutrient modifications
  * Class that defines the quantity and type of nutrient modifications (for example carbohydrate, fiber or sodium) required for the oral diet.
  */
-export const NutritionOrderOralDietNutrientSchema = BackboneElementSchema.extend({
+export const NutritionOrderOralDietNutrientSchema = _BackboneElementBase.extend({
   modifier: CodeableConceptSchema.optional(),
   amount: QuantitySchema.optional(),
 })
@@ -13454,7 +13331,7 @@ export type NutritionOrderOralDietNutrient = z.infer<typeof NutritionOrderOralDi
  * Required  texture modifications
  * Class that describes any texture modifications required for the patient to safely consume various types of solid foods.
  */
-export const NutritionOrderOralDietTextureSchema = BackboneElementSchema.extend({
+export const NutritionOrderOralDietTextureSchema = _BackboneElementBase.extend({
   modifier: CodeableConceptSchema.optional(),
   foodType: CodeableConceptSchema.optional(),
 })
@@ -13464,7 +13341,7 @@ export type NutritionOrderOralDietTexture = z.infer<typeof NutritionOrderOralDie
  * Oral diet components
  * Diet given orally in contrast to enteral (tube) feeding.
  */
-export const NutritionOrderOralDietSchema = BackboneElementSchema.extend({
+export const NutritionOrderOralDietSchema = _BackboneElementBase.extend({
   type: z.array(CodeableConceptSchema).optional(),
   schedule: NutritionOrderOralDietScheduleSchema.optional(),
   nutrient: z.array(NutritionOrderOralDietNutrientSchema).optional(),
@@ -13479,7 +13356,7 @@ export type NutritionOrderOralDiet = z.infer<typeof NutritionOrderOralDietSchema
  * Scheduling information for supplements
  * Schedule information for a supplement.
  */
-export const NutritionOrderSupplementScheduleSchema = BackboneElementSchema.extend({
+export const NutritionOrderSupplementScheduleSchema = _BackboneElementBase.extend({
   timing: z.array(TimingSchema).optional(),
   asNeeded: z.boolean().optional(),
   _asNeeded: ElementSchema.optional(),
@@ -13491,7 +13368,7 @@ export type NutritionOrderSupplementSchedule = z.infer<typeof NutritionOrderSupp
  * Supplement components
  * Oral nutritional products given in order to add further nutritional value to the patient's diet.
  */
-export const NutritionOrderSupplementSchema = BackboneElementSchema.extend({
+export const NutritionOrderSupplementSchema = _BackboneElementBase.extend({
   type: CodeableReferenceSchema.optional(),
   productName: z.string().optional(),
   _productName: ElementSchema.optional(),
@@ -13506,7 +13383,7 @@ export type NutritionOrderSupplement = z.infer<typeof NutritionOrderSupplementSc
  * Components to add to the feeding
  * Indicates modular components to be provided in addition or mixed with the base formula.
  */
-export const NutritionOrderEnteralFormulaAdditiveSchema = BackboneElementSchema.extend({
+export const NutritionOrderEnteralFormulaAdditiveSchema = _BackboneElementBase.extend({
   type: CodeableReferenceSchema.optional(),
   productName: z.string().optional(),
   _productName: ElementSchema.optional(),
@@ -13518,7 +13395,7 @@ export type NutritionOrderEnteralFormulaAdditive = z.infer<typeof NutritionOrder
  * Scheduling information for enteral formula products
  * Schedule information for an enteral formula.
  */
-export const NutritionOrderEnteralFormulaAdministrationScheduleSchema = BackboneElementSchema.extend({
+export const NutritionOrderEnteralFormulaAdministrationScheduleSchema = _BackboneElementBase.extend({
   timing: z.array(TimingSchema).optional(),
   asNeeded: z.boolean().optional(),
   _asNeeded: ElementSchema.optional(),
@@ -13531,7 +13408,7 @@ export type NutritionOrderEnteralFormulaAdministrationSchedule = z.infer<typeof 
  * Formula administration instructions as structured data.  This repeating structure allows for changing the administration rate or volume over time for both bolus and continuous feeding.  An example of this would be an instruction to increase the rate of continuous feeding every 2 hours.
  * See implementation notes below for further discussion on how to order continuous vs bolus enteral feeding using this resource.
  */
-export const NutritionOrderEnteralFormulaAdministrationSchema = BackboneElementSchema.extend({
+export const NutritionOrderEnteralFormulaAdministrationSchema = _BackboneElementBase.extend({
   schedule: NutritionOrderEnteralFormulaAdministrationScheduleSchema.optional(),
   quantity: QuantitySchema.optional(),
   rateQuantity: QuantitySchema.optional(),
@@ -13543,7 +13420,7 @@ export type NutritionOrderEnteralFormulaAdministration = z.infer<typeof Nutritio
  * Enteral formula components
  * Feeding provided through the gastrointestinal tract via a tube, catheter, or stoma that delivers nutrition distal to the oral cavity.
  */
-export const NutritionOrderEnteralFormulaSchema = BackboneElementSchema.extend({
+export const NutritionOrderEnteralFormulaSchema = _BackboneElementBase.extend({
   baseFormulaType: CodeableReferenceSchema.optional(),
   baseFormulaProductName: z.string().optional(),
   _baseFormulaProductName: ElementSchema.optional(),
@@ -13621,7 +13498,7 @@ export type EnrollmentResponse = z.infer<typeof EnrollmentResponseSchema>
  * Event information
  * Information code for an event with a corresponding date or period.
  */
-export const CoverageEligibilityRequestEventSchema = BackboneElementSchema.extend({
+export const CoverageEligibilityRequestEventSchema = _BackboneElementBase.extend({
   type: CodeableConceptSchema,
   whenDateTime: z.string().optional(),
   _whenDateTime: ElementSchema.optional(),
@@ -13634,7 +13511,7 @@ export type CoverageEligibilityRequestEvent = z.infer<typeof CoverageEligibility
  * Additional information codes regarding exceptions, special considerations, the condition, situation, prior or concurrent issues.
  * Often there are multiple jurisdiction specific valuesets which are required.
  */
-export const CoverageEligibilityRequestSupportingInfoSchema = BackboneElementSchema.extend({
+export const CoverageEligibilityRequestSupportingInfoSchema = _BackboneElementBase.extend({
   sequence: z.number(),
   _sequence: ElementSchema.optional(),
   information: ReferenceSchema,
@@ -13648,7 +13525,7 @@ export type CoverageEligibilityRequestSupportingInfo = z.infer<typeof CoverageEl
  * Financial instruments for reimbursement for the health care products and services.
  * All insurance coverages for the patient which may be applicable for reimbursement, of the products and services listed in the claim, are typically provided in the claim to allow insurers to confirm the ordering of the insurance coverages relative to local 'coordination of benefit' rules. One coverage (and only one) with 'focal=true' is to be used in the adjudication of this claim. Coverages appearing before the focal Coverage in the list, and where 'subrogation=false', should provide a reference to the ClaimResponse containing the adjudication results of the prior claim.
  */
-export const CoverageEligibilityRequestInsuranceSchema = BackboneElementSchema.extend({
+export const CoverageEligibilityRequestInsuranceSchema = _BackboneElementBase.extend({
   focal: z.boolean().optional(),
   _focal: ElementSchema.optional(),
   coverage: ReferenceSchema,
@@ -13661,7 +13538,7 @@ export type CoverageEligibilityRequestInsurance = z.infer<typeof CoverageEligibi
  * Applicable diagnosis
  * Patient diagnosis for which care is sought.
  */
-export const CoverageEligibilityRequestItemDiagnosisSchema = BackboneElementSchema.extend({
+export const CoverageEligibilityRequestItemDiagnosisSchema = _BackboneElementBase.extend({
   diagnosisCodeableConcept: CodeableConceptSchema.optional(),
   diagnosisReference: ReferenceSchema.optional(),
 })
@@ -13671,7 +13548,7 @@ export type CoverageEligibilityRequestItemDiagnosis = z.infer<typeof CoverageEli
  * Item to be evaluated for eligibiity
  * Service categories or billable services for which benefit details and/or an authorization prior to service delivery may be required by the payor.
  */
-export const CoverageEligibilityRequestItemSchema = BackboneElementSchema.extend({
+export const CoverageEligibilityRequestItemSchema = _BackboneElementBase.extend({
   supportingInfoSequence: z.array(z.number()).optional(),
   _supportingInfoSequence: ElementSchema.optional(),
   category: CodeableConceptSchema.optional(),
@@ -13731,7 +13608,7 @@ export type FormularyItem = z.infer<typeof FormularyItemSchema>
  * A filter that can be used in a value set compose statement when selecting concepts using a filter.
  * Note that filters defined in code systems usually require custom code on the part of any terminology engine that will make them available for use in value set filters. For this reason, they are generally only seen in high value published terminologies.
  */
-export const CodeSystemFilterSchema = BackboneElementSchema.extend({
+export const CodeSystemFilterSchema = _BackboneElementBase.extend({
   code: z.string(),
   _code: ElementSchema.optional(),
   description: z.string().optional(),
@@ -13748,7 +13625,7 @@ export type CodeSystemFilter = z.infer<typeof CodeSystemFilterSchema>
  * A property defines an additional slot through which additional information can be provided about a concept.
  * Multiple occurrences of CodeSystem.concept.property may occur for a CodeSystem.property where     CodeSystem.concept.property.code is the same and CodeSystem.concept.property.value differs. For example: multiple designations for a single concept.
  */
-export const CodeSystemPropertySchema = BackboneElementSchema.extend({
+export const CodeSystemPropertySchema = _BackboneElementBase.extend({
   code: z.string(),
   _code: ElementSchema.optional(),
   uri: z.string().optional(),
@@ -13765,7 +13642,7 @@ export type CodeSystemProperty = z.infer<typeof CodeSystemPropertySchema>
  * Additional representations for the concept - other languages, aliases, specialized purposes, used for particular purposes, etc.
  * Concepts have both a ```display``` and an array of ```designation```. The display is equivalent to a special designation with an implied ```designation.use``` of "primary code" and a language equal to the [Resource Language](resource.html#language).
  */
-export const CodeSystemConceptDesignationSchema = BackboneElementSchema.extend({
+export const CodeSystemConceptDesignationSchema = _BackboneElementBase.extend({
   language: z.string().optional(),
   _language: ElementSchema.optional(),
   use: CodingSchema.optional(),
@@ -13779,7 +13656,7 @@ export type CodeSystemConceptDesignation = z.infer<typeof CodeSystemConceptDesig
  * Property value for the concept
  * A property value for this concept.
  */
-export const CodeSystemConceptPropertySchema = BackboneElementSchema.extend({
+export const CodeSystemConceptPropertySchema = _BackboneElementBase.extend({
   code: z.string(),
   _code: ElementSchema.optional(),
   valueCode: z.string().optional(),
@@ -13816,16 +13693,16 @@ export interface CodeSystemConcept extends BackboneElement {
 }
 
 export const CodeSystemConceptSchema: z.ZodType<CodeSystemConcept> = z.lazy(() =>
-  BackboneElementSchema.extend({
+  _BackboneElementBase.extend({
     code: z.string(),
-      _code: ElementSchema.optional(),
+    _code: ElementSchema.optional(),
     display: z.string().optional(),
-      _display: ElementSchema.optional(),
+    _display: ElementSchema.optional(),
     definition: z.string().optional(),
-      _definition: ElementSchema.optional(),
+    _definition: ElementSchema.optional(),
     designation: z.array(CodeSystemConceptDesignationSchema).optional(),
     property: z.array(CodeSystemConceptPropertySchema).optional(),
-    concept: z.lazy(() => z.array(CodeSystemConceptSchema)).optional(),
+    concept: (z.lazy(() => z.array(CodeSystemConceptSchema)) as unknown as z.ZodArray<z.ZodTypeAny>).optional(),
   })
 )
 
@@ -13903,7 +13780,7 @@ export type CodeSystem = z.infer<typeof CodeSystemSchema>
  * Indicates the quantity or duration for the first dispense of the medication.
  * If populating this element, either the quantity or the duration must be included.
  */
-export const MedicationRequestDispenseRequestInitialFillSchema = BackboneElementSchema.extend({
+export const MedicationRequestDispenseRequestInitialFillSchema = _BackboneElementBase.extend({
   quantity: QuantitySchema.optional(),
   duration: DurationSchema.optional(),
 })
@@ -13913,7 +13790,7 @@ export type MedicationRequestDispenseRequestInitialFill = z.infer<typeof Medicat
  * Medication supply authorization
  * Indicates the specific details for the dispense or medication supply part of a medication request (also known as a Medication Prescription or Medication Order).  Note that this information is not always sent with the order.  There may be in some settings (e.g. hospitals) institutional or system support for completing the dispense details in the pharmacy department.
  */
-export const MedicationRequestDispenseRequestSchema = BackboneElementSchema.extend({
+export const MedicationRequestDispenseRequestSchema = _BackboneElementBase.extend({
   initialFill: MedicationRequestDispenseRequestInitialFillSchema.optional(),
   dispenseInterval: DurationSchema.optional(),
   validityPeriod: PeriodSchema.optional(),
@@ -13931,7 +13808,7 @@ export type MedicationRequestDispenseRequest = z.infer<typeof MedicationRequestD
  * Any restrictions on medication substitution
  * Indicates whether or not substitution can or should be part of the dispense. In some cases, substitution must happen, in other cases substitution must not happen. This block explains the prescriber's intent. If nothing is specified substitution may be done.
  */
-export const MedicationRequestSubstitutionSchema = BackboneElementSchema.extend({
+export const MedicationRequestSubstitutionSchema = _BackboneElementBase.extend({
   allowedBoolean: z.boolean().optional(),
   _allowedBoolean: ElementSchema.optional(),
   allowedCodeableConcept: CodeableConceptSchema.optional(),
@@ -13992,7 +13869,7 @@ export type MedicationRequest = z.infer<typeof MedicationRequestSchema>
  * Dates governing proposed immunization
  * Vaccine date recommendations.  For example, earliest date to administer, latest date to administer, etc.
  */
-export const ImmunizationRecommendationRecommendationDateCriterionSchema = BackboneElementSchema.extend({
+export const ImmunizationRecommendationRecommendationDateCriterionSchema = _BackboneElementBase.extend({
   code: CodeableConceptSchema,
   value: z.string(),
   _value: ElementSchema.optional(),
@@ -14003,7 +13880,7 @@ export type ImmunizationRecommendationRecommendationDateCriterion = z.infer<type
  * Vaccine administration recommendations
  * A given instance of the .recommendation backbone element should correspond to a single recommended administration.
  */
-export const ImmunizationRecommendationRecommendationSchema = BackboneElementSchema.extend({
+export const ImmunizationRecommendationRecommendationSchema = _BackboneElementBase.extend({
   vaccineCode: z.array(CodeableConceptSchema).optional(),
   targetDisease: z.array(CodeableConceptSchema).optional(),
   contraindicatedVaccineCode: z.array(CodeableConceptSchema).optional(),
@@ -14065,7 +13942,7 @@ export type Slot = z.infer<typeof SlotSchema>
  * How a resource is related to the compartment
  * Information about how a resource is related to the compartment.
  */
-export const CompartmentDefinitionResourceSchema = BackboneElementSchema.extend({
+export const CompartmentDefinitionResourceSchema = _BackboneElementBase.extend({
   code: z.enum(['Account', 'ActivityDefinition', 'ActorDefinition', 'AdministrableProductDefinition', 'AdverseEvent', 'AllergyIntolerance', 'Appointment', 'AppointmentResponse', 'ArtifactAssessment', 'AuditEvent', 'Basic', 'Binary', 'BiologicallyDerivedProduct', 'BiologicallyDerivedProductDispense', 'BodyStructure', 'Bundle', 'CapabilityStatement', 'CarePlan', 'CareTeam', 'ChargeItem', 'ChargeItemDefinition', 'Citation', 'Claim', 'ClaimResponse', 'ClinicalImpression', 'ClinicalUseDefinition', 'CodeSystem', 'Communication', 'CommunicationRequest', 'CompartmentDefinition', 'Composition', 'ConceptMap', 'Condition', 'ConditionDefinition', 'Consent', 'Contract', 'Coverage', 'CoverageEligibilityRequest', 'CoverageEligibilityResponse', 'DetectedIssue', 'Device', 'DeviceAssociation', 'DeviceDefinition', 'DeviceDispense', 'DeviceMetric', 'DeviceRequest', 'DeviceUsage', 'DiagnosticReport', 'DocumentReference', 'Encounter', 'EncounterHistory', 'Endpoint', 'EnrollmentRequest', 'EnrollmentResponse', 'EpisodeOfCare', 'EventDefinition', 'Evidence', 'EvidenceReport', 'EvidenceVariable', 'ExampleScenario', 'ExplanationOfBenefit', 'FamilyMemberHistory', 'Flag', 'FormularyItem', 'GenomicStudy', 'Goal', 'GraphDefinition', 'Group', 'GuidanceResponse', 'HealthcareService', 'ImagingSelection', 'ImagingStudy', 'Immunization', 'ImmunizationEvaluation', 'ImmunizationRecommendation', 'ImplementationGuide', 'Ingredient', 'InsurancePlan', 'InventoryItem', 'InventoryReport', 'Invoice', 'Library', 'Linkage', 'List', 'Location', 'ManufacturedItemDefinition', 'Measure', 'MeasureReport', 'Medication', 'MedicationAdministration', 'MedicationDispense', 'MedicationKnowledge', 'MedicationRequest', 'MedicationStatement', 'MedicinalProductDefinition', 'MessageDefinition', 'MessageHeader', 'MolecularSequence', 'NamingSystem', 'NutritionIntake', 'NutritionOrder', 'NutritionProduct', 'Observation', 'ObservationDefinition', 'OperationDefinition', 'OperationOutcome', 'Organization', 'OrganizationAffiliation', 'PackagedProductDefinition', 'Parameters', 'Patient', 'PaymentNotice', 'PaymentReconciliation', 'Permission', 'Person', 'PlanDefinition', 'Practitioner', 'PractitionerRole', 'Procedure', 'Provenance', 'Questionnaire', 'QuestionnaireResponse', 'RegulatedAuthorization', 'RelatedPerson', 'RequestOrchestration', 'Requirements', 'ResearchStudy', 'ResearchSubject', 'RiskAssessment', 'Schedule', 'SearchParameter', 'ServiceRequest', 'Slot', 'Specimen', 'SpecimenDefinition', 'StructureDefinition', 'StructureMap', 'Subscription', 'SubscriptionStatus', 'SubscriptionTopic', 'Substance', 'SubstanceDefinition', 'SubstanceNucleicAcid', 'SubstancePolymer', 'SubstanceProtein', 'SubstanceReferenceInformation', 'SubstanceSourceMaterial', 'SupplyDelivery', 'SupplyRequest', 'Task', 'TerminologyCapabilities', 'TestPlan', 'TestReport', 'TestScript', 'Transport', 'ValueSet', 'VerificationResult', 'VisionPrescription']),
   _code: ElementSchema.optional(),
   param: z.array(z.string()).optional(),
@@ -14121,7 +13998,7 @@ export type CompartmentDefinition = z.infer<typeof CompartmentDefinitionSchema>
  * Self-pay parties and responsibility
  * Link to the paying party and optionally what specifically they will be responsible to pay.
  */
-export const CoveragePaymentBySchema = BackboneElementSchema.extend({
+export const CoveragePaymentBySchema = _BackboneElementBase.extend({
   party: ReferenceSchema,
   responsibility: z.string().optional(),
   _responsibility: ElementSchema.optional(),
@@ -14133,7 +14010,7 @@ export type CoveragePaymentBy = z.infer<typeof CoveragePaymentBySchema>
  * A suite of underwriter specific classifiers.
  * For example, class may be used to identify a class of coverage or employer group, policy, or plan.
  */
-export const CoverageClassSchema = BackboneElementSchema.extend({
+export const CoverageClassSchema = _BackboneElementBase.extend({
   type: CodeableConceptSchema,
   value: IdentifierSchema,
   name: z.string().optional(),
@@ -14145,7 +14022,7 @@ export type CoverageClass = z.infer<typeof CoverageClassSchema>
  * Exceptions for patient payments
  * A suite of codes indicating exceptions or reductions to patient costs and their effective periods.
  */
-export const CoverageCostToBeneficiaryExceptionSchema = BackboneElementSchema.extend({
+export const CoverageCostToBeneficiaryExceptionSchema = _BackboneElementBase.extend({
   type: CodeableConceptSchema,
   period: PeriodSchema.optional(),
 })
@@ -14156,7 +14033,7 @@ export type CoverageCostToBeneficiaryException = z.infer<typeof CoverageCostToBe
  * A suite of codes indicating the cost category and associated amount which have been detailed in the policy and may have been  included on the health card.
  * For example by knowing the patient visit co-pay, the provider can collect the amount prior to undertaking treatment.
  */
-export const CoverageCostToBeneficiarySchema = BackboneElementSchema.extend({
+export const CoverageCostToBeneficiarySchema = _BackboneElementBase.extend({
   type: CodeableConceptSchema.optional(),
   category: CodeableConceptSchema.optional(),
   network: CodeableConceptSchema.optional(),
@@ -14206,7 +14083,7 @@ export type Coverage = z.infer<typeof CoverageSchema>
  * Settlement particulars
  * Distribution of the payment amount for a previously acknowledged payable.
  */
-export const PaymentReconciliationAllocationSchema = BackboneElementSchema.extend({
+export const PaymentReconciliationAllocationSchema = _BackboneElementBase.extend({
   identifier: IdentifierSchema.optional(),
   predecessor: IdentifierSchema.optional(),
   target: ReferenceSchema.optional(),
@@ -14232,7 +14109,7 @@ export type PaymentReconciliationAllocation = z.infer<typeof PaymentReconciliati
  * Note concerning processing
  * A note that describes or explains the processing in a human readable form.
  */
-export const PaymentReconciliationProcessNoteSchema = BackboneElementSchema.extend({
+export const PaymentReconciliationProcessNoteSchema = _BackboneElementBase.extend({
   type: z.enum(['display', 'print', 'printoper']).optional(),
   _type: ElementSchema.optional(),
   text: z.string().optional(),
@@ -14292,7 +14169,7 @@ export type PaymentReconciliation = z.infer<typeof PaymentReconciliationSchema>
  * Associated or related medication information
  * Associated or related medications. For example, if the medication is a branded product (e.g. Crestor), this is the Therapeutic Moeity (e.g. Rosuvastatin) or if this is a generic medication (e.g. Rosuvastatin), this would link to a branded product (e.g. Crestor.
  */
-export const MedicationKnowledgeRelatedMedicationKnowledgeSchema = BackboneElementSchema.extend({
+export const MedicationKnowledgeRelatedMedicationKnowledgeSchema = _BackboneElementBase.extend({
   type: CodeableConceptSchema,
   reference: z.array(ReferenceSchema),
 })
@@ -14301,7 +14178,7 @@ export type MedicationKnowledgeRelatedMedicationKnowledge = z.infer<typeof Medic
 /**
  * Associated documentation about the medication
  */
-export const MedicationKnowledgeMonographSchema = BackboneElementSchema.extend({
+export const MedicationKnowledgeMonographSchema = _BackboneElementBase.extend({
   type: CodeableConceptSchema.optional(),
   source: ReferenceSchema.optional(),
 })
@@ -14321,11 +14198,11 @@ export interface MedicationKnowledgeCost extends BackboneElement {
 }
 
 export const MedicationKnowledgeCostSchema: z.ZodType<MedicationKnowledgeCost> = z.lazy(() =>
-  BackboneElementSchema.extend({
+  _BackboneElementBase.extend({
     effectiveDate: z.array(PeriodSchema).optional(),
     type: CodeableConceptSchema,
     source: z.string().optional(),
-      _source: ElementSchema.optional(),
+    _source: ElementSchema.optional(),
     costMoney: MoneySchema.optional(),
     costCodeableConcept: CodeableConceptSchema.optional(),
   })
@@ -14335,7 +14212,7 @@ export const MedicationKnowledgeCostSchema: z.ZodType<MedicationKnowledgeCost> =
  * Program under which a medication is reviewed
  * The program under which the medication is reviewed.
  */
-export const MedicationKnowledgeMonitoringProgramSchema = BackboneElementSchema.extend({
+export const MedicationKnowledgeMonitoringProgramSchema = _BackboneElementBase.extend({
   type: CodeableConceptSchema.optional(),
   name: z.string().optional(),
   _name: ElementSchema.optional(),
@@ -14345,7 +14222,7 @@ export type MedicationKnowledgeMonitoringProgram = z.infer<typeof MedicationKnow
 /**
  * Dosage for the medication for the specific guidelines
  */
-export const MedicationKnowledgeIndicationGuidelineDosingGuidelineDosageSchema = BackboneElementSchema.extend({
+export const MedicationKnowledgeIndicationGuidelineDosingGuidelineDosageSchema = _BackboneElementBase.extend({
   type: CodeableConceptSchema,
   dosage: z.array(DosageSchema),
 })
@@ -14355,7 +14232,7 @@ export type MedicationKnowledgeIndicationGuidelineDosingGuidelineDosage = z.infe
  * Characteristics of the patient that are relevant to the administration guidelines
  * Characteristics of the patient that are relevant to the administration guidelines (for example, height, weight, gender, etc.).
  */
-export const MedicationKnowledgeIndicationGuidelineDosingGuidelinePatientCharacteristicSchema = BackboneElementSchema.extend({
+export const MedicationKnowledgeIndicationGuidelineDosingGuidelinePatientCharacteristicSchema = _BackboneElementBase.extend({
   type: CodeableConceptSchema,
   valueCodeableConcept: CodeableConceptSchema.optional(),
   valueQuantity: QuantitySchema.optional(),
@@ -14367,7 +14244,7 @@ export type MedicationKnowledgeIndicationGuidelineDosingGuidelinePatientCharacte
  * Guidelines for dosage of the medication
  * The guidelines for the dosage of the medication for the indication.
  */
-export const MedicationKnowledgeIndicationGuidelineDosingGuidelineSchema = BackboneElementSchema.extend({
+export const MedicationKnowledgeIndicationGuidelineDosingGuidelineSchema = _BackboneElementBase.extend({
   treatmentIntent: CodeableConceptSchema.optional(),
   dosage: z.array(MedicationKnowledgeIndicationGuidelineDosingGuidelineDosageSchema).optional(),
   administrationTreatment: CodeableConceptSchema.optional(),
@@ -14379,7 +14256,7 @@ export type MedicationKnowledgeIndicationGuidelineDosingGuideline = z.infer<type
  * Guidelines or protocols for administration of the medication for an indication
  * Guidelines or protocols that are applicable for the administration of the medication based on indication.
  */
-export const MedicationKnowledgeIndicationGuidelineSchema = BackboneElementSchema.extend({
+export const MedicationKnowledgeIndicationGuidelineSchema = _BackboneElementBase.extend({
   indication: z.array(CodeableReferenceSchema).optional(),
   dosingGuideline: z.array(MedicationKnowledgeIndicationGuidelineDosingGuidelineSchema).optional(),
 })
@@ -14388,7 +14265,7 @@ export type MedicationKnowledgeIndicationGuideline = z.infer<typeof MedicationKn
 /**
  * Categorization of the medication within a formulary or classification system
  */
-export const MedicationKnowledgeMedicineClassificationSchema = BackboneElementSchema.extend({
+export const MedicationKnowledgeMedicineClassificationSchema = _BackboneElementBase.extend({
   type: CodeableConceptSchema,
   sourceString: z.string().optional(),
   _sourceString: ElementSchema.optional(),
@@ -14402,8 +14279,8 @@ export type MedicationKnowledgeMedicineClassification = z.infer<typeof Medicatio
  * Details about packaged medications
  * Information that only applies to packages (not products).
  */
-export const MedicationKnowledgePackagingSchema = BackboneElementSchema.extend({
-  cost: z.lazy(() => z.array(MedicationKnowledgeCostSchema)).optional(),
+export const MedicationKnowledgePackagingSchema = _BackboneElementBase.extend({
+  cost: (z.lazy(() => z.array(MedicationKnowledgeCostSchema)) as unknown as z.ZodArray<z.ZodTypeAny>).optional(),
   packagedProduct: ReferenceSchema.optional(),
 })
 export type MedicationKnowledgePackaging = z.infer<typeof MedicationKnowledgePackagingSchema>
@@ -14412,7 +14289,7 @@ export type MedicationKnowledgePackaging = z.infer<typeof MedicationKnowledgePac
  * Setting or value of environment for adequate storage
  * Describes a setting/value on the environment for the adequate storage of the medication and other substances.  Environment settings may involve temperature, humidity, or exposure to light.
  */
-export const MedicationKnowledgeStorageGuidelineEnvironmentalSettingSchema = BackboneElementSchema.extend({
+export const MedicationKnowledgeStorageGuidelineEnvironmentalSettingSchema = _BackboneElementBase.extend({
   type: CodeableConceptSchema,
   valueQuantity: QuantitySchema.optional(),
   valueRange: RangeSchema.optional(),
@@ -14424,7 +14301,7 @@ export type MedicationKnowledgeStorageGuidelineEnvironmentalSetting = z.infer<ty
  * How the medication should be stored
  * Information on how the medication should be stored, for example, refrigeration temperatures and length of stability at a given temperature.
  */
-export const MedicationKnowledgeStorageGuidelineSchema = BackboneElementSchema.extend({
+export const MedicationKnowledgeStorageGuidelineSchema = _BackboneElementBase.extend({
   reference: z.string().optional(),
   _reference: ElementSchema.optional(),
   note: z.array(AnnotationSchema).optional(),
@@ -14436,7 +14313,7 @@ export type MedicationKnowledgeStorageGuideline = z.infer<typeof MedicationKnowl
 /**
  * Specifies if changes are allowed when dispensing a medication from a regulatory perspective
  */
-export const MedicationKnowledgeRegulatorySubstitutionSchema = BackboneElementSchema.extend({
+export const MedicationKnowledgeRegulatorySubstitutionSchema = _BackboneElementBase.extend({
   type: CodeableConceptSchema,
   allowed: z.boolean(),
   _allowed: ElementSchema.optional(),
@@ -14446,7 +14323,7 @@ export type MedicationKnowledgeRegulatorySubstitution = z.infer<typeof Medicatio
 /**
  * The maximum number of units of the medication that can be dispensed in a period
  */
-export const MedicationKnowledgeRegulatoryMaxDispenseSchema = BackboneElementSchema.extend({
+export const MedicationKnowledgeRegulatoryMaxDispenseSchema = _BackboneElementBase.extend({
   quantity: QuantitySchema,
   period: DurationSchema.optional(),
 })
@@ -14455,7 +14332,7 @@ export type MedicationKnowledgeRegulatoryMaxDispense = z.infer<typeof Medication
 /**
  * Regulatory information about a medication
  */
-export const MedicationKnowledgeRegulatorySchema = BackboneElementSchema.extend({
+export const MedicationKnowledgeRegulatorySchema = _BackboneElementBase.extend({
   regulatoryAuthority: ReferenceSchema,
   substitution: z.array(MedicationKnowledgeRegulatorySubstitutionSchema).optional(),
   schedule: z.array(CodeableConceptSchema).optional(),
@@ -14467,7 +14344,7 @@ export type MedicationKnowledgeRegulatory = z.infer<typeof MedicationKnowledgeRe
  * Active or inactive ingredient
  * Identifies a particular constituent of interest in the product.
  */
-export const MedicationKnowledgeDefinitionalIngredientSchema = BackboneElementSchema.extend({
+export const MedicationKnowledgeDefinitionalIngredientSchema = _BackboneElementBase.extend({
   item: CodeableReferenceSchema,
   type: CodeableConceptSchema.optional(),
   strengthRatio: RatioSchema.optional(),
@@ -14480,7 +14357,7 @@ export type MedicationKnowledgeDefinitionalIngredient = z.infer<typeof Medicatio
  * Specifies descriptive properties of the medicine
  * Specifies descriptive properties of the medicine, such as color, shape, imprints, etc.
  */
-export const MedicationKnowledgeDefinitionalDrugCharacteristicSchema = BackboneElementSchema.extend({
+export const MedicationKnowledgeDefinitionalDrugCharacteristicSchema = _BackboneElementBase.extend({
   type: CodeableConceptSchema.optional(),
   valueCodeableConcept: CodeableConceptSchema.optional(),
   valueString: z.string().optional(),
@@ -14496,7 +14373,7 @@ export type MedicationKnowledgeDefinitionalDrugCharacteristic = z.infer<typeof M
  * Minimal definition information about the medication
  * Along with the link to a Medicinal Product Definition resource, this information provides common definitional elements that are needed to understand the specific medication that is being described.
  */
-export const MedicationKnowledgeDefinitionalSchema = BackboneElementSchema.extend({
+export const MedicationKnowledgeDefinitionalSchema = _BackboneElementBase.extend({
   definition: z.array(ReferenceSchema).optional(),
   doseForm: CodeableConceptSchema.optional(),
   intendedRoute: z.array(CodeableConceptSchema).optional(),
@@ -14539,7 +14416,7 @@ export type MedicationKnowledge = z.infer<typeof MedicationKnowledgeSchema>
 /**
  * Todo
  */
-export const SubstanceReferenceInformationGeneSchema = BackboneElementSchema.extend({
+export const SubstanceReferenceInformationGeneSchema = _BackboneElementBase.extend({
   geneSequenceOrigin: CodeableConceptSchema.optional(),
   gene: CodeableConceptSchema.optional(),
   source: z.array(ReferenceSchema).optional(),
@@ -14549,7 +14426,7 @@ export type SubstanceReferenceInformationGene = z.infer<typeof SubstanceReferenc
 /**
  * Todo
  */
-export const SubstanceReferenceInformationGeneElementSchema = BackboneElementSchema.extend({
+export const SubstanceReferenceInformationGeneElementSchema = _BackboneElementBase.extend({
   type: CodeableConceptSchema.optional(),
   element: IdentifierSchema.optional(),
   source: z.array(ReferenceSchema).optional(),
@@ -14559,7 +14436,7 @@ export type SubstanceReferenceInformationGeneElement = z.infer<typeof SubstanceR
 /**
  * Todo
  */
-export const SubstanceReferenceInformationTargetSchema = BackboneElementSchema.extend({
+export const SubstanceReferenceInformationTargetSchema = _BackboneElementBase.extend({
   target: IdentifierSchema.optional(),
   type: CodeableConceptSchema.optional(),
   interaction: CodeableConceptSchema.optional(),
@@ -14618,7 +14495,7 @@ export type ImmunizationEvaluation = z.infer<typeof ImmunizationEvaluationSchema
  * For Composite resources to define the parts
  * Used to define the parts of a composite search parameter.
  */
-export const SearchParameterComponentSchema = BackboneElementSchema.extend({
+export const SearchParameterComponentSchema = _BackboneElementBase.extend({
   definition: z.string(),
   _definition: ElementSchema.optional(),
   expression: z.string(),
@@ -14696,7 +14573,7 @@ export type SearchParameter = z.infer<typeof SearchParameterSchema>
  * Indicates whether the medication is or is not being consumed or administered
  * This element can be used to indicate whether a patient is following a course of treatment as instructed/prescribed or whether they are taking medications of their own volition.  It can also be used to indicate that a patient is not taking a medication, either because they were told not to or because they decided on their own.
  */
-export const MedicationStatementAdherenceSchema = BackboneElementSchema.extend({
+export const MedicationStatementAdherenceSchema = _BackboneElementBase.extend({
   code: CodeableConceptSchema,
   reason: CodeableConceptSchema.optional(),
 })
@@ -14759,7 +14636,7 @@ export type Schedule = z.infer<typeof ScheduleSchema>
  * If no language is specified, this *implies* that the default local language is spoken.  If you need to convey proficiency for multiple modes, then you need multiple Person.Communication associations.   For animals, language is not a relevant field, and should be absent from the instance. If the Patient does not speak the default local language, then the Interpreter Required Standard can be used to explicitly declare that an interpreter is required.
  * Note that this property should not be used to update any linked/logically linked practitioner resources as it serves as a language that can be used to communicate with patients - however it may be used to inform the value on practitioner, along with their role at the organization (with the practitioner's permission)
  */
-export const PersonCommunicationSchema = BackboneElementSchema.extend({
+export const PersonCommunicationSchema = _BackboneElementBase.extend({
   language: CodeableConceptSchema,
   preferred: z.boolean().optional(),
   _preferred: ElementSchema.optional(),
@@ -14769,7 +14646,7 @@ export type PersonCommunication = z.infer<typeof PersonCommunicationSchema>
 /**
  * Link to a resource that concerns the same actual person
  */
-export const PersonLinkSchema = BackboneElementSchema.extend({
+export const PersonLinkSchema = _BackboneElementBase.extend({
   target: ReferenceSchema,
   assurance: z.enum(['level1', 'level2', 'level3', 'level4']).optional(),
   _assurance: ElementSchema.optional(),
@@ -14806,7 +14683,7 @@ export type Person = z.infer<typeof PersonSchema>
 /**
  * Characteristics e.g. a product's onset of action
  */
-export const AdministrableProductDefinitionPropertySchema = BackboneElementSchema.extend({
+export const AdministrableProductDefinitionPropertySchema = _BackboneElementBase.extend({
   type: CodeableConceptSchema,
   valueCodeableConcept: CodeableConceptSchema.optional(),
   valueQuantity: QuantitySchema.optional(),
@@ -14825,7 +14702,7 @@ export type AdministrableProductDefinitionProperty = z.infer<typeof Administrabl
 /**
  * A species specific time during which consumption of animal product is not appropriate
  */
-export const AdministrableProductDefinitionRouteOfAdministrationTargetSpeciesWithdrawalPeriodSchema = BackboneElementSchema.extend({
+export const AdministrableProductDefinitionRouteOfAdministrationTargetSpeciesWithdrawalPeriodSchema = _BackboneElementBase.extend({
   tissue: CodeableConceptSchema,
   value: QuantitySchema,
   supportingInformation: z.string().optional(),
@@ -14836,7 +14713,7 @@ export type AdministrableProductDefinitionRouteOfAdministrationTargetSpeciesWith
 /**
  * A species for which this route applies
  */
-export const AdministrableProductDefinitionRouteOfAdministrationTargetSpeciesSchema = BackboneElementSchema.extend({
+export const AdministrableProductDefinitionRouteOfAdministrationTargetSpeciesSchema = _BackboneElementBase.extend({
   code: CodeableConceptSchema,
   withdrawalPeriod: z.array(AdministrableProductDefinitionRouteOfAdministrationTargetSpeciesWithdrawalPeriodSchema).optional(),
 })
@@ -14846,7 +14723,7 @@ export type AdministrableProductDefinitionRouteOfAdministrationTargetSpecies = z
  * The path by which the product is taken into or makes contact with the body
  * The path by which the product is taken into or makes contact with the body. In some regions this is referred to as the licenced or approved route. RouteOfAdministration cannot be used when the 'formOf' product already uses MedicinalProductDefinition.route (and vice versa).
  */
-export const AdministrableProductDefinitionRouteOfAdministrationSchema = BackboneElementSchema.extend({
+export const AdministrableProductDefinitionRouteOfAdministrationSchema = _BackboneElementBase.extend({
   code: CodeableConceptSchema,
   firstDose: QuantitySchema.optional(),
   maxSingleDose: QuantitySchema.optional(),
@@ -14882,7 +14759,7 @@ export type AdministrableProductDefinition = z.infer<typeof AdministrableProduct
  * Who or what participated in the activities related to the allergy or intolerance and how they were involved
  * Indicates who or what participated in the activities related to the allergy or intolerance and how they were involved.
  */
-export const AllergyIntoleranceParticipantSchema = BackboneElementSchema.extend({
+export const AllergyIntoleranceParticipantSchema = _BackboneElementBase.extend({
   function: CodeableConceptSchema.optional(),
   actor: ReferenceSchema,
 })
@@ -14892,7 +14769,7 @@ export type AllergyIntoleranceParticipant = z.infer<typeof AllergyIntolerancePar
  * Adverse Reaction Events linked to exposure to substance
  * Details about each adverse reaction event linked to exposure to the identified substance.
  */
-export const AllergyIntoleranceReactionSchema = BackboneElementSchema.extend({
+export const AllergyIntoleranceReactionSchema = _BackboneElementBase.extend({
   substance: CodeableConceptSchema.optional(),
   manifestation: z.array(CodeableReferenceSchema),
   description: z.string().optional(),
@@ -14943,7 +14820,7 @@ export type AllergyIntolerance = z.infer<typeof AllergyIntoleranceSchema>
  * Constraints on fulfillment transports
  * If the Transport.focus is a request resource and the transport is seeking fulfillment (i.e. is asking for the request to be actioned), this element identifies any limitations on what parts of the referenced request should be actioned.
  */
-export const TransportRestrictionSchema = BackboneElementSchema.extend({
+export const TransportRestrictionSchema = _BackboneElementBase.extend({
   repetitions: z.number().optional(),
   _repetitions: ElementSchema.optional(),
   period: PeriodSchema.optional(),
@@ -14955,7 +14832,7 @@ export type TransportRestriction = z.infer<typeof TransportRestrictionSchema>
  * Information used to perform transport
  * Additional information that may be needed in the execution of the transport.
  */
-export const TransportInputSchema = BackboneElementSchema.extend({
+export const TransportInputSchema = _BackboneElementBase.extend({
   type: CodeableConceptSchema,
   valueBase64Binary: z.string().optional(),
   _valueBase64Binary: ElementSchema.optional(),
@@ -15038,7 +14915,7 @@ export type TransportInput = z.infer<typeof TransportInputSchema>
  * Information produced as part of transport
  * Outputs produced by the Transport.
  */
-export const TransportOutputSchema = BackboneElementSchema.extend({
+export const TransportOutputSchema = _BackboneElementBase.extend({
   type: CodeableConceptSchema,
   valueBase64Binary: z.string().optional(),
   _valueBase64Binary: ElementSchema.optional(),
@@ -15167,19 +15044,10 @@ export const TransportSchema = DomainResourceSchema.extend({
 export type Transport = z.infer<typeof TransportSchema>
 
 /**
- * decimal Type: A rational number with implicit precision
- */
-export const decimalSchema = PrimitiveTypeSchema.extend({
-  value: z.number().optional(),
-  _value: ElementSchema.optional(),
-})
-export type decimal = z.infer<typeof decimalSchema>
-
-/**
  * Target outcome for the goal
  * Indicates what should be done and within what timeframe.
  */
-export const PlanDefinitionGoalTargetSchema = BackboneElementSchema.extend({
+export const PlanDefinitionGoalTargetSchema = _BackboneElementBase.extend({
   measure: CodeableConceptSchema.optional(),
   detailQuantity: QuantitySchema.optional(),
   detailRange: RangeSchema.optional(),
@@ -15199,7 +15067,7 @@ export type PlanDefinitionGoalTarget = z.infer<typeof PlanDefinitionGoalTargetSc
  * What the plan is trying to accomplish
  * A goal describes an expected outcome that activities within the plan are intended to achieve. For example, weight loss, restoring an activity of daily living, obtaining herd immunity via immunization, meeting a process improvement objective, meeting the acceptance criteria for a test as specified by a quality specification, etc.
  */
-export const PlanDefinitionGoalSchema = BackboneElementSchema.extend({
+export const PlanDefinitionGoalSchema = _BackboneElementBase.extend({
   category: CodeableConceptSchema.optional(),
   description: CodeableConceptSchema,
   priority: CodeableConceptSchema.optional(),
@@ -15214,7 +15082,7 @@ export type PlanDefinitionGoal = z.infer<typeof PlanDefinitionGoalSchema>
  * Who or what can be this actor
  * The characteristics of the candidates that could serve as the actor.
  */
-export const PlanDefinitionActorOptionSchema = BackboneElementSchema.extend({
+export const PlanDefinitionActorOptionSchema = _BackboneElementBase.extend({
   type: z.enum(['careteam', 'device', 'group', 'healthcareservice', 'location', 'organization', 'patient', 'practitioner', 'practitionerrole', 'relatedperson']).optional(),
   _type: ElementSchema.optional(),
   typeCanonical: z.string().optional(),
@@ -15228,7 +15096,7 @@ export type PlanDefinitionActorOption = z.infer<typeof PlanDefinitionActorOption
  * Actors within the plan
  * Actors represent the individuals or groups involved in the execution of the defined set of activities.
  */
-export const PlanDefinitionActorSchema = BackboneElementSchema.extend({
+export const PlanDefinitionActorSchema = _BackboneElementBase.extend({
   title: z.string().optional(),
   _title: ElementSchema.optional(),
   description: z.string().optional(),
@@ -15242,7 +15110,7 @@ export type PlanDefinitionActor = z.infer<typeof PlanDefinitionActorSchema>
  * An expression that describes applicability criteria or start/stop conditions for the action.
  * When multiple conditions of the same kind are present, the effects are combined using AND semantics, so the overall condition is true only if all the conditions are true.
  */
-export const PlanDefinitionActionConditionSchema = BackboneElementSchema.extend({
+export const PlanDefinitionActionConditionSchema = _BackboneElementBase.extend({
   kind: z.enum(['applicability', 'start', 'stop']),
   _kind: ElementSchema.optional(),
   expression: ExpressionSchema.optional(),
@@ -15253,7 +15121,7 @@ export type PlanDefinitionActionCondition = z.infer<typeof PlanDefinitionActionC
  * Input data requirements
  * Defines input data requirements for the action.
  */
-export const PlanDefinitionActionInputSchema = BackboneElementSchema.extend({
+export const PlanDefinitionActionInputSchema = _BackboneElementBase.extend({
   title: z.string().optional(),
   _title: ElementSchema.optional(),
   requirement: DataRequirementSchema.optional(),
@@ -15266,7 +15134,7 @@ export type PlanDefinitionActionInput = z.infer<typeof PlanDefinitionActionInput
  * Output data definition
  * Defines the outputs of the action, if any.
  */
-export const PlanDefinitionActionOutputSchema = BackboneElementSchema.extend({
+export const PlanDefinitionActionOutputSchema = _BackboneElementBase.extend({
   title: z.string().optional(),
   _title: ElementSchema.optional(),
   requirement: DataRequirementSchema.optional(),
@@ -15280,7 +15148,7 @@ export type PlanDefinitionActionOutput = z.infer<typeof PlanDefinitionActionOutp
  * A relationship to another action such as "before" or "30-60 minutes after start of".
  * When an action depends on multiple actions, the meaning is that all actions are dependencies, rather than that any of the actions are a dependency.
  */
-export const PlanDefinitionActionRelatedActionSchema = BackboneElementSchema.extend({
+export const PlanDefinitionActionRelatedActionSchema = _BackboneElementBase.extend({
   targetId: z.string(),
   _targetId: ElementSchema.optional(),
   relationship: z.enum(['before', 'before-start', 'before-end', 'concurrent', 'concurrent-with-start', 'concurrent-with-end', 'after', 'after-start', 'after-end']),
@@ -15296,7 +15164,7 @@ export type PlanDefinitionActionRelatedAction = z.infer<typeof PlanDefinitionAct
  * Who should participate in the action
  * Indicates who should participate in performing the action described.
  */
-export const PlanDefinitionActionParticipantSchema = BackboneElementSchema.extend({
+export const PlanDefinitionActionParticipantSchema = _BackboneElementBase.extend({
   actorId: z.string().optional(),
   _actorId: ElementSchema.optional(),
   type: z.enum(['careteam', 'device', 'group', 'healthcareservice', 'location', 'organization', 'patient', 'practitioner', 'practitionerrole', 'relatedperson']).optional(),
@@ -15314,7 +15182,7 @@ export type PlanDefinitionActionParticipant = z.infer<typeof PlanDefinitionActio
  * Customizations that should be applied to the statically defined resource. For example, if the dosage of a medication must be computed based on the patient's weight, a customization would be used to specify an expression that calculated the weight, and the path on the resource that would contain the result.
  * Dynamic values are applied in the order in which they are defined in the PlanDefinition resource. Note that when dynamic values are also specified by a referenced ActivityDefinition, the dynamicValues from the ActivityDefinition are applied first, followed by the dynamicValues specified here. In addition, if both a transform and dynamic values are specific, the dynamic values are applied to the result of the transform.
  */
-export const PlanDefinitionActionDynamicValueSchema = BackboneElementSchema.extend({
+export const PlanDefinitionActionDynamicValueSchema = _BackboneElementBase.extend({
   path: z.string().optional(),
   _path: ElementSchema.optional(),
   expression: ExpressionSchema.optional(),
@@ -15381,28 +15249,28 @@ export interface PlanDefinitionAction extends BackboneElement {
 }
 
 export const PlanDefinitionActionSchema: z.ZodType<PlanDefinitionAction> = z.lazy(() =>
-  BackboneElementSchema.extend({
+  _BackboneElementBase.extend({
     linkId: z.string().optional(),
-      _linkId: ElementSchema.optional(),
+    _linkId: ElementSchema.optional(),
     prefix: z.string().optional(),
-      _prefix: ElementSchema.optional(),
+    _prefix: ElementSchema.optional(),
     title: z.string().optional(),
-      _title: ElementSchema.optional(),
+    _title: ElementSchema.optional(),
     description: z.string().optional(),
-      _description: ElementSchema.optional(),
+    _description: ElementSchema.optional(),
     textEquivalent: z.string().optional(),
-      _textEquivalent: ElementSchema.optional(),
+    _textEquivalent: ElementSchema.optional(),
     priority: z.enum(['routine', 'urgent', 'asap', 'stat']).optional(),
-      _priority: ElementSchema.optional(),
+    _priority: ElementSchema.optional(),
     code: CodeableConceptSchema.optional(),
     reason: z.array(CodeableConceptSchema).optional(),
     documentation: z.array(RelatedArtifactSchema).optional(),
     goalId: z.array(z.string()).optional(),
-      _goalId: ElementSchema.optional(),
+    _goalId: ElementSchema.optional(),
     subjectCodeableConcept: CodeableConceptSchema.optional(),
     subjectReference: ReferenceSchema.optional(),
     subjectCanonical: z.string().optional(),
-      _subjectCanonical: ElementSchema.optional(),
+    _subjectCanonical: ElementSchema.optional(),
     trigger: z.array(TriggerDefinitionSchema).optional(),
     condition: z.array(PlanDefinitionActionConditionSchema).optional(),
     input: z.array(PlanDefinitionActionInputSchema).optional(),
@@ -15416,23 +15284,23 @@ export const PlanDefinitionActionSchema: z.ZodType<PlanDefinitionAction> = z.laz
     participant: z.array(PlanDefinitionActionParticipantSchema).optional(),
     type: CodeableConceptSchema.optional(),
     groupingBehavior: z.enum(['visual-group', 'logical-group', 'sentence-group']).optional(),
-      _groupingBehavior: ElementSchema.optional(),
+    _groupingBehavior: ElementSchema.optional(),
     selectionBehavior: z.enum(['any', 'all', 'all-or-none', 'exactly-one', 'at-most-one', 'one-or-more']).optional(),
-      _selectionBehavior: ElementSchema.optional(),
+    _selectionBehavior: ElementSchema.optional(),
     requiredBehavior: z.enum(['must', 'could', 'must-unless-documented']).optional(),
-      _requiredBehavior: ElementSchema.optional(),
+    _requiredBehavior: ElementSchema.optional(),
     precheckBehavior: z.enum(['yes', 'no']).optional(),
-      _precheckBehavior: ElementSchema.optional(),
+    _precheckBehavior: ElementSchema.optional(),
     cardinalityBehavior: z.enum(['single', 'multiple']).optional(),
-      _cardinalityBehavior: ElementSchema.optional(),
+    _cardinalityBehavior: ElementSchema.optional(),
     definitionCanonical: z.string().optional(),
-      _definitionCanonical: ElementSchema.optional(),
+    _definitionCanonical: ElementSchema.optional(),
     definitionUri: z.string().optional(),
-      _definitionUri: ElementSchema.optional(),
+    _definitionUri: ElementSchema.optional(),
     transform: z.string().optional(),
-      _transform: ElementSchema.optional(),
+    _transform: ElementSchema.optional(),
     dynamicValue: z.array(PlanDefinitionActionDynamicValueSchema).optional(),
-    action: z.lazy(() => z.array(PlanDefinitionActionSchema)).optional(),
+    action: (z.lazy(() => z.array(PlanDefinitionActionSchema)) as unknown as z.ZodArray<z.ZodTypeAny>).optional(),
   })
 )
 
@@ -15508,7 +15376,7 @@ export type PlanDefinition = z.infer<typeof PlanDefinitionSchema>
  * The current state (status) of the subject and resons for status change where appropriate.
  * This is intended to deal with the confusion routinely created by haing two conflated concepts of being in a particular state and having achieved a particular milestone.  In strict terms a milestone is a point of time event that results in a change from one state to another.  The state before the milestone is achieved is often given the same name as the milestone, and sometimes the state may have the same description.  For instance "Randomised" and "Visit 1" may be different milestones but the state remains at "on study" after each of them. 
  */
-export const ResearchSubjectProgressSchema = BackboneElementSchema.extend({
+export const ResearchSubjectProgressSchema = _BackboneElementBase.extend({
   type: CodeableConceptSchema.optional(),
   subjectState: CodeableConceptSchema.optional(),
   milestone: CodeableConceptSchema.optional(),
@@ -15541,19 +15409,10 @@ export const ResearchSubjectSchema = DomainResourceSchema.extend({
 export type ResearchSubject = z.infer<typeof ResearchSubjectSchema>
 
 /**
- * canonical type: A URI that is a reference to a canonical URL on a FHIR resource
- */
-export const canonicalSchema = uriSchema.extend({
-  value: z.string().optional(),
-  _value: ElementSchema.optional(),
-})
-export type canonical = z.infer<typeof canonicalSchema>
-
-/**
  * Possible or likely findings and diagnoses
  * Specific findings or diagnoses that were considered likely or relevant to ongoing treatment.
  */
-export const ClinicalImpressionFindingSchema = BackboneElementSchema.extend({
+export const ClinicalImpressionFindingSchema = _BackboneElementBase.extend({
   item: CodeableReferenceSchema.optional(),
   basis: z.string().optional(),
   _basis: ElementSchema.optional(),
@@ -15598,7 +15457,7 @@ export type ClinicalImpression = z.infer<typeof ClinicalImpressionSchema>
  * Criteria for narrowing the subscription topic stream
  * The filter properties to be applied to narrow the subscription topic stream.  When multiple filters are applied, evaluates to true if all the conditions applicable to that resource are met; otherwise it returns false (i.e., logical AND).
  */
-export const SubscriptionFilterBySchema = BackboneElementSchema.extend({
+export const SubscriptionFilterBySchema = _BackboneElementBase.extend({
   resourceType: z.string().optional(),
   _resourceType: ElementSchema.optional(),
   filterParameter: z.string(),
@@ -15617,7 +15476,7 @@ export type SubscriptionFilterBy = z.infer<typeof SubscriptionFilterBySchema>
  * Channel-dependent information to send as part of the notification (e.g., HTTP Headers).
  * Exactly what these mean depend on the channel type. They can convey additional information to the server or recipient and/or meet security requirements; for example, support of multiple headers in the outgoing notifications for rest-hook type subscriptions. Note that names are not required to be unique, but channel definitions can impose restrictions.
  */
-export const SubscriptionParameterSchema = BackboneElementSchema.extend({
+export const SubscriptionParameterSchema = _BackboneElementBase.extend({
   name: z.string(),
   _name: ElementSchema.optional(),
   value: z.string(),
@@ -15665,7 +15524,7 @@ export type Subscription = z.infer<typeof SubscriptionSchema>
  * Members of the team
  * Identifies all people and organizations who are expected to be involved in the care team.
  */
-export const CareTeamParticipantSchema = BackboneElementSchema.extend({
+export const CareTeamParticipantSchema = _BackboneElementBase.extend({
   role: CodeableConceptSchema.optional(),
   member: ReferenceSchema.optional(),
   onBehalfOf: ReferenceSchema.optional(),
@@ -15700,7 +15559,7 @@ export type CareTeam = z.infer<typeof CareTeamSchema>
  * Unique device identifier (UDI) assigned to device label or package.  Note that the Device may include multiple udiCarriers as it either may include just the udiCarrier for the jurisdiction it is sold, or for multiple jurisdictions it could have been sold.
  * UDI may identify an unique instance of a device, or it may only identify the type of the device.  See [UDI mappings](device-mappings.html#udi) for a complete mapping of UDI parts to Device.
  */
-export const DeviceUdiCarrierSchema = BackboneElementSchema.extend({
+export const DeviceUdiCarrierSchema = _BackboneElementBase.extend({
   deviceIdentifier: z.string(),
   _deviceIdentifier: ElementSchema.optional(),
   issuer: z.string(),
@@ -15720,7 +15579,7 @@ export type DeviceUdiCarrier = z.infer<typeof DeviceUdiCarrierSchema>
  * The name or names of the device as known to the manufacturer and/or patient
  * This represents the manufacturer's name of the device as provided by the device, from a UDI label, or by a person describing the Device.  This typically would be used when a person provides the name(s) or when the device represents one of the names available from DeviceDefinition.
  */
-export const DeviceNameSchema = BackboneElementSchema.extend({
+export const DeviceNameSchema = _BackboneElementBase.extend({
   value: z.string(),
   _value: ElementSchema.optional(),
   type: z.enum(['registered-name', 'user-friendly-name', 'patient-reported-name']),
@@ -15733,7 +15592,7 @@ export type DeviceName = z.infer<typeof DeviceNameSchema>
 /**
  * The actual design of the device or software version running on the device
  */
-export const DeviceVersionSchema = BackboneElementSchema.extend({
+export const DeviceVersionSchema = _BackboneElementBase.extend({
   type: CodeableConceptSchema.optional(),
   component: IdentifierSchema.optional(),
   installDate: z.string().optional(),
@@ -15747,7 +15606,7 @@ export type DeviceVersion = z.infer<typeof DeviceVersionSchema>
  * Identifies the standards, specifications, or formal guidances for the capabilities supported by the device
  * Identifies the standards, specifications, or formal guidances for the capabilities supported by the device. The device may be certified as conformant to these specifications e.g., communication, performance, process, measurement, or specialization standards.
  */
-export const DeviceConformsToSchema = BackboneElementSchema.extend({
+export const DeviceConformsToSchema = _BackboneElementBase.extend({
   category: CodeableConceptSchema.optional(),
   specification: CodeableConceptSchema,
   version: z.string().optional(),
@@ -15760,7 +15619,7 @@ export type DeviceConformsTo = z.infer<typeof DeviceConformsToSchema>
  * Static or essentially fixed characteristics or features of the device (e.g., time or timing attributes, resolution, accuracy, intended use or instructions for use, and physical attributes) that are not otherwise captured in more specific attributes.
  * Dynamic or current properties, such as settings, of an individual device are described using a Device instance-specific [DeviceMetric] and recorded using [Observation].  Static characteristics of a device could also be documented in an associated [DeviceDefinition] instance. The Device instance's properties, and their values, could be, but need not be, the same as those described in an associated DeviceDefinition.
  */
-export const DevicePropertySchema = BackboneElementSchema.extend({
+export const DevicePropertySchema = _BackboneElementBase.extend({
   type: CodeableConceptSchema,
   valueQuantity: QuantitySchema.optional(),
   valueCodeableConcept: CodeableConceptSchema.optional(),
@@ -15829,7 +15688,7 @@ export type Device = z.infer<typeof DeviceSchema>
  * The product's nutritional information expressed by the nutrients
  * Note: This is a business identifier, not a resource identifier (see [discussion](resource.html#identifiers)).  It is best practice for the identifier to only appear on a single resource instance, however business practices may occasionally dictate that multiple resource instances with the same identifier can exist - possibly even with different resource types.  For example, multiple Patient and a Person resource instance might share the same social insurance number.
  */
-export const NutritionProductNutrientSchema = BackboneElementSchema.extend({
+export const NutritionProductNutrientSchema = _BackboneElementBase.extend({
   item: CodeableReferenceSchema.optional(),
   amount: z.array(RatioSchema).optional(),
 })
@@ -15838,7 +15697,7 @@ export type NutritionProductNutrient = z.infer<typeof NutritionProductNutrientSc
 /**
  * Ingredients contained in this product
  */
-export const NutritionProductIngredientSchema = BackboneElementSchema.extend({
+export const NutritionProductIngredientSchema = _BackboneElementBase.extend({
   item: CodeableReferenceSchema,
   amount: z.array(RatioSchema).optional(),
 })
@@ -15847,7 +15706,7 @@ export type NutritionProductIngredient = z.infer<typeof NutritionProductIngredie
 /**
  * Specifies descriptive properties of the nutrition product
  */
-export const NutritionProductCharacteristicSchema = BackboneElementSchema.extend({
+export const NutritionProductCharacteristicSchema = _BackboneElementBase.extend({
   type: CodeableConceptSchema,
   valueCodeableConcept: CodeableConceptSchema.optional(),
   valueString: z.string().optional(),
@@ -15865,7 +15724,7 @@ export type NutritionProductCharacteristic = z.infer<typeof NutritionProductChar
  * One or several physical instances or occurrences of the nutrition product
  * Conveys instance-level information about this product item. One or several physical, countable instances or occurrences of the product.
  */
-export const NutritionProductInstanceSchema = BackboneElementSchema.extend({
+export const NutritionProductInstanceSchema = _BackboneElementBase.extend({
   quantity: QuantitySchema.optional(),
   identifier: z.array(IdentifierSchema).optional(),
   name: z.string().optional(),
@@ -15900,19 +15759,10 @@ export const NutritionProductSchema = DomainResourceSchema.extend({
 export type NutritionProduct = z.infer<typeof NutritionProductSchema>
 
 /**
- * unsignedInt type: An integer with a value that is not negative (e.g. >= 0)
- */
-export const unsignedIntSchema = integerSchema.extend({
-  value: z.number().optional(),
-  _value: ElementSchema.optional(),
-})
-export type unsignedInt = z.infer<typeof unsignedIntSchema>
-
-/**
  * Computable version of the backing policy
  * A Reference or URL used to uniquely identify the policy the organization will enforce for this Consent. This Reference or URL should be specific to the version of the policy and should be dereferencable to a computable policy of some form.
  */
-export const ConsentPolicyBasisSchema = BackboneElementSchema.extend({
+export const ConsentPolicyBasisSchema = _BackboneElementBase.extend({
   reference: ReferenceSchema.optional(),
   url: z.string().optional(),
   _url: ElementSchema.optional(),
@@ -15923,7 +15773,7 @@ export type ConsentPolicyBasis = z.infer<typeof ConsentPolicyBasisSchema>
  * Consent Verified by patient or family
  * Whether a treatment instruction (e.g. artificial respiration: yes or no) was verified with the patient, his/her family or another authorized person.
  */
-export const ConsentVerificationSchema = BackboneElementSchema.extend({
+export const ConsentVerificationSchema = _BackboneElementBase.extend({
   verified: z.boolean(),
   _verified: ElementSchema.optional(),
   verificationType: CodeableConceptSchema.optional(),
@@ -15938,7 +15788,7 @@ export type ConsentVerification = z.infer<typeof ConsentVerificationSchema>
  * Who|what controlled by this provision (or group, by role)
  * Who or what is controlled by this provision. Use group to identify a set of actors by some property they share (e.g. 'admitting officers').
  */
-export const ConsentProvisionActorSchema = BackboneElementSchema.extend({
+export const ConsentProvisionActorSchema = _BackboneElementBase.extend({
   role: CodeableConceptSchema.optional(),
   reference: ReferenceSchema.optional(),
 })
@@ -15948,7 +15798,7 @@ export type ConsentProvisionActor = z.infer<typeof ConsentProvisionActorSchema>
  * Data controlled by this provision
  * The resources controlled by this provision if specific resources are referenced.
  */
-export const ConsentProvisionDataSchema = BackboneElementSchema.extend({
+export const ConsentProvisionDataSchema = _BackboneElementBase.extend({
   meaning: z.enum(['instance', 'related', 'dependents', 'authoredby']),
   _meaning: ElementSchema.optional(),
   reference: ReferenceSchema,
@@ -15975,7 +15825,7 @@ export interface ConsentProvision extends BackboneElement {
 }
 
 export const ConsentProvisionSchema: z.ZodType<ConsentProvision> = z.lazy(() =>
-  BackboneElementSchema.extend({
+  _BackboneElementBase.extend({
     period: PeriodSchema.optional(),
     actor: z.array(ConsentProvisionActorSchema).optional(),
     action: z.array(CodeableConceptSchema).optional(),
@@ -15987,7 +15837,7 @@ export const ConsentProvisionSchema: z.ZodType<ConsentProvision> = z.lazy(() =>
     dataPeriod: PeriodSchema.optional(),
     data: z.array(ConsentProvisionDataSchema).optional(),
     expression: ExpressionSchema.optional(),
-    provision: z.lazy(() => z.array(ConsentProvisionSchema)).optional(),
+    provision: (z.lazy(() => z.array(ConsentProvisionSchema)) as unknown as z.ZodArray<z.ZodTypeAny>).optional(),
   })
 )
 
@@ -16023,7 +15873,7 @@ export type Consent = z.infer<typeof ConsentSchema>
 /**
  * A product specific contact, person (in a role), or an organization
  */
-export const MedicinalProductDefinitionContactSchema = BackboneElementSchema.extend({
+export const MedicinalProductDefinitionContactSchema = _BackboneElementBase.extend({
   type: CodeableConceptSchema.optional(),
   contact: ReferenceSchema,
 })
@@ -16032,7 +15882,7 @@ export type MedicinalProductDefinitionContact = z.infer<typeof MedicinalProductD
 /**
  * Coding words or phrases of the name
  */
-export const MedicinalProductDefinitionNamePartSchema = BackboneElementSchema.extend({
+export const MedicinalProductDefinitionNamePartSchema = _BackboneElementBase.extend({
   part: z.string(),
   _part: ElementSchema.optional(),
   type: CodeableConceptSchema,
@@ -16043,7 +15893,7 @@ export type MedicinalProductDefinitionNamePart = z.infer<typeof MedicinalProduct
  * Country and jurisdiction where the name applies
  * Country and jurisdiction where the name applies, and associated language.
  */
-export const MedicinalProductDefinitionNameUsageSchema = BackboneElementSchema.extend({
+export const MedicinalProductDefinitionNameUsageSchema = _BackboneElementBase.extend({
   country: CodeableConceptSchema,
   jurisdiction: CodeableConceptSchema.optional(),
   language: CodeableConceptSchema,
@@ -16053,7 +15903,7 @@ export type MedicinalProductDefinitionNameUsage = z.infer<typeof MedicinalProduc
 /**
  * The product's name, including full name and possibly coded parts
  */
-export const MedicinalProductDefinitionNameSchema = BackboneElementSchema.extend({
+export const MedicinalProductDefinitionNameSchema = _BackboneElementBase.extend({
   productName: z.string(),
   _productName: ElementSchema.optional(),
   type: CodeableConceptSchema.optional(),
@@ -16066,7 +15916,7 @@ export type MedicinalProductDefinitionName = z.infer<typeof MedicinalProductDefi
  * Reference to another product, e.g. for linking authorised to investigational product
  * Reference to another product, e.g. for linking authorised to investigational product, or a virtual product.
  */
-export const MedicinalProductDefinitionCrossReferenceSchema = BackboneElementSchema.extend({
+export const MedicinalProductDefinitionCrossReferenceSchema = _BackboneElementBase.extend({
   product: CodeableReferenceSchema,
   type: CodeableConceptSchema.optional(),
 })
@@ -16076,7 +15926,7 @@ export type MedicinalProductDefinitionCrossReference = z.infer<typeof MedicinalP
  * A manufacturing or administrative process for the medicinal product
  * A manufacturing or administrative process or step associated with (or performed on) the medicinal product.
  */
-export const MedicinalProductDefinitionOperationSchema = BackboneElementSchema.extend({
+export const MedicinalProductDefinitionOperationSchema = _BackboneElementBase.extend({
   type: CodeableReferenceSchema.optional(),
   effectiveDate: PeriodSchema.optional(),
   organization: z.array(ReferenceSchema).optional(),
@@ -16088,7 +15938,7 @@ export type MedicinalProductDefinitionOperation = z.infer<typeof MedicinalProduc
  * Key product features such as "sugar free", "modified release"
  * Allows the key product features to be recorded, such as "sugar free", "modified release", "parallel import".
  */
-export const MedicinalProductDefinitionCharacteristicSchema = BackboneElementSchema.extend({
+export const MedicinalProductDefinitionCharacteristicSchema = _BackboneElementBase.extend({
   type: CodeableConceptSchema,
   valueCodeableConcept: CodeableConceptSchema.optional(),
   valueMarkdown: z.string().optional(),
@@ -16149,7 +15999,7 @@ export type MedicinalProductDefinition = z.infer<typeof MedicinalProductDefiniti
  * Message payload
  * Text, attachment(s), or resource(s) that was communicated to the recipient.
  */
-export const CommunicationPayloadSchema = BackboneElementSchema.extend({
+export const CommunicationPayloadSchema = _BackboneElementBase.extend({
   contentAttachment: AttachmentSchema.optional(),
   contentReference: ReferenceSchema.optional(),
   contentCodeableConcept: CodeableConceptSchema.optional(),
@@ -16257,7 +16107,7 @@ export type Library = z.infer<typeof LibrarySchema>
  * A structure definition used by this map. The structure definition may describe instances that are converted, or the instances that are produced.
  * It is not necessary for a structure map to identify any dependent structures, though not listing them may restrict its usefulness.
  */
-export const StructureMapStructureSchema = BackboneElementSchema.extend({
+export const StructureMapStructureSchema = _BackboneElementBase.extend({
   url: z.string(),
   _url: ElementSchema.optional(),
   mode: z.enum(['source', 'queried', 'target', 'produced']),
@@ -16273,7 +16123,7 @@ export type StructureMapStructure = z.infer<typeof StructureMapStructureSchema>
  * Definition of the constant value used in the map rules
  * Definition of a constant value used in the map rules.
  */
-export const StructureMapConstSchema = BackboneElementSchema.extend({
+export const StructureMapConstSchema = _BackboneElementBase.extend({
   name: z.string().optional(),
   _name: ElementSchema.optional(),
   value: z.string().optional(),
@@ -16286,7 +16136,7 @@ export type StructureMapConst = z.infer<typeof StructureMapConstSchema>
  * A name assigned to an instance of data. The instance must be provided when the mapping is invoked.
  * If no inputs are named, then the entry mappings are type based.
  */
-export const StructureMapGroupInputSchema = BackboneElementSchema.extend({
+export const StructureMapGroupInputSchema = _BackboneElementBase.extend({
   name: z.string(),
   _name: ElementSchema.optional(),
   type: z.string().optional(),
@@ -16301,7 +16151,7 @@ export type StructureMapGroupInput = z.infer<typeof StructureMapGroupInputSchema
 /**
  * Source inputs to the mapping
  */
-export const StructureMapGroupRuleSourceSchema = BackboneElementSchema.extend({
+export const StructureMapGroupRuleSourceSchema = _BackboneElementBase.extend({
   context: z.string(),
   _context: ElementSchema.optional(),
   min: z.number().optional(),
@@ -16350,30 +16200,30 @@ export interface StructureMapGroupRuleTargetParameter extends BackboneElement {
 }
 
 export const StructureMapGroupRuleTargetParameterSchema: z.ZodType<StructureMapGroupRuleTargetParameter> = z.lazy(() =>
-  BackboneElementSchema.extend({
+  _BackboneElementBase.extend({
     valueId: z.string().optional(),
-      _valueId: ElementSchema.optional(),
+    _valueId: ElementSchema.optional(),
     valueString: z.string().optional(),
-      _valueString: ElementSchema.optional(),
+    _valueString: ElementSchema.optional(),
     valueBoolean: z.boolean().optional(),
-      _valueBoolean: ElementSchema.optional(),
+    _valueBoolean: ElementSchema.optional(),
     valueInteger: z.number().optional(),
-      _valueInteger: ElementSchema.optional(),
+    _valueInteger: ElementSchema.optional(),
     valueDecimal: z.number().optional(),
-      _valueDecimal: ElementSchema.optional(),
+    _valueDecimal: ElementSchema.optional(),
     valueDate: z.string().optional(),
-      _valueDate: ElementSchema.optional(),
+    _valueDate: ElementSchema.optional(),
     valueTime: z.string().optional(),
-      _valueTime: ElementSchema.optional(),
+    _valueTime: ElementSchema.optional(),
     valueDateTime: z.string().optional(),
-      _valueDateTime: ElementSchema.optional(),
+    _valueDateTime: ElementSchema.optional(),
   })
 )
 
 /**
  * Content to create because of this mapping rule
  */
-export const StructureMapGroupRuleTargetSchema = BackboneElementSchema.extend({
+export const StructureMapGroupRuleTargetSchema = _BackboneElementBase.extend({
   context: z.string().optional(),
   _context: ElementSchema.optional(),
   element: z.string().optional(),
@@ -16393,10 +16243,10 @@ export type StructureMapGroupRuleTarget = z.infer<typeof StructureMapGroupRuleTa
 /**
  * Which other rules to apply in the context of this rule
  */
-export const StructureMapGroupRuleDependentSchema = BackboneElementSchema.extend({
+export const StructureMapGroupRuleDependentSchema = _BackboneElementBase.extend({
   name: z.string(),
   _name: ElementSchema.optional(),
-  parameter: z.lazy(() => z.array(StructureMapGroupRuleTargetParameterSchema)),
+  parameter: (z.lazy(() => z.array(StructureMapGroupRuleTargetParameterSchema)) as unknown as z.ZodArray<z.ZodTypeAny>),
 })
 export type StructureMapGroupRuleDependent = z.infer<typeof StructureMapGroupRuleDependentSchema>
 
@@ -16415,15 +16265,15 @@ export interface StructureMapGroupRule extends BackboneElement {
 }
 
 export const StructureMapGroupRuleSchema: z.ZodType<StructureMapGroupRule> = z.lazy(() =>
-  BackboneElementSchema.extend({
+  _BackboneElementBase.extend({
     name: z.string().optional(),
-      _name: ElementSchema.optional(),
+    _name: ElementSchema.optional(),
     source: z.array(StructureMapGroupRuleSourceSchema),
     target: z.array(StructureMapGroupRuleTargetSchema).optional(),
-    rule: z.lazy(() => z.array(StructureMapGroupRuleSchema)).optional(),
+    rule: (z.lazy(() => z.array(StructureMapGroupRuleSchema)) as unknown as z.ZodArray<z.ZodTypeAny>).optional(),
     dependent: z.array(StructureMapGroupRuleDependentSchema).optional(),
     documentation: z.string().optional(),
-      _documentation: ElementSchema.optional(),
+    _documentation: ElementSchema.optional(),
   })
 )
 
@@ -16431,7 +16281,7 @@ export const StructureMapGroupRuleSchema: z.ZodType<StructureMapGroupRule> = z.l
  * Named sections for reader convenience
  * Organizes the mapping into managable chunks for human review/ease of maintenance.
  */
-export const StructureMapGroupSchema = BackboneElementSchema.extend({
+export const StructureMapGroupSchema = _BackboneElementBase.extend({
   name: z.string(),
   _name: ElementSchema.optional(),
   extends: z.string().optional(),
@@ -16493,7 +16343,7 @@ export type StructureMap = z.infer<typeof StructureMapSchema>
  * Who or what performed the task
  * The entity who performed the requested task.
  */
-export const TaskPerformerSchema = BackboneElementSchema.extend({
+export const TaskPerformerSchema = _BackboneElementBase.extend({
   function: CodeableConceptSchema.optional(),
   actor: ReferenceSchema,
 })
@@ -16504,7 +16354,7 @@ export type TaskPerformer = z.infer<typeof TaskPerformerSchema>
  * If the Task.focus is a request resource and the task is seeking fulfillment (i.e. is asking for the request to be actioned), this element identifies any limitations on what parts of the referenced request should be actioned.
  * Task.restriction can only be present if the Task is seeking fulfillment of another Request resource, and the restriction identifies what subset of the authorization conveyed by the request is supposed to be fulfilled by this Task. A possible example could be a standing order (the request) covering a significant time period and/or individuals, while the Task seeks fulfillment for only a subset of that time-period and a single individual.
  */
-export const TaskRestrictionSchema = BackboneElementSchema.extend({
+export const TaskRestrictionSchema = _BackboneElementBase.extend({
   repetitions: z.number().optional(),
   _repetitions: ElementSchema.optional(),
   period: PeriodSchema.optional(),
@@ -16516,7 +16366,7 @@ export type TaskRestriction = z.infer<typeof TaskRestrictionSchema>
  * Information used to perform task
  * Additional information that may be needed in the execution of the task.
  */
-export const TaskInputSchema = BackboneElementSchema.extend({
+export const TaskInputSchema = _BackboneElementBase.extend({
   type: CodeableConceptSchema,
   valueBase64Binary: z.string().optional(),
   _valueBase64Binary: ElementSchema.optional(),
@@ -16599,7 +16449,7 @@ export type TaskInput = z.infer<typeof TaskInputSchema>
  * Information produced as part of task
  * Outputs produced by the Task.
  */
-export const TaskOutputSchema = BackboneElementSchema.extend({
+export const TaskOutputSchema = _BackboneElementBase.extend({
   type: CodeableConceptSchema,
   valueBase64Binary: z.string().optional(),
   _valueBase64Binary: ElementSchema.optional(),
@@ -16731,7 +16581,7 @@ export type Task = z.infer<typeof TaskSchema>
 /**
  * Characteristic
  */
-export const EvidenceReportSubjectCharacteristicSchema = BackboneElementSchema.extend({
+export const EvidenceReportSubjectCharacteristicSchema = _BackboneElementBase.extend({
   code: CodeableConceptSchema,
   valueReference: ReferenceSchema.optional(),
   valueCodeableConcept: CodeableConceptSchema.optional(),
@@ -16750,7 +16600,7 @@ export type EvidenceReportSubjectCharacteristic = z.infer<typeof EvidenceReportS
  * Specifies the subject or focus of the report. Answers "What is this report about?".
  * May be used as an expression for search queries and search results
  */
-export const EvidenceReportSubjectSchema = BackboneElementSchema.extend({
+export const EvidenceReportSubjectSchema = _BackboneElementBase.extend({
   characteristic: z.array(EvidenceReportSubjectCharacteristicSchema).optional(),
   note: z.array(AnnotationSchema).optional(),
 })
@@ -16760,7 +16610,7 @@ export type EvidenceReportSubject = z.infer<typeof EvidenceReportSubjectSchema>
  * Target of the relationship
  * The target composition/document of this relationship.
  */
-export const EvidenceReportRelatesToTargetSchema = BackboneElementSchema.extend({
+export const EvidenceReportRelatesToTargetSchema = _BackboneElementBase.extend({
   url: z.string().optional(),
   _url: ElementSchema.optional(),
   identifier: IdentifierSchema.optional(),
@@ -16775,7 +16625,7 @@ export type EvidenceReportRelatesToTarget = z.infer<typeof EvidenceReportRelates
  * Relationships that this composition has with other compositions or documents that already exist.
  * A document is a version specific composition.
  */
-export const EvidenceReportRelatesToSchema = BackboneElementSchema.extend({
+export const EvidenceReportRelatesToSchema = _BackboneElementBase.extend({
   code: z.enum(['replaces', 'amends', 'appends', 'transforms', 'replacedWith', 'amendedWith', 'appendedWith', 'transformedWith']),
   _code: ElementSchema.optional(),
   target: EvidenceReportRelatesToTargetSchema,
@@ -16804,21 +16654,21 @@ export interface EvidenceReportSection extends BackboneElement {
 }
 
 export const EvidenceReportSectionSchema: z.ZodType<EvidenceReportSection> = z.lazy(() =>
-  BackboneElementSchema.extend({
+  _BackboneElementBase.extend({
     title: z.string().optional(),
-      _title: ElementSchema.optional(),
+    _title: ElementSchema.optional(),
     focus: CodeableConceptSchema.optional(),
     focusReference: ReferenceSchema.optional(),
     author: z.array(ReferenceSchema).optional(),
     text: NarrativeSchema.optional(),
     mode: z.enum(['working', 'snapshot', 'changes']).optional(),
-      _mode: ElementSchema.optional(),
+    _mode: ElementSchema.optional(),
     orderedBy: CodeableConceptSchema.optional(),
     entryClassifier: z.array(CodeableConceptSchema).optional(),
     entryReference: z.array(ReferenceSchema).optional(),
     entryQuantity: z.array(QuantitySchema).optional(),
     emptyReason: CodeableConceptSchema.optional(),
-    section: z.lazy(() => z.array(EvidenceReportSectionSchema)).optional(),
+    section: (z.lazy(() => z.array(EvidenceReportSectionSchema)) as unknown as z.ZodArray<z.ZodTypeAny>).optional(),
   })
 )
 
@@ -16857,7 +16707,7 @@ export type EvidenceReport = z.infer<typeof EvidenceReportSchema>
  * Actual statement as markdown
  * The actual statement of requirement, in markdown format.
  */
-export const RequirementsStatementSchema = BackboneElementSchema.extend({
+export const RequirementsStatementSchema = _BackboneElementBase.extend({
   key: z.string(),
   _key: ElementSchema.optional(),
   label: z.string().optional(),
@@ -16949,7 +16799,7 @@ export type MetadataResource = z.infer<typeof MetadataResourceSchema>
  * The official qualifications, certifications, accreditations, training, licenses (and other types of educations/skills/capabilities) that authorize or otherwise pertain to the provision of care by the practitioner.For example, a medical license issued by a medical board of licensure authorizing the practitioner to practice medicine within a certain locality.
  * The PractitionerRole.specialty defines the functional role that they are practicing at a given organization or location.  Those specialties may or might not require a qualification, and are not defined on the practitioner.
  */
-export const PractitionerQualificationSchema = BackboneElementSchema.extend({
+export const PractitionerQualificationSchema = _BackboneElementBase.extend({
   identifier: z.array(IdentifierSchema).optional(),
   code: CodeableConceptSchema,
   period: PeriodSchema.optional(),
@@ -16962,7 +16812,7 @@ export type PractitionerQualification = z.infer<typeof PractitionerQualification
  * A language which may be used to communicate with the practitioner, often for correspondence/administrative purposes.The `PractitionerRole.communication` property should be used for publishing the languages that a practitioner is able to communicate with patients (on a per Organization/Role basis).
  * If no language is specified, this *implies* that the default local language is spoken.  If you need to convey proficiency for multiple modes, then you need multiple Practitioner.Communication associations.For animals, language is not a relevant field, and should be absent from the instance.
  */
-export const PractitionerCommunicationSchema = BackboneElementSchema.extend({
+export const PractitionerCommunicationSchema = _BackboneElementBase.extend({
   language: CodeableConceptSchema,
   preferred: z.boolean().optional(),
   _preferred: ElementSchema.optional(),
@@ -16998,7 +16848,7 @@ export type Practitioner = z.infer<typeof PractitionerSchema>
  * An organization that manufactures this ingredient
  * The organization(s) that manufacture this ingredient. Can be used to indicate:         1) Organizations we are aware of that manufacture this ingredient         2) Specific Manufacturer(s) currently being used         3) Set of organisations allowed to manufacture this ingredient for this product         Users must be clear on the application of context relevant to their use case.
  */
-export const IngredientManufacturerSchema = BackboneElementSchema.extend({
+export const IngredientManufacturerSchema = _BackboneElementBase.extend({
   role: z.enum(['allowed', 'possible', 'actual']).optional(),
   _role: ElementSchema.optional(),
   manufacturer: ReferenceSchema,
@@ -17009,7 +16859,7 @@ export type IngredientManufacturer = z.infer<typeof IngredientManufacturerSchema
  * Strength expressed in terms of a reference substance
  * Strength expressed in terms of a reference substance. For when the ingredient strength is additionally expressed as equivalent to the strength of some other closely related substance (e.g. salt vs. base). Reference strength represents the strength (quantitative composition) of the active moiety of the active substance. There are situations when the active substance and active moiety are different, therefore both a strength and a reference strength are needed.
  */
-export const IngredientSubstanceStrengthReferenceStrengthSchema = BackboneElementSchema.extend({
+export const IngredientSubstanceStrengthReferenceStrengthSchema = _BackboneElementBase.extend({
   substance: CodeableReferenceSchema,
   strengthRatio: RatioSchema.optional(),
   strengthRatioRange: RatioRangeSchema.optional(),
@@ -17024,7 +16874,7 @@ export type IngredientSubstanceStrengthReferenceStrength = z.infer<typeof Ingred
  * The quantity of substance, per presentation, or per volume or mass, and type of quantity
  * The quantity of substance in the unit of presentation, or in the volume (or mass) of the single pharmaceutical product or manufactured item. The allowed repetitions do not represent different strengths, but are different representations - mathematically equivalent - of a single strength.
  */
-export const IngredientSubstanceStrengthSchema = BackboneElementSchema.extend({
+export const IngredientSubstanceStrengthSchema = _BackboneElementBase.extend({
   presentationRatio: RatioSchema.optional(),
   presentationRatioRange: RatioRangeSchema.optional(),
   presentationCodeableConcept: CodeableConceptSchema.optional(),
@@ -17048,7 +16898,7 @@ export type IngredientSubstanceStrength = z.infer<typeof IngredientSubstanceStre
 /**
  * The substance that comprises this ingredient
  */
-export const IngredientSubstanceSchema = BackboneElementSchema.extend({
+export const IngredientSubstanceSchema = _BackboneElementBase.extend({
   code: CodeableReferenceSchema,
   strength: z.array(IngredientSubstanceStrengthSchema).optional(),
 })
@@ -17079,7 +16929,7 @@ export type Ingredient = z.infer<typeof IngredientSchema>
  * Triggering observation(s)
  * Identifies the observation(s) that triggered the performance of this observation.
  */
-export const ObservationTriggeredBySchema = BackboneElementSchema.extend({
+export const ObservationTriggeredBySchema = _BackboneElementBase.extend({
   observation: ReferenceSchema,
   type: z.enum(['reflex', 'repeat', 're-run']),
   _type: ElementSchema.optional(),
@@ -17105,7 +16955,7 @@ export interface ObservationReferenceRange extends BackboneElement {
 }
 
 export const ObservationReferenceRangeSchema: z.ZodType<ObservationReferenceRange> = z.lazy(() =>
-  BackboneElementSchema.extend({
+  _BackboneElementBase.extend({
     low: QuantitySchema.optional(),
     high: QuantitySchema.optional(),
     normalValue: CodeableConceptSchema.optional(),
@@ -17113,7 +16963,7 @@ export const ObservationReferenceRangeSchema: z.ZodType<ObservationReferenceRang
     appliesTo: z.array(CodeableConceptSchema).optional(),
     age: RangeSchema.optional(),
     text: z.string().optional(),
-      _text: ElementSchema.optional(),
+    _text: ElementSchema.optional(),
   })
 )
 
@@ -17122,7 +16972,7 @@ export const ObservationReferenceRangeSchema: z.ZodType<ObservationReferenceRang
  * Some observations have multiple component observations.  These component observations are expressed as separate code value pairs that share the same attributes.  Examples include systolic and diastolic component observations for blood pressure measurement and multiple component observations for genetics observations.
  * For a discussion on the ways Observations can be assembled in groups together see [Notes](observation.html#notes) below.
  */
-export const ObservationComponentSchema = BackboneElementSchema.extend({
+export const ObservationComponentSchema = _BackboneElementBase.extend({
   code: CodeableConceptSchema,
   valueQuantity: QuantitySchema.optional(),
   valueCodeableConcept: CodeableConceptSchema.optional(),
@@ -17144,7 +16994,7 @@ export const ObservationComponentSchema = BackboneElementSchema.extend({
   valueReference: ReferenceSchema.optional(),
   dataAbsentReason: CodeableConceptSchema.optional(),
   interpretation: z.array(CodeableConceptSchema).optional(),
-  referenceRange: z.lazy(() => z.array(ObservationReferenceRangeSchema)).optional(),
+  referenceRange: (z.lazy(() => z.array(ObservationReferenceRangeSchema)) as unknown as z.ZodArray<z.ZodTypeAny>).optional(),
 })
 export type ObservationComponent = z.infer<typeof ObservationComponentSchema>
 
@@ -17214,7 +17064,7 @@ export type Observation = z.infer<typeof ObservationSchema>
  * A participant who has authenticated the accuracy of the document.
  * Only list each attester once.
  */
-export const DocumentReferenceAttesterSchema = BackboneElementSchema.extend({
+export const DocumentReferenceAttesterSchema = _BackboneElementBase.extend({
   mode: CodeableConceptSchema,
   time: z.string().optional(),
   _time: ElementSchema.optional(),
@@ -17227,7 +17077,7 @@ export type DocumentReferenceAttester = z.infer<typeof DocumentReferenceAttester
  * Relationships that this document has with other document references that already exist.
  * This element is labeled as a modifier because documents that append to other documents are incomplete on their own.
  */
-export const DocumentReferenceRelatesToSchema = BackboneElementSchema.extend({
+export const DocumentReferenceRelatesToSchema = _BackboneElementBase.extend({
   code: CodeableConceptSchema,
   target: ReferenceSchema,
 })
@@ -17238,7 +17088,7 @@ export type DocumentReferenceRelatesTo = z.infer<typeof DocumentReferenceRelates
  * An identifier of the document constraints, encoding, structure, and template that the document conforms to beyond the base format indicated in the mimeType.
  * Note that IHE often issues URNs for formatCode codes, not all documents can be identified by a URI.
  */
-export const DocumentReferenceContentProfileSchema = BackboneElementSchema.extend({
+export const DocumentReferenceContentProfileSchema = _BackboneElementBase.extend({
   valueCoding: CodingSchema.optional(),
   valueUri: z.string().optional(),
   _valueUri: ElementSchema.optional(),
@@ -17252,7 +17102,7 @@ export type DocumentReferenceContentProfile = z.infer<typeof DocumentReferenceCo
  * The document and format referenced.  If there are multiple content element repetitions, these must all represent the same document in different format, or attachment metadata.
  * content element shall not contain different versions of the same content. For version handling use multiple DocumentReference with .relatesTo.
  */
-export const DocumentReferenceContentSchema = BackboneElementSchema.extend({
+export const DocumentReferenceContentSchema = _BackboneElementBase.extend({
   attachment: AttachmentSchema,
   profile: z.array(DocumentReferenceContentProfileSchema).optional(),
 })
@@ -17298,7 +17148,7 @@ export type DocumentReference = z.infer<typeof DocumentReferenceSchema>
  * A single issue associated with the action
  * An error, warning, or information message that results from a system action.
  */
-export const OperationOutcomeIssueSchema = BackboneElementSchema.extend({
+export const OperationOutcomeIssueSchema = _BackboneElementBase.extend({
   severity: z.enum(['fatal', 'error', 'warning', 'information', 'success']),
   _severity: ElementSchema.optional(),
   code: z.enum(['invalid', 'structure', 'required', 'value', 'invariant', 'security', 'login', 'unknown', 'expired', 'forbidden', 'suppressed', 'processing', 'not-supported', 'duplicate', 'multiple-matches', 'not-found', 'deleted', 'too-long', 'code-invalid', 'extension', 'too-costly', 'business-rule', 'conflict', 'limited-filter', 'transient', 'lock-error', 'no-store', 'exception', 'timeout', 'incomplete', 'throttled', 'informational', 'success']),
@@ -17326,7 +17176,7 @@ export type OperationOutcome = z.infer<typeof OperationOutcomeSchema>
  * Who performed event
  * Indicates who or what performed the event.
  */
-export const MedicationDispensePerformerSchema = BackboneElementSchema.extend({
+export const MedicationDispensePerformerSchema = _BackboneElementBase.extend({
   function: CodeableConceptSchema.optional(),
   actor: ReferenceSchema,
 })
@@ -17336,7 +17186,7 @@ export type MedicationDispensePerformer = z.infer<typeof MedicationDispensePerfo
  * Whether a substitution was performed on the dispense
  * Indicates whether or not substitution was made as part of the dispense.  In some cases, substitution will be expected but does not happen, in other cases substitution is not expected but does happen.  This block explains what substitution did or did not happen and why.  If nothing is specified, substitution was not done.
  */
-export const MedicationDispenseSubstitutionSchema = BackboneElementSchema.extend({
+export const MedicationDispenseSubstitutionSchema = _BackboneElementBase.extend({
   wasSubstituted: z.boolean(),
   _wasSubstituted: ElementSchema.optional(),
   type: CodeableConceptSchema.optional(),
@@ -17391,7 +17241,7 @@ export type MedicationDispense = z.infer<typeof MedicationDispenseSchema>
  * Typically. this may be some form of insurance, internal charges, or self-pay.
  * Local or jurisdictional business rules may determine which coverage covers which types of billable items charged to the account, and in which order.
  */
-export const AccountCoverageSchema = BackboneElementSchema.extend({
+export const AccountCoverageSchema = _BackboneElementBase.extend({
   coverage: ReferenceSchema,
   priority: z.number().optional(),
   _priority: ElementSchema.optional(),
@@ -17402,7 +17252,7 @@ export type AccountCoverage = z.infer<typeof AccountCoverageSchema>
  * The parties ultimately responsible for balancing the Account
  * The parties responsible for balancing the account if other payment options fall short.
  */
-export const AccountGuarantorSchema = BackboneElementSchema.extend({
+export const AccountGuarantorSchema = _BackboneElementBase.extend({
   party: ReferenceSchema,
   onHold: z.boolean().optional(),
   _onHold: ElementSchema.optional(),
@@ -17414,7 +17264,7 @@ export type AccountGuarantor = z.infer<typeof AccountGuarantorSchema>
  * The list of diagnoses relevant to this account
  * When using an account for billing a specific Encounter the set of diagnoses that are relevant for billing are stored here on the account where they are able to be sequenced appropriately prior to processing to produce claim(s).
  */
-export const AccountDiagnosisSchema = BackboneElementSchema.extend({
+export const AccountDiagnosisSchema = _BackboneElementBase.extend({
   sequence: z.number().optional(),
   _sequence: ElementSchema.optional(),
   condition: CodeableReferenceSchema,
@@ -17431,7 +17281,7 @@ export type AccountDiagnosis = z.infer<typeof AccountDiagnosisSchema>
  * The list of procedures relevant to this account
  * When using an account for billing a specific Encounter the set of procedures that are relevant for billing are stored here on the account where they are able to be sequenced appropriately prior to processing to produce claim(s).
  */
-export const AccountProcedureSchema = BackboneElementSchema.extend({
+export const AccountProcedureSchema = _BackboneElementBase.extend({
   sequence: z.number().optional(),
   _sequence: ElementSchema.optional(),
   code: CodeableReferenceSchema,
@@ -17446,7 +17296,7 @@ export type AccountProcedure = z.infer<typeof AccountProcedureSchema>
 /**
  * Other associated accounts related to this account
  */
-export const AccountRelatedAccountSchema = BackboneElementSchema.extend({
+export const AccountRelatedAccountSchema = _BackboneElementBase.extend({
   relationship: CodeableConceptSchema.optional(),
   account: ReferenceSchema,
 })
@@ -17456,7 +17306,7 @@ export type AccountRelatedAccount = z.infer<typeof AccountRelatedAccountSchema>
  * Calculated account balance(s)
  * The calculated account balances - these are calculated and processed by the finance system.The balances with a `term` that is not current are usually generated/updated by an invoicing or similar process.
  */
-export const AccountBalanceSchema = BackboneElementSchema.extend({
+export const AccountBalanceSchema = _BackboneElementBase.extend({
   aggregate: CodeableConceptSchema.optional(),
   term: CodeableConceptSchema.optional(),
   estimate: z.boolean().optional(),
@@ -17498,7 +17348,7 @@ export type Account = z.infer<typeof AccountSchema>
  * Who performed the procedure and what they did
  * Indicates who or what performed the procedure and how they were involved.
  */
-export const ProcedurePerformerSchema = BackboneElementSchema.extend({
+export const ProcedurePerformerSchema = _BackboneElementBase.extend({
   function: CodeableConceptSchema.optional(),
   actor: ReferenceSchema,
   onBehalfOf: ReferenceSchema.optional(),
@@ -17510,7 +17360,7 @@ export type ProcedurePerformer = z.infer<typeof ProcedurePerformerSchema>
  * Manipulated, implanted, or removed device
  * A device that is implanted, removed or otherwise manipulated (calibration, battery replacement, fitting a prosthesis, attaching a wound-vac, etc.) as a focal portion of the Procedure.
  */
-export const ProcedureFocalDeviceSchema = BackboneElementSchema.extend({
+export const ProcedureFocalDeviceSchema = _BackboneElementBase.extend({
   action: CodeableConceptSchema.optional(),
   manipulated: ReferenceSchema,
 })
@@ -17568,7 +17418,7 @@ export type Procedure = z.infer<typeof ProcedureSchema>
 /**
  * This subclause refers to the description of each subunit constituting the SubstanceProtein. A subunit is a linear sequence of amino acids linked through peptide bonds. The Subunit information shall be provided when the finished SubstanceProtein is a complex of multiple sequences; subunits are not used to delineate domains within a single sequence. Subunits are listed in order of decreasing length; sequences of the same length will be ordered by decreasing molecular weight; subunits that have identical sequences will be repeated multiple times
  */
-export const SubstanceProteinSubunitSchema = BackboneElementSchema.extend({
+export const SubstanceProteinSubunitSchema = _BackboneElementBase.extend({
   subunit: z.number().optional(),
   _subunit: ElementSchema.optional(),
   sequence: z.string().optional(),
@@ -17603,7 +17453,7 @@ export type SubstanceProtein = z.infer<typeof SubstanceProteinSchema>
  * Who was involved in the adverse event or the potential adverse event and what they did
  * Indicates who or what participated in the adverse event and how they were involved.
  */
-export const AdverseEventParticipantSchema = BackboneElementSchema.extend({
+export const AdverseEventParticipantSchema = _BackboneElementBase.extend({
   function: CodeableConceptSchema.optional(),
   actor: ReferenceSchema,
 })
@@ -17612,7 +17462,7 @@ export type AdverseEventParticipant = z.infer<typeof AdverseEventParticipantSche
 /**
  * Information on the possible cause of the event
  */
-export const AdverseEventSuspectEntityCausalitySchema = BackboneElementSchema.extend({
+export const AdverseEventSuspectEntityCausalitySchema = _BackboneElementBase.extend({
   assessmentMethod: CodeableConceptSchema.optional(),
   entityRelatedness: CodeableConceptSchema.optional(),
   author: ReferenceSchema.optional(),
@@ -17623,7 +17473,7 @@ export type AdverseEventSuspectEntityCausality = z.infer<typeof AdverseEventSusp
  * The suspected agent causing the adverse event
  * Describes the entity that is suspected to have caused the adverse event.
  */
-export const AdverseEventSuspectEntitySchema = BackboneElementSchema.extend({
+export const AdverseEventSuspectEntitySchema = _BackboneElementBase.extend({
   instanceCodeableConcept: CodeableConceptSchema.optional(),
   instanceReference: ReferenceSchema.optional(),
   causality: AdverseEventSuspectEntityCausalitySchema.optional(),
@@ -17634,7 +17484,7 @@ export type AdverseEventSuspectEntity = z.infer<typeof AdverseEventSuspectEntity
  * Contributing factors suspected to have increased the probability or severity of the adverse event
  * The contributing factors suspected to have increased the probability or severity of the adverse event.
  */
-export const AdverseEventContributingFactorSchema = BackboneElementSchema.extend({
+export const AdverseEventContributingFactorSchema = _BackboneElementBase.extend({
   itemReference: ReferenceSchema.optional(),
   itemCodeableConcept: CodeableConceptSchema.optional(),
 })
@@ -17643,7 +17493,7 @@ export type AdverseEventContributingFactor = z.infer<typeof AdverseEventContribu
 /**
  * Preventive actions that contributed to avoiding the adverse event
  */
-export const AdverseEventPreventiveActionSchema = BackboneElementSchema.extend({
+export const AdverseEventPreventiveActionSchema = _BackboneElementBase.extend({
   itemReference: ReferenceSchema.optional(),
   itemCodeableConcept: CodeableConceptSchema.optional(),
 })
@@ -17653,7 +17503,7 @@ export type AdverseEventPreventiveAction = z.infer<typeof AdverseEventPreventive
  * Ameliorating actions taken after the adverse event occured in order to reduce the extent of harm
  * The ameliorating action taken after the adverse event occured in order to reduce the extent of harm.
  */
-export const AdverseEventMitigatingActionSchema = BackboneElementSchema.extend({
+export const AdverseEventMitigatingActionSchema = _BackboneElementBase.extend({
   itemReference: ReferenceSchema.optional(),
   itemCodeableConcept: CodeableConceptSchema.optional(),
 })
@@ -17662,7 +17512,7 @@ export type AdverseEventMitigatingAction = z.infer<typeof AdverseEventMitigating
 /**
  * Supporting information relevant to the event
  */
-export const AdverseEventSupportingInfoSchema = BackboneElementSchema.extend({
+export const AdverseEventSupportingInfoSchema = _BackboneElementBase.extend({
   itemReference: ReferenceSchema.optional(),
   itemCodeableConcept: CodeableConceptSchema.optional(),
 })

@@ -129,7 +129,7 @@ function topoSort(interfaces: IrInterface[]): {
 }
 
 // ---------------------------------------------------------------------------
-// Lazy-target set: schemas that need explicit z.ZodType<T> annotation
+// Lazy-target set: schemas that need z.ZodType<T> = z.lazy(() => ...) wrapping
 // ---------------------------------------------------------------------------
 
 /**
@@ -154,6 +154,153 @@ function buildLazyTargets(interfaces: IrInterface[]): Set<string> {
 }
 
 // ---------------------------------------------------------------------------
+// Force-annotated set: schemas with force-lazy fields that need z.ZodType<T>
+// ---------------------------------------------------------------------------
+
+/**
+ * Builds the set of interface names that have at least one force-lazy field.
+ * These schemas participate in a soft-dep cycle (detected by topoSort) and
+ * therefore cause TypeScript TS7022 ("implicitly has type 'any' because it
+ * does not have a type annotation and is referenced in its own initializer")
+ * if left unannotated.
+ *
+ * Fix: emit `export interface T` + `z.ZodType<T>` annotation, breaking the
+ * inference cycle at the annotation boundary.
+ */
+function buildForceAnnotated(interfaces: IrInterface[], forceLazy: Set<string>): Set<string> {
+  const annotated = new Set<string>();
+  for (const iface of interfaces) {
+    const hasForce = iface.fields.some(
+      (f) =>
+        forceLazy.has(`${iface.name}.${f.name}`) ||
+        (f.hasPrimitiveExtension && forceLazy.has(`${iface.name}._${f.name}`)),
+    );
+    if (hasForce) annotated.add(iface.name);
+  }
+  return annotated;
+}
+
+/**
+ * Returns the subset of forceAnnotated schema names that are used as `.extend()`
+ * bases by other schemas.  These need a private `_TBase` ZodObject const so
+ * derived schemas can still call `.extend()` (z.ZodType<T> doesn't have it).
+ */
+function buildUsedAsBases(interfaces: IrInterface[], forceAnnotated: Set<string>): Set<string> {
+  const bases = new Set<string>();
+  for (const iface of interfaces) {
+    if (iface.extends && forceAnnotated.has(iface.extends)) {
+      bases.add(iface.extends);
+    }
+  }
+  return bases;
+}
+
+// ---------------------------------------------------------------------------
+// ZodObject<Shape> annotation string for private base consts
+// ---------------------------------------------------------------------------
+
+/**
+ * Map an IR field to its TypeScript Zod *annotation* type string (used in
+ * the explicit `z.ZodObject<{…}>` annotation on private `_TBase` consts).
+ *
+ * Force-lazy fields become `z.ZodTypeAny` / `z.ZodArray<z.ZodTypeAny>` — this
+ * is intentionally imprecise because the goal is only to break the TS7022
+ * inference cycle, not to fully re-type the schema.  Consumers get accurate
+ * types via the exported `interface T` declaration.
+ */
+function zodAnnotationType(
+  tsType: string,
+  opts: { isArray: boolean; required: boolean; lazy: boolean },
+): string {
+  const { isArray, required, lazy } = opts;
+
+  let atom: string;
+  if (lazy) {
+    atom = isArray ? "z.ZodArray<z.ZodTypeAny>" : "z.ZodTypeAny";
+  } else {
+    const enumMatch = tsType.match(/^\(([^)]+)\)$/);
+    if (enumMatch) {
+      const values = enumMatch[1]?.split("|").map((v) => v.trim());
+      atom = `z.ZodEnum<[${values.join(", ")}]>`;
+    } else if (tsType.startsWith("'") && tsType.endsWith("'")) {
+      atom = `z.ZodLiteral<${tsType}>`;
+    } else if (tsType === "string") {
+      atom = "z.ZodString";
+    } else if (tsType === "boolean") {
+      atom = "z.ZodBoolean";
+    } else if (tsType === "number") {
+      atom = "z.ZodNumber";
+    } else {
+      // Non-lazy complex type: use ZodTypeAny to avoid pulling in potentially
+      // unannotated forward references into the shape annotation.
+      atom = isArray ? "z.ZodArray<z.ZodTypeAny>" : "z.ZodTypeAny";
+    }
+    if (!lazy && !isArray && atom !== "z.ZodTypeAny") {
+      // isArray already handled above for the non-lazy path
+    }
+  }
+
+  return required ? atom : `z.ZodOptional<${atom}>`;
+}
+
+/**
+ * Returns per-field Zod type annotation lines for a single IrInterface's
+ * OWN fields (does not include inherited fields).
+ */
+function ownFieldAnnotationLines(iface: IrInterface, forceLazy: Set<string>): string[] {
+  const lines: string[] = [];
+  for (const field of iface.fields) {
+    const isLazy = field.isLazy === true || forceLazy.has(`${iface.name}.${field.name}`);
+    const annType = zodAnnotationType(field.tsType, {
+      isArray: field.isArray,
+      required: field.required,
+      lazy: isLazy,
+    });
+    lines.push(`  ${field.name}: ${annType};`);
+    if (field.hasPrimitiveExtension) {
+      lines.push(`  _${field.name}: z.ZodOptional<z.ZodTypeAny>;`);
+    }
+  }
+  return lines;
+}
+
+/**
+ * Recursively collect field annotation lines from the full inheritance chain
+ * (parent fields first, own fields last).  Only walks up through schemas that
+ * are in usedAsBases — these are the only ones that have a private `_Base`
+ * const whose shape we need to describe.
+ */
+function mergedFieldAnnotationLines(
+  iface: IrInterface,
+  forceLazy: Set<string>,
+  nameToIface: Map<string, IrInterface>,
+  usedAsBases: Set<string>,
+): string[] {
+  const lines: string[] = [];
+  if (iface.extends && usedAsBases.has(iface.extends)) {
+    const parent = nameToIface.get(iface.extends);
+    if (parent) {
+      lines.push(...mergedFieldAnnotationLines(parent, forceLazy, nameToIface, usedAsBases));
+    }
+  }
+  lines.push(...ownFieldAnnotationLines(iface, forceLazy));
+  return lines;
+}
+
+/** Build the `z.ZodObject<{ … }>` annotation string for a private `_Base` const.
+ *  Includes all fields from the full inheritance chain so the annotation
+ *  exactly matches the value returned by `_ParentBase.extend({…})`. */
+function zodObjectShapeStr(
+  iface: IrInterface,
+  forceLazy: Set<string>,
+  nameToIface: Map<string, IrInterface>,
+  usedAsBases: Set<string>,
+): string {
+  const fieldLines = mergedFieldAnnotationLines(iface, forceLazy, nameToIface, usedAsBases);
+  return `z.ZodObject<{\n${fieldLines.join("\n")}\n}>`;
+}
+
+// ---------------------------------------------------------------------------
 // Field rendering
 // ---------------------------------------------------------------------------
 
@@ -169,9 +316,18 @@ function renderField(
   const { isArray, required, lazy } = opts;
   let expr: string;
   if (isArray) {
-    expr = lazy ? `z.lazy(() => z.array(${zodAtom(tsType)}))` : `z.array(${zodAtom(tsType)})`;
+    // ZodLazy<ZodArray<T>> and ZodArray<ZodTypeAny> don't overlap sufficiently
+    // for a direct `as` cast (TS2352).  The double cast through `unknown` is
+    // always valid and provides TypeScript with a concrete type without needing
+    // to evaluate the lazy target — breaking the TS7022 inference chain when
+    // used alongside the explicit ZodObject<Shape> annotation on _TBase consts.
+    expr = lazy
+      ? `(z.lazy(() => z.array(${zodAtom(tsType)})) as unknown as z.ZodArray<z.ZodTypeAny>)`
+      : `z.array(${zodAtom(tsType)})`;
   } else {
-    expr = zodAtom(tsType, lazy);
+    // ZodLazy<T> extends ZodType which extends ZodTypeAny, so a direct `as`
+    // cast is valid (no TS2352).
+    expr = lazy ? `(z.lazy(() => ${zodAtom(tsType)}) as z.ZodTypeAny)` : zodAtom(tsType, false);
   }
   if (!required) expr = `${expr}.optional()`;
   return `  ${name}: ${expr},`;
@@ -196,7 +352,7 @@ function renderSchemaFields(iface: IrInterface, forceLazy: Set<string>): string[
     if (field.hasPrimitiveExtension) {
       const extKey = `${iface.name}._${field.name}`;
       if (forceLazy.has(extKey)) {
-        lines.push(`  _${field.name}: z.lazy(() => ElementSchema).optional(),`);
+        lines.push(`  _${field.name}: (z.lazy(() => ElementSchema) as z.ZodTypeAny).optional(),`);
       } else {
         lines.push(`  _${field.name}: ElementSchema.optional(),`);
       }
@@ -209,15 +365,32 @@ function renderSchemaFields(iface: IrInterface, forceLazy: Set<string>): string[
 // Interface rendering
 // ---------------------------------------------------------------------------
 
-function renderSchema(
-  iface: IrInterface,
-  lazyTargets: Set<string>,
-  allNames: Set<string>,
-  forceLazy: Set<string>,
-): string {
+interface RenderContext {
+  lazyTargets: Set<string>;
+  allNames: Set<string>;
+  forceLazy: Set<string>;
+  forceAnnotated: Set<string>;
+  usedAsBases: Set<string>;
+  nameToIface: Map<string, IrInterface>;
+}
+
+/**
+ * Return the `.extend()` expression for `iface`'s base, taking into account
+ * whether the base is a force-annotated schema that has a private `_Base`
+ * const (in which case we must use `_BaseBase.extend` rather than
+ * `BaseSchema.extend` because `z.ZodType<T>` doesn't expose `.extend()`).
+ */
+function extendExpr(iface: IrInterface, ctx: RenderContext): string | null {
+  const { allNames, usedAsBases } = ctx;
+  if (!iface.extends || !allNames.has(iface.extends)) return null;
+  if (usedAsBases.has(iface.extends)) return `_${iface.extends}Base.extend`;
+  return `${iface.extends}Schema.extend`;
+}
+
+function renderSchema(iface: IrInterface, ctx: RenderContext): string {
+  const { lazyTargets, forceLazy, forceAnnotated, usedAsBases, nameToIface } = ctx;
   const lines: string[] = [];
   const schemaName = `${iface.name}Schema`;
-  const needsTypeAnnotation = lazyTargets.has(iface.name);
 
   // JSDoc
   if (iface.description) {
@@ -228,12 +401,14 @@ function renderSchema(
   }
 
   const fieldLines = renderSchemaFields(iface, forceLazy);
+  const ext = extendExpr(iface, ctx);
 
-  if (needsTypeAnnotation) {
-    // Emit a TypeScript interface declaration so we can annotate the schema type.
-    // The extends keyword is preserved at the TypeScript level.
-    const ext = iface.extends ? ` extends ${iface.extends}` : "";
-    lines.push(`export interface ${iface.name}${ext} {`);
+  // ── Path 1: isLazy (contentReference / R2 self-ref) ──────────────────────
+  // Wrapped in z.lazy() so the whole schema is ZodLazy<T>, which is fine for
+  // schemas that are never used as `.extend()` bases (backbone sub-elements).
+  if (lazyTargets.has(iface.name)) {
+    const ifaceExt = iface.extends ? ` extends ${iface.extends}` : "";
+    lines.push(`export interface ${iface.name}${ifaceExt} {`);
     for (const field of iface.fields) {
       const opt = field.required ? "" : "?";
       const arrSuffix = field.isArray ? "[]" : "";
@@ -246,40 +421,93 @@ function renderSchema(
     lines.push("}");
     lines.push("");
 
-    // Schema with explicit type annotation, wrapped in z.lazy.
-    // Preserve extends at the Zod level too when applicable.
-    const extZod =
-      iface.extends && allNames.has(iface.extends) ? `${iface.extends}Schema.extend` : null;
-
     lines.push(`export const ${schemaName}: z.ZodType<${iface.name}> = z.lazy(() =>`);
-    if (extZod) {
-      lines.push(`  ${extZod}({`);
+    if (ext) {
+      lines.push(`  ${ext}({`);
     } else {
       lines.push("  z.object({");
     }
-    // The lazyTargets branch adds extra indent; shadow fields (_field) get one
-    // additional level to match the current output format.
     for (const fl of fieldLines) {
-      lines.push(fl.startsWith("  _") ? `    ${fl}` : `  ${fl}`);
+      lines.push(`  ${fl}`);
     }
     lines.push("  })");
     lines.push(")");
-  } else {
-    // Normal non-lazy schema
-    const ext =
-      iface.extends && allNames.has(iface.extends) ? `${iface.extends}Schema.extend` : null;
-
-    if (ext) {
-      lines.push(`export const ${schemaName} = ${ext}({`);
-    } else {
-      lines.push(`export const ${schemaName} = z.object({`);
-    }
-    for (const fl of fieldLines) {
-      lines.push(fl);
-    }
-    lines.push("})");
-    lines.push(`export type ${iface.name} = z.infer<typeof ${schemaName}>`);
+    return lines.join("\n");
   }
+
+  // ── Path 2: force-annotated (has force-lazy fields → TS7022 risk) ────────
+  // The standard Zod recursive-schema pattern: emit `export interface T` so
+  // TypeScript has a concrete type, then annotate the schema const with
+  // `z.ZodType<T>` to break the circular-initializer inference chain.
+  //
+  // For schemas that serve as `.extend()` bases (usedAsBases), we additionally
+  // emit a private `_TBase` ZodObject const.  Derived schemas call
+  // `_TBase.extend({…})` instead of `TSchema.extend({…})` because
+  // `z.ZodType<T>` doesn't expose `.extend()`.
+  //
+  // When the private base's own initializer would also form a cycle (detected
+  // by privateBaseNeedsAnnotation), we add an explicit `z.ZodObject<Shape>`
+  // annotation to the private base to break that inner cycle too.
+  if (forceAnnotated.has(iface.name)) {
+    // 1. TypeScript interface declaration — accurate consumer types.
+    const ifaceExt = iface.extends ? ` extends ${iface.extends}` : "";
+    lines.push(`export interface ${iface.name}${ifaceExt} {`);
+    for (const field of iface.fields) {
+      const opt = field.required ? "" : "?";
+      const arrSuffix = field.isArray ? "[]" : "";
+      const nullSuffix = field.required ? "" : " | undefined";
+      lines.push(`  ${field.name}${opt}: ${field.tsType}${arrSuffix}${nullSuffix}`);
+      if (field.hasPrimitiveExtension) {
+        lines.push(`  _${field.name}?: Element | undefined`);
+      }
+    }
+    lines.push("}");
+    lines.push("");
+
+    if (usedAsBases.has(iface.name)) {
+      // 2a. Private ZodObject base for .extend() chaining.
+      // Always annotate with the full merged shape (own fields + all inherited
+      // fields from usedAsBases ancestors) so that TypeScript can stop at this
+      // annotation boundary and not trace through the initialiser into cycles.
+      const baseName = `_${iface.name}Base`;
+      const annStr = zodObjectShapeStr(iface, forceLazy, nameToIface, usedAsBases);
+
+      if (ext) {
+        lines.push(`const ${baseName}: ${annStr} = ${ext}({`);
+      } else {
+        lines.push(`const ${baseName}: ${annStr} = z.object({`);
+      }
+      for (const fl of fieldLines) lines.push(fl);
+      lines.push("})");
+      lines.push("");
+
+      // 3a. Public annotated schema — breaks TS7022 for dependents.
+      lines.push(`export const ${schemaName}: z.ZodType<${iface.name}> = ${baseName}`);
+    } else {
+      // 2b. No private base needed — annotate the schema directly.
+      if (ext) {
+        lines.push(`export const ${schemaName}: z.ZodType<${iface.name}> = ${ext}({`);
+      } else {
+        lines.push(`export const ${schemaName}: z.ZodType<${iface.name}> = z.object({`);
+      }
+      for (const fl of fieldLines) lines.push(fl);
+      lines.push("})");
+    }
+    // No `export type T = z.infer<…>` — the interface above already provides T.
+    return lines.join("\n");
+  }
+
+  // ── Path 3: normal schema ────────────────────────────────────────────────
+  if (ext) {
+    lines.push(`export const ${schemaName} = ${ext}({`);
+  } else {
+    lines.push(`export const ${schemaName} = z.object({`);
+  }
+  for (const fl of fieldLines) {
+    lines.push(fl);
+  }
+  lines.push("})");
+  lines.push(`export type ${iface.name} = z.infer<typeof ${schemaName}>`);
 
   return lines.join("\n");
 }
@@ -297,11 +525,26 @@ function renderSchema(
 export function emitZod(model: IrModel): string {
   const { sorted, forceLazy } = topoSort(model.interfaces);
   const lazyTargets = buildLazyTargets(model.interfaces);
+  const forceAnnotated = buildForceAnnotated(model.interfaces, forceLazy);
+  const usedAsBases = buildUsedAsBases(model.interfaces, forceAnnotated);
   const allNames = new Set(model.interfaces.map((i) => i.name));
+
+  const ctx: RenderContext = {
+    lazyTargets,
+    allNames,
+    forceLazy,
+    forceAnnotated,
+    usedAsBases,
+    nameToIface: new Map(model.interfaces.map((i) => [i.name, i])),
+  };
 
   const parts = [
     `import { z } from 'zod'`,
-    ...sorted.map((iface) => renderSchema(iface, lazyTargets, allNames, forceLazy)),
+    // Skip FHIR primitive-type StructureDefinitions (boolean, string, integer, …).
+    // Their names clash with TypeScript built-ins (TS2457) and they are never
+    // referenced as schema types — resource fields use z.string() / z.boolean()
+    // directly via PRIMITIVE_ZOD. This mirrors the behaviour of emitTypeScript.
+    ...sorted.filter((iface) => !iface.isPrimitive).map((iface) => renderSchema(iface, ctx)),
   ];
 
   return `${parts.join("\n\n")}\n`;

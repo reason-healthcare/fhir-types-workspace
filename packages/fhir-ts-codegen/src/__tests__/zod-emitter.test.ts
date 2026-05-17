@@ -62,6 +62,12 @@ function execModule(src: string): Record<string, unknown> {
     .replace(/^import \{ z \} from 'zod'\n?/gm, "")
     .replace(/^export type [^\n]+\n/gm, "")
     .replace(/: z\.ZodType<[^>]+>/g, "")
+    // Strip ZodObject<{...}> type annotations on private _Base consts (may span multiple lines)
+    .replace(/: z\.ZodObject<\{[\s\S]*?\}>/g, "")
+    // Strip TypeScript `as` casts added by the lazy-cast fix (TS7022).
+    // Handles both plain `as z.ZodTypeAny` and double-cast `as unknown as z.ZodArray<...>`.
+    .replace(/ as unknown as z\.[A-Za-z]+(?:<z\.[A-Za-z]+>)?/g, "")
+    .replace(/ as z\.[A-Za-z]+(?:<z\.[A-Za-z]+>)?/g, "")
     // Remove multi-line export interface blocks
     .replace(/export interface \w[^\n]*\n(?: {2}[^\n]*\n)*\}\n/g, "")
     .replace(/^export /gm, "");
@@ -284,7 +290,9 @@ describe("zod emitter — topoSort forward references", () => {
     };
     const output = emitZod(model);
     // Identifier.assigner is force-lazy (Reference visited first, visits Identifier, sees Reference in stack)
-    expect(output).toContain("  assigner: z.lazy(() => ReferenceSchema).optional(),");
+    expect(output).toContain(
+      "  assigner: (z.lazy(() => ReferenceSchema) as z.ZodTypeAny).optional(),",
+    );
     // Reference.identifier is NOT force-lazy — IdentifierSchema already declared before ReferenceSchema
     expect(output).toContain("  identifier: IdentifierSchema.optional(),");
   });
@@ -313,7 +321,7 @@ describe("zod emitter — topoSort forward references", () => {
       ],
     };
     expect(emitZod(model)).toContain(
-      "  extension: z.lazy(() => z.array(ExtensionSchema)).optional(),",
+      "  extension: (z.lazy(() => z.array(ExtensionSchema)) as unknown as z.ZodArray<z.ZodTypeAny>).optional(),",
     );
   });
 
@@ -340,7 +348,9 @@ describe("zod emitter — topoSort forward references", () => {
     // isLazy → lazyTargets path → z.ZodType annotation
     expect(output).toContain("z.ZodType<QuestionnaireItem>");
     // The item field is wrapped via isLazy (not forceLazy)
-    expect(output).toContain("  item: z.lazy(() => z.array(QuestionnaireItemSchema)).optional(),");
+    expect(output).toContain(
+      "  item: (z.lazy(() => z.array(QuestionnaireItemSchema)) as unknown as z.ZodArray<z.ZodTypeAny>).optional(),",
+    );
   });
 
   it("multi-level extends chain (A extends B extends C) in reverse input order: no forward refs", () => {
@@ -453,7 +463,7 @@ describe("field expression mapping", () => {
     expect(emitZod(model)).toContain("  field: z.array(CodingSchema).optional(),");
   });
 
-  it("isLazy field → z.lazy(() => ItemSchema).optional()", () => {
+  it("isLazy field → (z.lazy(() => ItemSchema) as z.ZodTypeAny).optional()", () => {
     const model: IrModel = {
       version: "r4",
       interfaces: [
@@ -472,10 +482,12 @@ describe("field expression mapping", () => {
         },
       ],
     };
-    expect(emitZod(model)).toContain("  item: z.lazy(() => ItemSchema).optional(),");
+    expect(emitZod(model)).toContain(
+      "  item: (z.lazy(() => ItemSchema) as z.ZodTypeAny).optional(),",
+    );
   });
 
-  it("isLazy array field → z.lazy(() => z.array(ItemSchema)).optional()", () => {
+  it("isLazy array field → (z.lazy(() => z.array(ItemSchema)) as unknown as z.ZodArray<z.ZodTypeAny>).optional()", () => {
     const model: IrModel = {
       version: "r4",
       interfaces: [
@@ -494,7 +506,9 @@ describe("field expression mapping", () => {
         },
       ],
     };
-    expect(emitZod(model)).toContain("  item: z.lazy(() => z.array(ItemSchema)).optional(),");
+    expect(emitZod(model)).toContain(
+      "  item: (z.lazy(() => z.array(ItemSchema)) as unknown as z.ZodArray<z.ZodTypeAny>).optional(),",
+    );
   });
 });
 
@@ -523,7 +537,7 @@ describe("hasPrimitiveExtension", () => {
     expect(output).toContain("  _birthDate: ElementSchema.optional(),");
   });
 
-  it("Element._id (self-reference) → force-lazy: z.lazy(() => ElementSchema).optional()", () => {
+  it("Element._id (self-reference) → force-lazy: (z.lazy(() => ElementSchema) as z.ZodTypeAny).optional()", () => {
     const model: IrModel = {
       version: "r4",
       interfaces: [
@@ -541,7 +555,9 @@ describe("hasPrimitiveExtension", () => {
         },
       ],
     };
-    expect(emitZod(model)).toContain("  _id: z.lazy(() => ElementSchema).optional(),");
+    expect(emitZod(model)).toContain(
+      "  _id: (z.lazy(() => ElementSchema) as z.ZodTypeAny).optional(),",
+    );
   });
 
   it("Non-Element type._field → _field: ElementSchema.optional() (not lazy)", () => {
@@ -924,5 +940,199 @@ describe("runtime — Zod parsing", () => {
       item: [{ linkId: "q1.1", item: [{ linkId: "q1.1.1" }] }],
     });
     expect(result.success).toBe(true);
+  });
+});
+
+describe("primitive types — TS2457 fix", () => {
+  const PRIM_MODEL: IrModel = {
+    version: "r4",
+    interfaces: [
+      {
+        name: "string",
+        isPrimitive: true,
+        fields: [
+          {
+            name: "value",
+            tsType: "string",
+            required: false,
+            isArray: false,
+            hasPrimitiveExtension: false,
+          },
+        ],
+      },
+      {
+        name: "boolean",
+        isPrimitive: true,
+        fields: [
+          {
+            name: "value",
+            tsType: "boolean",
+            required: false,
+            isArray: false,
+            hasPrimitiveExtension: false,
+          },
+        ],
+      },
+      {
+        name: "integer",
+        isPrimitive: true,
+        fields: [
+          {
+            name: "value",
+            tsType: "number",
+            required: false,
+            isArray: false,
+            hasPrimitiveExtension: false,
+          },
+        ],
+      },
+      {
+        name: "Patient",
+        isResource: true,
+        fields: [
+          {
+            name: "active",
+            tsType: "boolean",
+            required: false,
+            isArray: false,
+            hasPrimitiveExtension: false,
+          },
+        ],
+      },
+    ],
+  };
+
+  it("isPrimitive schemas are not emitted — no export const stringSchema", () => {
+    const output = emitZod(PRIM_MODEL);
+    expect(output).not.toContain("export const stringSchema");
+    expect(output).not.toContain("export const booleanSchema");
+    expect(output).not.toContain("export const integerSchema");
+  });
+
+  it("isPrimitive schemas are not emitted — no 'export type string ='", () => {
+    const output = emitZod(PRIM_MODEL);
+    expect(output).not.toContain("export type string =");
+    expect(output).not.toContain("export type boolean =");
+    expect(output).not.toContain("export type integer =");
+  });
+
+  it("non-primitive resource schemas ARE still emitted", () => {
+    expect(emitZod(PRIM_MODEL)).toContain("export const PatientSchema");
+  });
+
+  it("primitive field values in resource schemas still use z.boolean() not booleanSchema", () => {
+    const output = emitZod(PRIM_MODEL);
+    expect(output).toContain("  active: z.boolean().optional(),");
+    expect(output).not.toContain("booleanSchema");
+  });
+});
+
+describe("lazy field type casts — TS7022 fix", () => {
+  it("force-lazy non-array field has 'as z.ZodTypeAny' cast", () => {
+    // Mutual cycle: Reference.identifier → Identifier, Identifier.assigner → Reference.
+    // Identifier.assigner is force-lazy.
+    const model: IrModel = {
+      version: "r4",
+      interfaces: [
+        { name: "Element", fields: [] },
+        {
+          name: "Reference",
+          extends: "Element",
+          fields: [
+            {
+              name: "identifier",
+              tsType: "Identifier",
+              required: false,
+              isArray: false,
+              hasPrimitiveExtension: false,
+            },
+          ],
+        },
+        {
+          name: "Identifier",
+          extends: "Element",
+          fields: [
+            {
+              name: "assigner",
+              tsType: "Reference",
+              required: false,
+              isArray: false,
+              hasPrimitiveExtension: false,
+            },
+          ],
+        },
+      ],
+    };
+    expect(emitZod(model)).toContain("as z.ZodTypeAny");
+  });
+
+  it("force-lazy array field has 'as unknown as z.ZodArray<z.ZodTypeAny>' cast", () => {
+    // Element.extension → Extension extends Element: extension is force-lazy array.
+    const model: IrModel = {
+      version: "r4",
+      interfaces: [
+        {
+          name: "Element",
+          fields: [
+            {
+              name: "extension",
+              tsType: "Extension",
+              required: false,
+              isArray: true,
+              hasPrimitiveExtension: false,
+            },
+          ],
+        },
+        { name: "Extension", extends: "Element", fields: [] },
+      ],
+    };
+    expect(emitZod(model)).toContain("as unknown as z.ZodArray<z.ZodTypeAny>");
+  });
+
+  it("force-lazy _shadow field has 'as z.ZodTypeAny' cast", () => {
+    // Element._id is a self-referential shadow field — force-lazy.
+    const model: IrModel = {
+      version: "r4",
+      interfaces: [
+        {
+          name: "Element",
+          fields: [
+            {
+              name: "id",
+              tsType: "string",
+              required: false,
+              isArray: false,
+              hasPrimitiveExtension: true,
+            },
+          ],
+        },
+      ],
+    };
+    expect(emitZod(model)).toContain("(z.lazy(() => ElementSchema) as z.ZodTypeAny).optional()");
+  });
+
+  it("non-lazy fields do NOT get a cast", () => {
+    const model: IrModel = {
+      version: "r4",
+      interfaces: [
+        { name: "Element", fields: [] },
+        {
+          name: "Coding",
+          extends: "Element",
+          fields: [
+            {
+              name: "code",
+              tsType: "string",
+              required: false,
+              isArray: false,
+              hasPrimitiveExtension: false,
+            },
+          ],
+        },
+      ],
+    };
+    const output = emitZod(model);
+    expect(output).not.toContain("as z.ZodTypeAny");
+    expect(output).not.toContain("as z.ZodArray");
   });
 });

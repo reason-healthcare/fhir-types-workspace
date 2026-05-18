@@ -358,12 +358,17 @@ export async function parsePackageDir(packageDir: string, version: FhirVersion):
       const sd = JSON.parse(raw) as StructureDefinition;
 
       if (sd.resourceType !== "StructureDefinition") continue;
-      // Skip profiles/constraints:
-      // - R3+: derivation === 'constraint'
+      // Skip profiles/constraints, but allow canonical FHIR core constraint types
+      // (e.g. SimpleQuantity, MoneyQuantity) which have a canonical base spec URL.
+      // - R3+: skip if derivation === 'constraint' AND URL is non-canonical
       // - R2: constrainedType is set AND URL is non-canonical (profiles/IGs have
       //   hyphens or lowercase starts). Canonical quantity specialisations like
       //   Age, Count, SimpleQuantity have constrainedType but are base FHIR types.
-      if (sd.derivation === "constraint") continue;
+      if (
+        sd.derivation === "constraint" &&
+        !/^http:\/\/hl7\.org\/fhir\/StructureDefinition\/[A-Z][A-Za-z0-9]*$/.test(sd.url ?? "")
+      )
+        continue;
       if (
         sd.constrainedType &&
         !/^http:\/\/hl7\.org\/fhir\/StructureDefinition\/[A-Z][A-Za-z0-9]*$/.test(sd.url ?? "")

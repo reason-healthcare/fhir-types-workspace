@@ -7688,6 +7688,13 @@ export const MedicationSchema = DomainResourceSchema.extend({
 export type Medication = z.infer<typeof MedicationSchema>
 
 /**
+ * A fixed quantity (no comparator)
+ */
+export const SimpleQuantitySchema = QuantitySchema.extend({
+})
+export type SimpleQuantity = z.infer<typeof SimpleQuantitySchema>
+
+/**
  * Key images associated with this report
  * A list of key images associated with this report. The images are generally created during the diagnostic process, and may be directly of the patient, or of treated specimens (i.e. slides of interest).
  */
@@ -13227,6 +13234,13 @@ export const MedicinalProductContraindicationSchema = DomainResourceSchema.exten
   population: z.array(PopulationSchema).optional(),
 })
 export type MedicinalProductContraindication = z.infer<typeof MedicinalProductContraindicationSchema>
+
+/**
+ * An amount of money. With regard to precision, see [Decimal Precision](datatypes.html#precision)
+ */
+export const MoneyQuantitySchema = QuantitySchema.extend({
+})
+export type MoneyQuantity = z.infer<typeof MoneyQuantitySchema>
 
 /**
  * Provides guide for interpretation

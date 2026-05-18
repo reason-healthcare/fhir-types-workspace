@@ -1,6 +1,6 @@
 {
   "name": "@reasonhealth/fhir-zod",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "Zod schemas for FHIR R4, R4B, R5",
   "type": "module",
   "license": "MIT",
@@ -14,15 +14,30 @@
     "url": "https://github.com/reason-healthcare/fhir-types-workspace/issues"
   },
   "exports": {
-    "./r4": "./src/r4.ts",
-    "./r4b": "./src/r4b.ts",
-    "./r5": "./src/r5.ts"
+    "./r4": {
+      "types": "./src/r4.ts",
+      "import": "./dist/r4.js",
+      "default": "./dist/r4.js"
+    },
+    "./r4b": {
+      "types": "./src/r4b.ts",
+      "import": "./dist/r4b.js",
+      "default": "./dist/r4b.js"
+    },
+    "./r5": {
+      "types": "./src/r5.ts",
+      "import": "./dist/r5.js",
+      "default": "./dist/r5.js"
+    }
   },
   "files": [
-    "src"
+    "src",
+    "dist"
   ],
   "scripts": {
     "generate": "fhir-generate --config ./generate.config.ts",
+    "build": "bun build src/r4.ts src/r4b.ts src/r5.ts --target node --format esm --external zod --outdir dist --sourcemap",
+    "prepublishOnly": "bun run build",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

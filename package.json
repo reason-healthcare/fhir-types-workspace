@@ -1,6 +1,6 @@
 {
   "name": "@reasonhealth/fhir-types-workspace",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "private": true,
   "workspaces": [
     "packages/*"
@@ -8,7 +8,7 @@
   "scripts": {
     "generate": "bun run packages/fhir-ts-codegen/src/cli.ts --config packages/types-fhir/generate.config.ts && bun run packages/fhir-ts-codegen/src/cli.ts --config packages/fhir-zod/generate.config.ts",
     "generate:types": "bun run packages/fhir-ts-codegen/src/cli.ts --config packages/types-fhir/generate.config.ts",
-    "generate:zod": "bun run packages/fhir-ts-codegen/src/cli.ts --config packages/fhir-zod/generate.config.ts",
+    "generate:zod": "bun run packages/fhir-ts-codegen/src/cli.ts --config packages/fhir-zod/generate.config.ts && bun run --cwd packages/fhir-zod build",
     "lint": "bunx biome lint .",
     "format": "bunx biome format --write .",
     "format:check": "bunx biome format .",

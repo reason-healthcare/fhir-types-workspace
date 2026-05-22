@@ -225,6 +225,18 @@ export async function generateTestFile(
     `  parameter: [{ name: "subject", resource: ${version}InlinePatient }],`,
     `};`,
     ``,
+    `// 5. Resource.resourceType is accessible on base-typed fields`,
+    `//    Regression for https://github.com/DefinitelyTyped/DefinitelyTyped/discussions/75015`,
+    `//    BundleEntry.resource is typed as Resource — resourceType must be reachable.`,
+    `const ${version}Bundle: ${namespace}.Bundle = {`,
+    `  resourceType: "Bundle",`,
+    `  type: "collection",`,
+    `  entry: [{ resource: ${version}InlinePatient }],`,
+    `};`,
+    `const ${version}HasPatient = ${version}Bundle.entry?.some(`,
+    `  (e) => e.resource?.resourceType === "Patient",`,
+    `);`,
+    ``,
   );
 
   await mkdir(outFile.replace(/\/[^/]+$/, ""), { recursive: true });

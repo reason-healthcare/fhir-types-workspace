@@ -109,7 +109,16 @@ export function emitTypeScript(
     parts.push("");
   }
 
-  // Emit a FhirResource discriminated union of all concrete resource types
+  // Emit a FhirResource discriminated union of all concrete resource types.
+  //
+  // IMPORTANT: FhirResource must NOT be referenced inside any interface property
+  // (e.g. DomainResource.contained, ParametersParameter.resource, BundleEntry.resource).
+  // TypeScript does not allow type *aliases* (as opposed to interfaces) to be
+  // self-referential, and every resource type extends DomainResource — so typing
+  // any field as `FhirResource` would create a cycle and raise TS2456
+  // "Type alias 'FhirResource' circularly references itself".
+  // Those fields intentionally use the base `Resource` interface instead.
+  // See: https://github.com/DefinitelyTyped/DefinitelyTyped/issues/71984
   if (resourceNames.length > 0) {
     parts.push("export type FhirResource =");
     for (let i = 0; i < resourceNames.length; i++) {

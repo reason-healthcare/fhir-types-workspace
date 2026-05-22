@@ -417,8 +417,31 @@ function parseStructureDefinition(
 
   const fields = processLevel(name, firstNonRoot, rootPath, enumRegistry, allInterfaces);
 
-  // Add `readonly resourceType: 'Name'` for resources (kind === 'resource' and not abstract)
-  if (sd.kind === "resource" && !sd.abstract) {
+  // Add a `readonly resourceType` discriminant field:
+  //
+  //   - Abstract `Resource` base: `readonly resourceType: string`
+  //     This allows callers to access `.resourceType` on any `Resource`-typed
+  //     variable (e.g. `BundleEntry.resource`, `DomainResource.contained[n]`)
+  //     without a TypeScript error.  Concrete subtypes narrow this to a
+  //     literal type so the discriminated-union pattern still works.
+  //     See: https://github.com/DefinitelyTyped/DefinitelyTyped/discussions/75015
+  //
+  //   - Concrete resources: `readonly resourceType: 'TypeName'`
+  //     Narrows the inherited `string` to an exact literal, enabling
+  //     exhaustive switch/if-else narrowing over `FhirResource`.
+  if (sd.kind === "resource" && name === "Resource" && sd.abstract) {
+    // Base abstract Resource — add the general string discriminant
+    fields.unshift({
+      name: "resourceType",
+      tsType: "string",
+      required: true,
+      isArray: false,
+      hasPrimitiveExtension: false,
+      readonly: true,
+      description: "Resource Type Name (for serialization)",
+    });
+  } else if (sd.kind === "resource" && !sd.abstract) {
+    // Concrete resource — narrow to the exact literal
     fields.unshift({
       name: "resourceType",
       tsType: `'${name}'`,

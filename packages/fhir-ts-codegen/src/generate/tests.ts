@@ -177,6 +177,68 @@ export async function generateTestFile(
 
   lines.push("");
 
+  // ---------------------------------------------------------------------------
+  // Regression tests for https://github.com/DefinitelyTyped/DefinitelyTyped/issues/71984
+  // FhirResource must not circularly reference itself (TS2456).
+  // The root cause was that DomainResource.contained (and similar fields) were
+  // typed as FhirResource[] instead of Resource[], creating a cycle through every
+  // resource type that extends DomainResource.
+  // ---------------------------------------------------------------------------
+  const vCap = version.charAt(0).toUpperCase() + version.slice(1);
+  lines.push(
+    `// Regression tests for https://github.com/DefinitelyTyped/DefinitelyTyped/issues/71984`,
+    `// FhirResource must not circularly reference itself (TS2456).`,
+    `// The root cause was that DomainResource.contained (and similar fields) were typed as`,
+    `// FhirResource[] instead of Resource[], creating a cycle through every resource type.`,
+    ``,
+    `// 1. FhirResource is assignable from any concrete resource type`,
+    `const ${version}FhirResourcePatient: ${namespace}.FhirResource = { resourceType: "Patient", id: "pt-1" };`,
+    `const ${version}FhirResourceObservation: ${namespace}.FhirResource = { resourceType: "Observation", id: "obs-1", status: "final", code: { text: "test" } };`,
+    ``,
+    `// 2. FhirResource discriminated union narrows correctly via resourceType`,
+    `function process${vCap}FhirResource(resource: ${namespace}.FhirResource): string {`,
+    `  if (resource.resourceType === "Patient") {`,
+    `    const patient: ${namespace}.Patient = resource;`,
+    `    return patient.resourceType;`,
+    `  }`,
+    `  if (resource.resourceType === "Observation") {`,
+    `    const obs: ${namespace}.Observation = resource;`,
+    `    return obs.resourceType;`,
+    `  }`,
+    `  return resource.resourceType;`,
+    `}`,
+    `process${vCap}FhirResource(${version}FhirResourcePatient);`,
+    `process${vCap}FhirResource(${version}FhirResourceObservation);`,
+    ``,
+    `// 3. DomainResource.contained uses Resource[] (not FhirResource[]) — no circularity`,
+    `const ${version}InlineObs: ${namespace}.Observation = { resourceType: "Observation", id: "inline-obs", status: "final", code: { text: "test" } };`,
+    `const ${version}PatientWithContained: ${namespace}.Patient = {`,
+    `  resourceType: "Patient",`,
+    `  id: "pt-contained",`,
+    `  contained: [${version}InlineObs],`,
+    `};`,
+    ``,
+    `// 4. ParametersParameter.resource uses Resource (not FhirResource) — no circularity`,
+    `const ${version}InlinePatient: ${namespace}.Patient = { resourceType: "Patient", id: "pt-1" };`,
+    `const ${version}Params: ${namespace}.Parameters = {`,
+    `  resourceType: "Parameters",`,
+    `  parameter: [{ name: "subject", resource: ${version}InlinePatient }],`,
+    `};`,
+    ``,
+    `// 5. Resource.resourceType is accessible on base-typed fields`,
+    `//    Regression for https://github.com/DefinitelyTyped/DefinitelyTyped/discussions/75015`,
+    `//    BundleEntry.resource is typed as Resource — resourceType must be reachable.`,
+    `const ${version}Bundle: ${namespace}.Bundle = {`,
+    `  resourceType: "Bundle",`,
+    `  type: "collection",`,
+    `  entry: [{ resource: ${version}InlinePatient }],`,
+    `};`,
+    `const ${version}HasPatient = ${version}Bundle.entry?.some(`,
+    `  (e) => e.resource?.resourceType === "Patient",`,
+    `);`,
+    ``,
+  );
+
   await mkdir(outFile.replace(/\/[^/]+$/, ""), { recursive: true });
   await writeFile(outFile, lines.join("\n"));
   console.log(`  Wrote test file: ${outFile}`);

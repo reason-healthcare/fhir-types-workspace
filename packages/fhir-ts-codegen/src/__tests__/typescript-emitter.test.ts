@@ -99,11 +99,15 @@ describe("typescript emitter — Bundle/BundleEntry generics", () => {
   const output = emitTypeScript(baseModel, "fhir4");
 
   it("Bundle interface has generic type parameter", () => {
-    expect(output).toContain("export interface Bundle\u003cT extends Resource = Resource\u003e extends Resource {");
+    expect(output).toContain(
+      "export interface Bundle\u003cT extends Resource = Resource\u003e extends Resource {",
+    );
   });
 
   it("BundleEntry interface has generic type parameter", () => {
-    expect(output).toContain("export interface BundleEntry\u003cT extends Resource = Resource\u003e extends BackboneElement {");
+    expect(output).toContain(
+      "export interface BundleEntry\u003cT extends Resource = Resource\u003e extends BackboneElement {",
+    );
   });
 
   it("Bundle.entry is typed as BundleEntry\u003cT\u003e[]", () => {
@@ -125,6 +129,11 @@ describe("typescript emitter — Bundle/BundleEntry generics", () => {
 
   it("plain Bundle is assignable (default generic parameter)", () => {
     // compile-time only; verify the default is present in the text
-    expect(lineOf(output, "export interface Bundle\u003cT extends Resource = Resource\u003e extends Resource {")).toBeGreaterThan(0);
+    expect(
+      lineOf(
+        output,
+        "export interface Bundle\u003cT extends Resource = Resource\u003e extends Resource {",
+      ),
+    ).toBeGreaterThan(0);
   });
 });

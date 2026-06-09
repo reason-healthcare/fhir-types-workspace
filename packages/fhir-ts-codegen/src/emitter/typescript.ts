@@ -80,11 +80,7 @@ function applyTsOverrides(model: IrModel): IrModel {
       return {
         ...iface,
         typeParams: BUNDLE_ENTRY_TYPE_PARAMS,
-        fields: iface.fields.map((f) =>
-          f.name === "resource"
-            ? { ...f, tsType: "T" }
-            : f,
-        ),
+        fields: iface.fields.map((f) => (f.name === "resource" ? { ...f, tsType: "T" } : f)),
       };
     }
 
@@ -93,9 +89,7 @@ function applyTsOverrides(model: IrModel): IrModel {
         ...iface,
         typeParams: BUNDLE_TYPE_PARAMS,
         fields: iface.fields.map((f) =>
-          f.name === "entry"
-            ? { ...f, tsType: "BundleEntry<T>" }
-            : f,
+          f.name === "entry" ? { ...f, tsType: "BundleEntry<T>" } : f,
         ),
       };
     }

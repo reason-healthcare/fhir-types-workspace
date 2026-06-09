@@ -2,6 +2,9 @@ import type { IrModel, IrInterface, IrField } from "../ir.ts";
 
 const SHADOW_TYPE = "Element";
 
+const BUNDLE_ENTRY_TYPE_PARAMS = "<T extends Resource = Resource>";
+const BUNDLE_TYPE_PARAMS = "<T extends Resource = Resource>";
+
 /** Wrap a raw TS type in `Array<T>` or `T` as appropriate */
 function arrayWrap(tsType: string, isArray: boolean): string {
   return isArray ? `${tsType}[]` : tsType;
@@ -37,7 +40,8 @@ function renderInterface(iface: IrInterface): string {
   }
 
   const ext = iface.extends ? ` extends ${iface.extends}` : "";
-  lines.push(`export interface ${iface.name}${ext} {`);
+  const typeParams = iface.typeParams ?? "";
+  lines.push(`export interface ${iface.name}${typeParams}${ext} {`);
 
   const seenFieldNames = new Set<string>();
   for (const field of iface.fields) {
@@ -66,6 +70,43 @@ function renderInterface(iface: IrInterface): string {
 }
 
 /**
+ * Apply TypeScript-specific ergonomic overrides to the IR model before
+ * emitting. Currently adds generic type parameters to `Bundle` and
+ * `BundleEntry` so callers can type Bundle entries explicitly.
+ */
+function applyTsOverrides(model: IrModel): IrModel {
+  const interfaces = model.interfaces.map((iface): IrInterface => {
+    if (iface.name === "BundleEntry") {
+      return {
+        ...iface,
+        typeParams: BUNDLE_ENTRY_TYPE_PARAMS,
+        fields: iface.fields.map((f) =>
+          f.name === "resource"
+            ? { ...f, tsType: "T" }
+            : f,
+        ),
+      };
+    }
+
+    if (iface.name === "Bundle") {
+      return {
+        ...iface,
+        typeParams: BUNDLE_TYPE_PARAMS,
+        fields: iface.fields.map((f) =>
+          f.name === "entry"
+            ? { ...f, tsType: "BundleEntry<T>" }
+            : f,
+        ),
+      };
+    }
+
+    return iface;
+  });
+
+  return { ...model, interfaces };
+}
+
+/**
  * Emit a complete `.d.ts` file from an IrModel.
  *
  * @param model          The parsed IR
@@ -80,6 +121,8 @@ export function emitTypeScript(
   packageVersion?: string,
 ): string {
   const parts: string[] = [];
+
+  const effectiveModel = applyTsOverrides(model);
 
   // Auto-generated header (mirrors the format used by @types/fhir)
   if (packageId && packageVersion) {
@@ -98,7 +141,7 @@ export function emitTypeScript(
 
   const resourceNames: string[] = [];
 
-  for (const iface of model.interfaces) {
+  for (const iface of effectiveModel.interfaces) {
     // Primitive-type FHIR definitions (boolean, string, etc.) have no useful
     // representation in TypeScript — the native types are already correct.
     if (iface.isPrimitive) continue;

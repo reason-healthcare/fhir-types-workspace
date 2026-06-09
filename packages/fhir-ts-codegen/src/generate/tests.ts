@@ -237,6 +237,20 @@ export async function generateTestFile(
     `  (e) => e.resource?.resourceType === "Patient",`,
     `);`,
     ``,
+    `// 6. Bundle<T> and BundleEntry<T> generic typing`,
+    `//    Regression for https://github.com/DefinitelyTyped/DefinitelyTyped/discussions/75098`,
+    `const ${version}PatientBundle: ${namespace}.Bundle<${namespace}.Patient> = {`,
+    `  resourceType: "Bundle",`,
+    `  type: "collection",`,
+    `  entry: [{ resource: ${version}InlinePatient }],`,
+    `};`,
+    `const ${version}PatientEntry = ${version}PatientBundle.entry?.[0];`,
+    `// patientEntry resource should be typed as Patient | undefined`,
+    `if (${version}PatientEntry?.resource?.resourceType === "Patient") {`,
+    `  // Access a Patient-specific field (e.g. id) to prove narrow typing`,
+    `  const ${version}PtId: string | undefined = ${version}PatientEntry.resource.id;`,
+    `}`,
+    ``,
   );
 
   await mkdir(outFile.replace(/\/[^/]+$/, ""), { recursive: true });

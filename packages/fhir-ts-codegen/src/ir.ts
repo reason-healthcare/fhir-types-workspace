@@ -24,6 +24,8 @@ export interface IrInterface {
   name: string;
   /** Name of base interface to extend, if any */
   extends?: string;
+  /** Optional TypeScript generic parameters, e.g. "<T extends Resource = Resource>" */
+  typeParams?: string;
   fields: IrField[];
   description?: string;
   /** True for FHIR primitive-type StructureDefinitions (boolean, string, etc.) */

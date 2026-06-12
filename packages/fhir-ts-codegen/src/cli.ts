@@ -133,7 +133,10 @@ async function main() {
   // --profiles accepts a comma-separated list of canonical URLs
   const profilesRaw = args.profiles;
   const includeProfiles = profilesRaw
-    ? profilesRaw.split(",").map((p) => p.trim()).filter(Boolean)
+    ? profilesRaw
+        .split(",")
+        .map((p) => p.trim())
+        .filter(Boolean)
     : undefined;
   // --profiles implies profiles-only mode unless explicitly overridden
   const profilesOnly = includeProfiles ? args["profiles-only"] !== "false" : false;

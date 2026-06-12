@@ -407,7 +407,8 @@ function renderSchema(iface: IrInterface, ctx: RenderContext): string {
   // Wrapped in z.lazy() so the whole schema is ZodLazy<T>, which is fine for
   // schemas that are never used as `.extend()` bases (backbone sub-elements).
   if (lazyTargets.has(iface.name)) {
-    const ifaceExt = iface.extends && allNames.has(iface.extends) ? ` extends ${iface.extends}` : "";
+    const ifaceExt =
+      iface.extends && allNames.has(iface.extends) ? ` extends ${iface.extends}` : "";
     lines.push(`export interface ${iface.name}${ifaceExt} {`);
     for (const field of iface.fields) {
       const opt = field.required ? "" : "?";
@@ -450,7 +451,8 @@ function renderSchema(iface: IrInterface, ctx: RenderContext): string {
   // annotation to the private base to break that inner cycle too.
   if (forceAnnotated.has(iface.name)) {
     // 1. TypeScript interface declaration — accurate consumer types.
-    const ifaceExt = iface.extends && allNames.has(iface.extends) ? ` extends ${iface.extends}` : "";
+    const ifaceExt =
+      iface.extends && allNames.has(iface.extends) ? ` extends ${iface.extends}` : "";
     lines.push(`export interface ${iface.name}${ifaceExt} {`);
     for (const field of iface.fields) {
       const opt = field.required ? "" : "?";

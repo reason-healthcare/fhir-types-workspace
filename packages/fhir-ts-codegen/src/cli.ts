@@ -12,6 +12,15 @@
  *     --emit typescript \
  *     --namespace fhir4 \
  *     --out ./out/r4.d.ts
+ *
+ *   # Profile-only Zod output (imports base schemas from ./r4)
+ *   bun run cli.ts \
+ *     --package hl7.fhir.r4.core \
+ *     --package-version 4.0.1 \
+ *     --fhir-version r4 \
+ *     --emit zod \
+ *     --profiles http://hl7.org/fhir/StructureDefinition/bp,http://hl7.org/fhir/StructureDefinition/bodyweight \
+ *     --out ./out/r4-vitals.ts
  */
 
 import { resolve, dirname } from "node:path";
@@ -37,6 +46,12 @@ interface GenerateConfigEntry {
   testExamplesPackageId?: string;
   /** Version for the examples package (e.g. `4.0.1`) */
   testExamplesPackageVersion?: string;
+  /** Profile canonical URLs to include (parsed from snapshot, appended to output) */
+  includeProfiles?: string[];
+  /** When true, skip base types and only emit the listed profiles */
+  profilesOnly?: boolean;
+  /** Module path to import external base schemas from when profilesOnly is true */
+  importBaseFrom?: string;
 }
 
 interface GenerateConfig {
@@ -88,6 +103,9 @@ async function main() {
         testOutFile: entry.testOutFile ? resolve(configDir, entry.testOutFile) : undefined,
         testExamplesPackageId: entry.testExamplesPackageId,
         testExamplesPackageVersion: entry.testExamplesPackageVersion,
+        includeProfiles: entry.includeProfiles,
+        profilesOnly: entry.profilesOnly,
+        importBaseFrom: entry.importBaseFrom,
       });
     }
 
@@ -112,10 +130,20 @@ async function main() {
   const namespace = args.namespace;
   const testOutFile = args["test-out"];
 
+  // --profiles accepts a comma-separated list of canonical URLs
+  const profilesRaw = args.profiles;
+  const includeProfiles = profilesRaw
+    ? profilesRaw.split(",").map((p) => p.trim()).filter(Boolean)
+    : undefined;
+  // --profiles implies profiles-only mode unless explicitly overridden
+  const profilesOnly = includeProfiles ? args["profiles-only"] !== "false" : false;
+  const importBaseFrom = args["import-base-from"];
+
   if (!packageId || !packageVersion || !fhirVersion || !outFile) {
     console.error(
       "Usage: cli.ts --package <id> --package-version <ver> --fhir-version <r4> " +
         "--emit typescript|zod --out <path> [--namespace <ns>] [--test-out <path>]\n" +
+        "       cli.ts --profiles <url1,url2,...> [--import-base-from <path>]\n" +
         "       cli.ts --config <path/to/generate.config.ts>",
     );
     process.exit(1);
@@ -129,6 +157,9 @@ async function main() {
     outFile: resolve(outFile),
     namespace,
     testOutFile: testOutFile ? resolve(testOutFile) : undefined,
+    includeProfiles,
+    profilesOnly,
+    importBaseFrom,
   });
 
   console.log("\nDone.");

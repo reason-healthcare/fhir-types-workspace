@@ -300,6 +300,101 @@ function resolveType(
 }
 
 // ---------------------------------------------------------------------------
+// Profile parsing helpers
+// ---------------------------------------------------------------------------
+
+/**
+ * Convert a hyphenated FHIR profile name to PascalCase.
+ * e.g. "observation-bp" → "ObservationBp", "observation-bodyweight" → "ObservationBodyweight"
+ */
+function sanitizeProfileName(name: string): string {
+  return name.split("-").map(capitalize).join("");
+}
+
+/**
+ * Parse a profile (constraint derivation) StructureDefinition into IrInterfaces
+ * using the snapshot, which contains the complete constrained element set.
+ *
+ * Sliced elements (same path appearing multiple times) are deduplicated by
+ * keeping only the first occurrence per path (the base/unsliced element).
+ */
+function parseProfileStructureDefinition(
+  sd: StructureDefinition,
+  enumRegistry: EnumRegistry,
+): IrInterface[] | null {
+  const elements = sd.snapshot?.element;
+  if (!elements?.length) return null;
+
+  // Deduplicate: keep only the first occurrence of each path.
+  // FHIR slicing causes the same path to appear multiple times (base + named slices).
+  // The first occurrence is the base slice and carries the correct type information.
+  const seenPaths = new Set<string>();
+  const uniqueElements: FhirElement[] = [];
+  for (const el of elements) {
+    if (!seenPaths.has(el.path)) {
+      seenPaths.add(el.path);
+      uniqueElements.push(el);
+    }
+  }
+
+  // Root path is the FHIR resource/type name (e.g. "Observation")
+  const rootPath = sd.type ?? sd.name;
+
+  // Interface name is PascalCase-ified from the profile name
+  const name = sanitizeProfileName(sd.name);
+
+  // Elements excluding the root element itself
+  const nonRootElements = uniqueElements.filter((el) => el.path !== rootPath);
+
+  const allInterfaces: IrInterface[] = [];
+  const fields = processLevel(name, nonRootElements, rootPath, enumRegistry, allInterfaces);
+
+  // Remap contentReference-derived types from base names to profile-local names.
+  // e.g. a field with tsType "ObservationReferenceRange" (from #Observation.referenceRange)
+  // should point to "ObservationBpReferenceRange" when that interface was generated locally.
+  const localNames = new Set([name, ...allInterfaces.map((i) => i.name)]);
+  for (const iface of [{ fields } as IrInterface, ...allInterfaces]) {
+    for (const field of iface.fields) {
+      if (!field.isLazy) continue;
+      // Check whether swapping the base root prefix for the profile name yields a local type
+      if (field.tsType.startsWith(rootPath)) {
+        const suffix = field.tsType.slice(rootPath.length);
+        const localCandidate = name + suffix;
+        if (localNames.has(localCandidate)) {
+          (field as { tsType: string }).tsType = localCandidate;
+        }
+      }
+    }
+  }
+
+  // Add resourceType discriminant for resource profiles
+  if (sd.kind === "resource") {
+    fields.unshift({
+      name: "resourceType",
+      tsType: `'${rootPath}'`,
+      required: true,
+      isArray: false,
+      hasPrimitiveExtension: false,
+      readonly: true,
+      description: "Resource Type Name (for serialization)",
+    });
+  }
+
+  const mainInterface: IrInterface = {
+    name,
+    // Profiles do not extend the base type — the snapshot already provides the
+    // full element set with profile constraints applied.
+    fields,
+    description: sd.description,
+    // Profiles are intentionally excluded from the FhirResource union so they
+    // don't pollute the discriminated union used for generic resource handling.
+    isResource: false,
+  };
+
+  return [mainInterface, ...allInterfaces];
+}
+
+// ---------------------------------------------------------------------------
 // Public parse function
 // ---------------------------------------------------------------------------
 
@@ -310,8 +405,24 @@ function stripBom(s: string): string {
 
 /**
  * Load all FHIR JSON resources from a package directory and build an IrModel.
+ *
+ * @param packageDir    Path to an extracted FHIR npm package directory.
+ * @param version       FHIR version key for the IR model.
+ * @param includeProfiles Optional list of profile canonical URLs to include.
+ *                      Profiles are normally skipped because they are constraint
+ *                      derivations, but when listed here they are parsed from
+ *                      their snapshot element set and appended to the model.
+ * @param profilesOnly  When true, skip base type parsing entirely and only parse
+ *                      the profiles listed in `includeProfiles`. Useful for
+ *                      generating a small profile-only output file that imports
+ *                      base schemas from an existing generated file.
  */
-export async function parsePackageDir(packageDir: string, version: FhirVersion): Promise<IrModel> {
+export async function parsePackageDir(
+  packageDir: string,
+  version: FhirVersion,
+  includeProfiles?: string[],
+  profilesOnly?: boolean,
+): Promise<IrModel> {
   const files = await readdir(packageDir);
   const enumRegistry = new EnumRegistry();
 
@@ -348,40 +459,61 @@ export async function parsePackageDir(packageDir: string, version: FhirVersion):
     }
   }
 
-  // Second pass: parse StructureDefinitions
+  // Second pass: parse StructureDefinitions (skipped in profilesOnly mode)
   const interfaces: IrInterface[] = [];
 
-  for (const file of sdFiles) {
-    const filePath = join(packageDir, file);
-    try {
-      const raw = stripBom(await readFile(filePath, "utf8"));
-      const sd = JSON.parse(raw) as StructureDefinition;
+  if (!profilesOnly) {
+    for (const file of sdFiles) {
+      const filePath = join(packageDir, file);
+      try {
+        const raw = stripBom(await readFile(filePath, "utf8"));
+        const sd = JSON.parse(raw) as StructureDefinition;
 
-      if (sd.resourceType !== "StructureDefinition") continue;
-      // Skip profiles/constraints, but allow canonical FHIR core constraint types
-      // (e.g. SimpleQuantity, MoneyQuantity) which have a canonical base spec URL.
-      // - R3+: skip if derivation === 'constraint' AND URL is non-canonical
-      // - R2: constrainedType is set AND URL is non-canonical (profiles/IGs have
-      //   hyphens or lowercase starts). Canonical quantity specialisations like
-      //   Age, Count, SimpleQuantity have constrainedType but are base FHIR types.
-      if (
-        sd.derivation === "constraint" &&
-        !/^http:\/\/hl7\.org\/fhir\/StructureDefinition\/[A-Z][A-Za-z0-9]*$/.test(sd.url ?? "")
-      )
-        continue;
-      if (
-        sd.constrainedType &&
-        !/^http:\/\/hl7\.org\/fhir\/StructureDefinition\/[A-Z][A-Za-z0-9]*$/.test(sd.url ?? "")
-      )
-        continue;
-      // Only process type hierarchy kinds (R2 uses 'datatype' instead of 'complex-type')
-      if (!["primitive-type", "complex-type", "resource", "datatype"].includes(sd.kind)) continue;
-      if (!sd.differential?.element?.length) continue;
+        if (sd.resourceType !== "StructureDefinition") continue;
+        // Skip profiles/constraints, but allow canonical FHIR core constraint types
+        // (e.g. SimpleQuantity, MoneyQuantity) which have a canonical base spec URL.
+        // - R3+: skip if derivation === 'constraint' AND URL is non-canonical
+        // - R2: constrainedType is set AND URL is non-canonical (profiles/IGs have
+        //   hyphens or lowercase starts). Canonical quantity specialisations like
+        //   Age, Count, SimpleQuantity have constrainedType but are base FHIR types.
+        if (
+          sd.derivation === "constraint" &&
+          !/^http:\/\/hl7\.org\/fhir\/StructureDefinition\/[A-Z][A-Za-z0-9]*$/.test(sd.url ?? "")
+        )
+          continue;
+        if (
+          sd.constrainedType &&
+          !/^http:\/\/hl7\.org\/fhir\/StructureDefinition\/[A-Z][A-Za-z0-9]*$/.test(sd.url ?? "")
+        )
+          continue;
+        // Only process type hierarchy kinds (R2 uses 'datatype' instead of 'complex-type')
+        if (!["primitive-type", "complex-type", "resource", "datatype"].includes(sd.kind)) continue;
+        if (!sd.differential?.element?.length) continue;
 
-      const iface = parseStructureDefinition(sd, enumRegistry);
-      if (iface) interfaces.push(...iface);
-    } catch {
-      /* skip malformed */
+        const iface = parseStructureDefinition(sd, enumRegistry);
+        if (iface) interfaces.push(...iface);
+      } catch {
+        /* skip malformed */
+      }
+    }
+  }
+
+  // Third pass: parse explicitly requested profiles from their snapshot.
+  // These are constraint derivations that would normally be skipped above.
+  if (includeProfiles?.length) {
+    const profileSet = new Set(includeProfiles);
+    for (const file of sdFiles) {
+      const filePath = join(packageDir, file);
+      try {
+        const raw = stripBom(await readFile(filePath, "utf8"));
+        const sd = JSON.parse(raw) as StructureDefinition;
+        if (sd.resourceType !== "StructureDefinition") continue;
+        if (!profileSet.has(sd.url)) continue;
+        const ifaces = parseProfileStructureDefinition(sd, enumRegistry);
+        if (ifaces) interfaces.push(...ifaces);
+      } catch {
+        /* skip malformed */
+      }
     }
   }
 

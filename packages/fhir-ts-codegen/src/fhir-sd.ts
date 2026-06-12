@@ -37,6 +37,8 @@ export interface FhirElement {
   isSummary?: boolean;
   contentReference?: string;
   base?: { path: string; min: number; max: string };
+  /** Present on sliced elements — identifies which slice this element belongs to */
+  sliceName?: string;
 }
 
 export interface FhirSnapshot {

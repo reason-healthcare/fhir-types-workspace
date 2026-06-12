@@ -71,6 +71,123 @@ bun run packages/fhir-ts-codegen/src/cli.ts \
   --out ./us-core-schemas.ts
 ```
 
+## Generating types for a single profile
+
+Use `--profiles` to generate output for one or more profiles from any FHIR package, without touching the base type files.
+
+### Zod schemas
+
+The output imports base schemas from an existing generated file (defaults to `./r4`) rather than inlining all of R4.
+
+```bash
+# Blood pressure profile from R4 core
+bun run packages/fhir-ts-codegen/src/cli.ts \
+  --package hl7.fhir.r4.core \
+  --package-version 4.0.1 \
+  --fhir-version r4 \
+  --emit zod \
+  --profiles "http://hl7.org/fhir/StructureDefinition/bp" \
+  --out ./r4-bp.ts
+
+# Multiple profiles in one pass (comma-separated)
+bun run packages/fhir-ts-codegen/src/cli.ts \
+  --package hl7.fhir.r4.core \
+  --package-version 4.0.1 \
+  --fhir-version r4 \
+  --emit zod \
+  --profiles "http://hl7.org/fhir/StructureDefinition/bp,http://hl7.org/fhir/StructureDefinition/bodyweight" \
+  --out ./r4-vitals.ts
+```
+
+The generated file imports base schemas (e.g. `CodeableConceptSchema`, `ReferenceSchema`) from `./r4` and exports fully-typed profile schemas:
+
+```ts
+// r4-bp.ts (generated)
+import { z } from 'zod'
+import { CodeableConceptSchema, ReferenceSchema, ... } from './r4'
+
+export const ObservationBpSchema = z.object({
+  resourceType: z.literal('Observation'),
+  status: z.enum([...]),   // required
+  category: z.array(CodeableConceptSchema),  // required
+  code: CodeableConceptSchema,               // required
+  subject: ReferenceSchema,                  // required
+  component: z.array(ObservationBpComponentSchema),  // required, min 2
+  // ...
+})
+export type ObservationBp = z.infer<typeof ObservationBpSchema>
+```
+
+Use `--import-base-from` to change where base schemas are imported from (default: `./r4`).
+
+### TypeScript declarations
+
+With `--emit typescript`, the output is a `declare namespace` augmentation of an existing namespace (e.g. `fhir4`). Type references such as `Reference` and `CodeableConcept` resolve naturally within the namespace — no imports needed.
+
+```bash
+bun run packages/fhir-ts-codegen/src/cli.ts \
+  --package hl7.fhir.r4.core \
+  --package-version 4.0.1 \
+  --fhir-version r4 \
+  --emit typescript \
+  --namespace fhir4 \
+  --profiles "http://hl7.org/fhir/StructureDefinition/bp" \
+  --out ./r4-bp.d.ts
+```
+
+The generated file augments the `fhir4` namespace, so it works alongside `@types/fhir`:
+
+```ts
+// r4-bp.d.ts (generated)
+declare namespace fhir4 {
+  export interface ObservationBp {
+    readonly resourceType: 'Observation';
+    status: ('registered' | 'preliminary' | 'final' | ...);
+    category: CodeableConcept[];   // required
+    code: CodeableConcept;         // required
+    subject: Reference;            // required
+    component: ObservationBpComponent[];  // required, min 2
+    // ...
+  }
+  export interface ObservationBpComponent { ... }
+}
+```
+
+Include it alongside the base types in a triple-slash reference or `tsconfig.json`:
+
+```ts
+/// <reference types="@types/fhir" />
+/// <reference path="./r4-bp.d.ts" />
+```
+
+### Via `generate.config.ts`
+
+```ts
+// Zod profile entry
+{
+  packageId: 'hl7.fhir.r4.core',
+  packageVersion: '4.0.1',
+  fhirVersion: 'r4',
+  emit: 'zod',
+  outFile: './src/r4-bp.ts',
+  profilesOnly: true,
+  includeProfiles: ['http://hl7.org/fhir/StructureDefinition/bp'],
+  importBaseFrom: './r4',
+}
+
+// TypeScript profile entry
+{
+  packageId: 'hl7.fhir.r4.core',
+  packageVersion: '4.0.1',
+  fhirVersion: 'r4',
+  emit: 'typescript',
+  namespace: 'fhir4',
+  outFile: './r4-bp.d.ts',
+  profilesOnly: true,
+  includeProfiles: ['http://hl7.org/fhir/StructureDefinition/bp'],
+}
+```
+
 ## Config file
 
 Output packages declare a `generate.config.ts` to drive multi-version generation:

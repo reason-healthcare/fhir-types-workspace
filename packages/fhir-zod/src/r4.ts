@@ -59,6 +59,7 @@ export type Meta = z.infer<typeof MetaSchema>
  * This is the base resource type for everything.
  */
 export const ResourceSchema = z.object({
+  resourceType: z.string(),
   id: z.string().optional(),
   _id: ElementSchema.optional(),
   meta: MetaSchema.optional(),

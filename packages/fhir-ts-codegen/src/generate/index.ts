@@ -37,6 +37,27 @@ export interface GenerateOptions {
   testExamplesPackageId?: string;
   /** Version for the examples package (e.g. `4.0.1`). */
   testExamplesPackageVersion?: string;
+  /**
+   * Optional list of profile canonical URLs to include alongside the base types.
+   * Profiles (constraint derivations) are normally skipped; listing them here
+   * causes the generator to parse them from their snapshot and append the
+   * resulting interfaces to the output.
+   * e.g. ["http://hl7.org/fhir/StructureDefinition/bp",
+   *        "http://hl7.org/fhir/StructureDefinition/bodyweight"]
+   */
+  includeProfiles?: string[];
+  /**
+   * When true, skip base type parsing entirely and only parse the profiles
+   * listed in `includeProfiles`. The output file will import all referenced
+   * base schemas from the path specified by `importBaseFrom`.
+   */
+  profilesOnly?: boolean;
+  /**
+   * Module path to import base schemas from when `profilesOnly` is true.
+   * Defaults to `"./r4"` when unset and `profilesOnly` is true.
+   * e.g. `"./r4"` → `import { MetaSchema, ReferenceSchema, ... } from './r4'`
+   */
+  importBaseFrom?: string;
 }
 
 /**
@@ -53,6 +74,9 @@ export async function generate(opts: GenerateOptions): Promise<void> {
     testOutFile,
     testExamplesPackageId,
     testExamplesPackageVersion,
+    includeProfiles,
+    profilesOnly,
+    importBaseFrom,
   } = opts;
 
   console.log(`\n[${fhirVersion}] ${packageId}@${packageVersion} → ${emit}`);
@@ -60,15 +84,18 @@ export async function generate(opts: GenerateOptions): Promise<void> {
   const packageDir = await resolvePackageDir(packageId, packageVersion);
   console.log(`  Parsing...`);
 
-  const model = await parsePackageDir(packageDir, fhirVersion);
+  const model = await parsePackageDir(packageDir, fhirVersion, includeProfiles, profilesOnly);
   console.log(`  Parsed ${model.interfaces.length} types`);
+
+  const resolvedImportBaseFrom =
+    importBaseFrom ?? (profilesOnly && includeProfiles?.length ? "./r4" : undefined);
 
   let output: string;
   if (emit === "typescript") {
     if (!namespace) throw new Error("namespace is required for TypeScript emit");
-    output = emitTypeScript(model, namespace, packageId, packageVersion);
+    output = emitTypeScript(model, namespace, packageId, packageVersion, profilesOnly);
   } else {
-    output = emitZod(model);
+    output = emitZod(model, resolvedImportBaseFrom);
   }
 
   await mkdir(dirname(outFile), { recursive: true });

@@ -388,7 +388,7 @@ function extendExpr(iface: IrInterface, ctx: RenderContext): string | null {
 }
 
 function renderSchema(iface: IrInterface, ctx: RenderContext): string {
-  const { lazyTargets, forceLazy, forceAnnotated, usedAsBases, nameToIface } = ctx;
+  const { lazyTargets, allNames, forceLazy, forceAnnotated, usedAsBases, nameToIface } = ctx;
   const lines: string[] = [];
   const schemaName = `${iface.name}Schema`;
 
@@ -407,7 +407,7 @@ function renderSchema(iface: IrInterface, ctx: RenderContext): string {
   // Wrapped in z.lazy() so the whole schema is ZodLazy<T>, which is fine for
   // schemas that are never used as `.extend()` bases (backbone sub-elements).
   if (lazyTargets.has(iface.name)) {
-    const ifaceExt = iface.extends ? ` extends ${iface.extends}` : "";
+    const ifaceExt = iface.extends && allNames.has(iface.extends) ? ` extends ${iface.extends}` : "";
     lines.push(`export interface ${iface.name}${ifaceExt} {`);
     for (const field of iface.fields) {
       const opt = field.required ? "" : "?";
@@ -450,7 +450,7 @@ function renderSchema(iface: IrInterface, ctx: RenderContext): string {
   // annotation to the private base to break that inner cycle too.
   if (forceAnnotated.has(iface.name)) {
     // 1. TypeScript interface declaration — accurate consumer types.
-    const ifaceExt = iface.extends ? ` extends ${iface.extends}` : "";
+    const ifaceExt = iface.extends && allNames.has(iface.extends) ? ` extends ${iface.extends}` : "";
     lines.push(`export interface ${iface.name}${ifaceExt} {`);
     for (const field of iface.fields) {
       const opt = field.required ? "" : "?";
@@ -516,13 +516,58 @@ function renderSchema(iface: IrInterface, ctx: RenderContext): string {
 // Public emit function
 // ---------------------------------------------------------------------------
 
+// TypeScript primitives and inline types that never need a schema import
+const TS_PRIMITIVE_TYPES = new Set(["string", "number", "boolean"]);
+
+/**
+ * Collect every schema name (and corresponding bare type name) referenced by
+ * `interfaces` but not defined within them. Schema names are `{Type}Schema`;
+ * type names are the same without the suffix.
+ *
+ * Returns `{ schemaNames, typeNames }` so the caller can generate both:
+ *   import { FooSchema, BarSchema } from '...'  ← runtime schemas
+ *   import type { Foo, Bar } from '...'          ← TypeScript types for inline interfaces
+ */
+function collectExternalRefs(
+  interfaces: IrInterface[],
+  allNames: Set<string>,
+): { schemaNames: string[]; typeNames: string[] } {
+  const externalTypes = new Set<string>();
+
+  for (const iface of interfaces) {
+    for (const field of iface.fields) {
+      const t = field.tsType;
+      // Complex type reference: track bare type name if not locally defined
+      if (!TS_PRIMITIVE_TYPES.has(t) && !t.startsWith("'") && !t.startsWith("(")) {
+        if (!allNames.has(t)) externalTypes.add(t);
+      }
+      // Primitive-extension shadow fields always emit `_field: ElementSchema.optional()`
+      // and `_field?: Element | undefined` in inline interfaces.
+      if (field.hasPrimitiveExtension && !allNames.has("Element")) {
+        externalTypes.add("Element");
+      }
+    }
+  }
+
+  const sorted = [...externalTypes].sort();
+  return {
+    schemaNames: sorted.map((t) => `${t}Schema`),
+    typeNames: sorted,
+  };
+}
+
 /**
  * Emit a complete Zod schema module from an IrModel.
  *
  * Output is a `.ts` file that imports `zod` and exports one schema constant
  * per FHIR type along with an inferred TypeScript type alias.
+ *
+ * @param importBaseFrom  When set, any schema names referenced by the model but
+ *   not defined within it are collected and emitted as named imports from this
+ *   module path. Use this for profile-only output files that delegate base type
+ *   schemas to an existing generated file (e.g. `"./r4"`).
  */
-export function emitZod(model: IrModel): string {
+export function emitZod(model: IrModel, importBaseFrom?: string): string {
   const { sorted, forceLazy } = topoSort(model.interfaces);
   const lazyTargets = buildLazyTargets(model.interfaces);
   const forceAnnotated = buildForceAnnotated(model.interfaces, forceLazy);
@@ -538,8 +583,24 @@ export function emitZod(model: IrModel): string {
     nameToIface: new Map(model.interfaces.map((i) => [i.name, i])),
   };
 
+  const imports: string[] = [`import { z } from 'zod'`];
+
+  if (importBaseFrom) {
+    const { schemaNames, typeNames } = collectExternalRefs(model.interfaces, allNames);
+    if (schemaNames.length > 0) {
+      imports.push(`import { ${schemaNames.join(", ")} } from '${importBaseFrom}'`);
+    }
+    // Type-only import for TypeScript inline interfaces (lazyTargets / forceAnnotated paths)
+    const hasInlineInterfaces = model.interfaces.some(
+      (i) => lazyTargets.has(i.name) || forceAnnotated.has(i.name),
+    );
+    if (hasInlineInterfaces && typeNames.length > 0) {
+      imports.push(`import type { ${typeNames.join(", ")} } from '${importBaseFrom}'`);
+    }
+  }
+
   const parts = [
-    `import { z } from 'zod'`,
+    ...imports,
     // Skip FHIR primitive-type StructureDefinitions (boolean, string, integer, …).
     // Their names clash with TypeScript built-ins (TS2457) and they are never
     // referenced as schema types — resource fields use z.string() / z.boolean()

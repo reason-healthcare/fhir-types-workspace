@@ -23,6 +23,12 @@ export interface GenerateConfigEntry {
   testExamplesPackageId?: string;
   /** Version for the examples package (e.g. `4.0.1`). */
   testExamplesPackageVersion?: string;
+  /** Profile canonical URLs to include (parsed from snapshot, appended to output) */
+  includeProfiles?: string[];
+  /** When true, skip base types and only emit the listed profiles */
+  profilesOnly?: boolean;
+  /** Module path to import external base schemas from when profilesOnly is true */
+  importBaseFrom?: string;
 }
 
 /** Top-level generate.config.ts shape */

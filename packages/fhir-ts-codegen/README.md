@@ -49,7 +49,43 @@ bun run src/cli.ts \
 | `--out` | Output file path |
 | `--namespace` | UMD namespace name (TypeScript emit only, e.g. `fhir4`) |
 | `--test-out` | DefinitelyTyped test file output path (TypeScript emit only) |
+| `--profiles` | Comma-separated profile canonical URLs — enables profile-only mode |
+| `--import-base-from` | Module path to import base schemas from (Zod profile mode, default: `./r4`) |
 | `--config` | Path to a `generate.config.ts` (replaces all other flags) |
+
+### Profile mode
+
+Generate types for a single FHIR profile without touching the base type files:
+
+```bash
+# Zod — imports base schemas from ./r4
+bun run src/cli.ts \
+  --package hl7.fhir.r4.core \
+  --package-version 4.0.1 \
+  --fhir-version r4 \
+  --emit zod \
+  --profiles "http://hl7.org/fhir/StructureDefinition/bp" \
+  --out ./r4-bp.ts
+
+# TypeScript — emits a declare namespace augmentation of fhir4
+bun run src/cli.ts \
+  --package hl7.fhir.r4.core \
+  --package-version 4.0.1 \
+  --fhir-version r4 \
+  --emit typescript \
+  --namespace fhir4 \
+  --profiles "http://hl7.org/fhir/StructureDefinition/bp" \
+  --out ./r4-bp.d.ts
+```
+
+**Zod output** (`r4-bp.ts`): imports base schemas from `./r4`, exports `ObservationBpSchema` / `ObservationBp` with profile constraints applied (required fields required, array minimums enforced).
+
+**TypeScript output** (`r4-bp.d.ts`): emits a `declare namespace fhir4 { ... }` block. Type references like `Reference` and `CodeableConcept` resolve to other members of the same namespace — no imports needed. Include alongside `@types/fhir` via a triple-slash reference:
+
+```ts
+/// <reference types="@types/fhir" />
+/// <reference path="./r4-bp.d.ts" />
+```
 
 ## Config file format
 
@@ -73,6 +109,27 @@ const config: GenerateConfig = {
       fhirVersion: 'r4',
       emit: 'zod',
       outFile: './src/r4.ts',
+    },
+    // Profile-only entries
+    {
+      packageId: 'hl7.fhir.r4.core',
+      packageVersion: '4.0.1',
+      fhirVersion: 'r4',
+      emit: 'zod',
+      outFile: './src/r4-bp.ts',
+      profilesOnly: true,
+      includeProfiles: ['http://hl7.org/fhir/StructureDefinition/bp'],
+      importBaseFrom: './r4',       // base schemas to import from (default: './r4')
+    },
+    {
+      packageId: 'hl7.fhir.r4.core',
+      packageVersion: '4.0.1',
+      fhirVersion: 'r4',
+      emit: 'typescript',
+      namespace: 'fhir4',
+      outFile: './r4-bp.d.ts',
+      profilesOnly: true,
+      includeProfiles: ['http://hl7.org/fhir/StructureDefinition/bp'],
     },
   ],
   // optional: generates an index.d.ts with /// <reference> entries for typescript emits

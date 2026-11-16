@@ -11,12 +11,12 @@ export interface Element {
 
 const _ElementBase: z.ZodObject<{
   id: z.ZodOptional<z.ZodString>;
-  _id: z.ZodOptional<z.ZodTypeAny>;
-  extension: z.ZodOptional<z.ZodArray<z.ZodTypeAny>>;
+  _id: z.ZodOptional<z.ZodType<any>>;
+  extension: z.ZodOptional<z.ZodArray<z.ZodType<any>>>;
 }> = z.object({
   id: z.string().optional(),
-  _id: (z.lazy(() => ElementSchema) as z.ZodTypeAny).optional(),
-  extension: (z.lazy(() => z.array(ExtensionSchema)) as unknown as z.ZodArray<z.ZodTypeAny>).optional(),
+  _id: (z.lazy(() => ElementSchema) as z.ZodType<any>).optional(),
+  extension: (z.lazy(() => z.array(ExtensionSchema)) as unknown as z.ZodArray<z.ZodType<any>>).optional(),
 })
 
 export const ElementSchema: z.ZodType<Element> = _ElementBase
@@ -176,7 +176,7 @@ export const IdentifierSchema: z.ZodType<Identifier> = _ElementBase.extend({
   value: z.string().optional(),
   _value: ElementSchema.optional(),
   period: PeriodSchema.optional(),
-  assigner: (z.lazy(() => ReferenceSchema) as z.ZodTypeAny).optional(),
+  assigner: (z.lazy(() => ReferenceSchema) as z.ZodType<any>).optional(),
 })
 
 /**
@@ -363,11 +363,11 @@ export interface BackboneElement extends Element {
 
 const _BackboneElementBase: z.ZodObject<{
   id: z.ZodOptional<z.ZodString>;
-  _id: z.ZodOptional<z.ZodTypeAny>;
-  extension: z.ZodOptional<z.ZodArray<z.ZodTypeAny>>;
-  modifierExtension: z.ZodOptional<z.ZodArray<z.ZodTypeAny>>;
+  _id: z.ZodOptional<z.ZodType<any>>;
+  extension: z.ZodOptional<z.ZodArray<z.ZodType<any>>>;
+  modifierExtension: z.ZodOptional<z.ZodArray<z.ZodType<any>>>;
 }> = _ElementBase.extend({
-  modifierExtension: (z.lazy(() => z.array(ExtensionSchema)) as unknown as z.ZodArray<z.ZodTypeAny>).optional(),
+  modifierExtension: (z.lazy(() => z.array(ExtensionSchema)) as unknown as z.ZodArray<z.ZodType<any>>).optional(),
 })
 
 export const BackboneElementSchema: z.ZodType<BackboneElement> = _BackboneElementBase
@@ -810,7 +810,7 @@ export const SubstanceSpecificationStructureSchema = _BackboneElementBase.extend
   molecularFormulaByMoiety: z.string().optional(),
   _molecularFormulaByMoiety: ElementSchema.optional(),
   isotope: z.array(SubstanceSpecificationStructureIsotopeSchema).optional(),
-  molecularWeight: (z.lazy(() => SubstanceSpecificationStructureIsotopeMolecularWeightSchema) as z.ZodTypeAny).optional(),
+  molecularWeight: (z.lazy(() => SubstanceSpecificationStructureIsotopeMolecularWeightSchema) as z.ZodType<any>).optional(),
   source: z.array(ReferenceSchema).optional(),
   representation: z.array(SubstanceSpecificationStructureRepresentationSchema).optional(),
 })
@@ -871,8 +871,8 @@ export const SubstanceSpecificationNameSchema: z.ZodType<SubstanceSpecificationN
     language: z.array(CodeableConceptSchema).optional(),
     domain: z.array(CodeableConceptSchema).optional(),
     jurisdiction: z.array(CodeableConceptSchema).optional(),
-    synonym: (z.lazy(() => z.array(SubstanceSpecificationNameSchema)) as unknown as z.ZodArray<z.ZodTypeAny>).optional(),
-    translation: (z.lazy(() => z.array(SubstanceSpecificationNameSchema)) as unknown as z.ZodArray<z.ZodTypeAny>).optional(),
+    synonym: (z.lazy(() => z.array(SubstanceSpecificationNameSchema)) as unknown as z.ZodArray<z.ZodType<any>>).optional(),
+    translation: (z.lazy(() => z.array(SubstanceSpecificationNameSchema)) as unknown as z.ZodArray<z.ZodType<any>>).optional(),
     official: z.array(SubstanceSpecificationNameOfficialSchema).optional(),
     source: z.array(ReferenceSchema).optional(),
   })
@@ -918,7 +918,7 @@ export const SubstanceSpecificationSchema = DomainResourceSchema.extend({
   structure: SubstanceSpecificationStructureSchema.optional(),
   code: z.array(SubstanceSpecificationCodeSchema).optional(),
   name: z.array(SubstanceSpecificationNameSchema).optional(),
-  molecularWeight: (z.lazy(() => z.array(SubstanceSpecificationStructureIsotopeMolecularWeightSchema)) as unknown as z.ZodArray<z.ZodTypeAny>).optional(),
+  molecularWeight: (z.lazy(() => z.array(SubstanceSpecificationStructureIsotopeMolecularWeightSchema)) as unknown as z.ZodArray<z.ZodType<any>>).optional(),
   relationship: z.array(SubstanceSpecificationRelationshipSchema).optional(),
   nucleicAcid: ReferenceSchema.optional(),
   polymer: ReferenceSchema.optional(),
@@ -1054,8 +1054,8 @@ export const ExampleScenarioProcessStepOperationSchema = _BackboneElementBase.ex
   _initiatorActive: ElementSchema.optional(),
   receiverActive: z.boolean().optional(),
   _receiverActive: ElementSchema.optional(),
-  request: (z.lazy(() => ExampleScenarioInstanceContainedInstanceSchema) as z.ZodTypeAny).optional(),
-  response: (z.lazy(() => ExampleScenarioInstanceContainedInstanceSchema) as z.ZodTypeAny).optional(),
+  request: (z.lazy(() => ExampleScenarioInstanceContainedInstanceSchema) as z.ZodType<any>).optional(),
+  response: (z.lazy(() => ExampleScenarioInstanceContainedInstanceSchema) as z.ZodType<any>).optional(),
 })
 export type ExampleScenarioProcessStepOperation = z.infer<typeof ExampleScenarioProcessStepOperationSchema>
 
@@ -1068,7 +1068,7 @@ export const ExampleScenarioProcessStepAlternativeSchema = _BackboneElementBase.
   _title: ElementSchema.optional(),
   description: z.string().optional(),
   _description: ElementSchema.optional(),
-  step: (z.lazy(() => z.array(ExampleScenarioProcessStepSchema)) as unknown as z.ZodArray<z.ZodTypeAny>).optional(),
+  step: (z.lazy(() => z.array(ExampleScenarioProcessStepSchema)) as unknown as z.ZodArray<z.ZodType<any>>).optional(),
 })
 export type ExampleScenarioProcessStepAlternative = z.infer<typeof ExampleScenarioProcessStepAlternativeSchema>
 
@@ -1085,7 +1085,7 @@ export interface ExampleScenarioProcessStep extends BackboneElement {
 
 export const ExampleScenarioProcessStepSchema: z.ZodType<ExampleScenarioProcessStep> = z.lazy(() =>
   _BackboneElementBase.extend({
-    process: (z.lazy(() => z.array(ExampleScenarioProcessSchema)) as unknown as z.ZodArray<z.ZodTypeAny>).optional(),
+    process: (z.lazy(() => z.array(ExampleScenarioProcessSchema)) as unknown as z.ZodArray<z.ZodType<any>>).optional(),
     pause: z.boolean().optional(),
     _pause: ElementSchema.optional(),
     operation: ExampleScenarioProcessStepOperationSchema.optional(),
@@ -1605,7 +1605,7 @@ export const CompositionSectionSchema: z.ZodType<CompositionSection> = z.lazy(()
     orderedBy: CodeableConceptSchema.optional(),
     entry: z.array(ReferenceSchema).optional(),
     emptyReason: CodeableConceptSchema.optional(),
-    section: (z.lazy(() => z.array(CompositionSectionSchema)) as unknown as z.ZodArray<z.ZodTypeAny>).optional(),
+    section: (z.lazy(() => z.array(CompositionSectionSchema)) as unknown as z.ZodArray<z.ZodType<any>>).optional(),
   })
 )
 
@@ -3062,7 +3062,7 @@ export const QuestionnaireResponseItemAnswerSchema = _BackboneElementBase.extend
   valueCoding: CodingSchema.optional(),
   valueQuantity: QuantitySchema.optional(),
   valueReference: ReferenceSchema.optional(),
-  item: (z.lazy(() => z.array(QuestionnaireResponseItemSchema)) as unknown as z.ZodArray<z.ZodTypeAny>).optional(),
+  item: (z.lazy(() => z.array(QuestionnaireResponseItemSchema)) as unknown as z.ZodArray<z.ZodType<any>>).optional(),
 })
 export type QuestionnaireResponseItemAnswer = z.infer<typeof QuestionnaireResponseItemAnswerSchema>
 
@@ -3091,7 +3091,7 @@ export const QuestionnaireResponseItemSchema: z.ZodType<QuestionnaireResponseIte
     text: z.string().optional(),
     _text: ElementSchema.optional(),
     answer: z.array(QuestionnaireResponseItemAnswerSchema).optional(),
-    item: (z.lazy(() => z.array(QuestionnaireResponseItemSchema)) as unknown as z.ZodArray<z.ZodTypeAny>).optional(),
+    item: (z.lazy(() => z.array(QuestionnaireResponseItemSchema)) as unknown as z.ZodArray<z.ZodType<any>>).optional(),
   })
 )
 
@@ -4016,8 +4016,8 @@ export const CapabilityStatementRestSchema = _BackboneElementBase.extend({
   security: CapabilityStatementRestSecuritySchema.optional(),
   resource: z.array(CapabilityStatementRestResourceSchema).optional(),
   interaction: z.array(CapabilityStatementRestInteractionSchema).optional(),
-  searchParam: (z.lazy(() => z.array(CapabilityStatementRestResourceSearchParamSchema)) as unknown as z.ZodArray<z.ZodTypeAny>).optional(),
-  operation: (z.lazy(() => z.array(CapabilityStatementRestResourceOperationSchema)) as unknown as z.ZodArray<z.ZodTypeAny>).optional(),
+  searchParam: (z.lazy(() => z.array(CapabilityStatementRestResourceSearchParamSchema)) as unknown as z.ZodArray<z.ZodType<any>>).optional(),
+  operation: (z.lazy(() => z.array(CapabilityStatementRestResourceOperationSchema)) as unknown as z.ZodArray<z.ZodType<any>>).optional(),
   compartment: z.array(z.string()).optional(),
   _compartment: ElementSchema.optional(),
 })
@@ -4791,7 +4791,7 @@ export type ChargeItemDefinitionPropertyGroupPriceComponent = z.infer<typeof Cha
  * Group of properties which are applicable under the same conditions. If no applicability rules are established for the group, then all properties always apply.
  */
 export const ChargeItemDefinitionPropertyGroupSchema = _BackboneElementBase.extend({
-  applicability: (z.lazy(() => z.array(ChargeItemDefinitionApplicabilitySchema)) as unknown as z.ZodArray<z.ZodTypeAny>).optional(),
+  applicability: (z.lazy(() => z.array(ChargeItemDefinitionApplicabilitySchema)) as unknown as z.ZodArray<z.ZodType<any>>).optional(),
   priceComponent: z.array(ChargeItemDefinitionPropertyGroupPriceComponentSchema).optional(),
 })
 export type ChargeItemDefinitionPropertyGroup = z.infer<typeof ChargeItemDefinitionPropertyGroupSchema>
@@ -4984,7 +4984,7 @@ export const QuestionnaireItemSchema: z.ZodType<QuestionnaireItem> = z.lazy(() =
     _answerValueSet: ElementSchema.optional(),
     answerOption: z.array(QuestionnaireItemAnswerOptionSchema).optional(),
     initial: z.array(QuestionnaireItemInitialSchema).optional(),
-    item: (z.lazy(() => z.array(QuestionnaireItemSchema)) as unknown as z.ZodArray<z.ZodTypeAny>).optional(),
+    item: (z.lazy(() => z.array(QuestionnaireItemSchema)) as unknown as z.ZodArray<z.ZodType<any>>).optional(),
   })
 )
 
@@ -5355,8 +5355,8 @@ export type TestScriptSetup = z.infer<typeof TestScriptSetupSchema>
  * An action should contain either an operation or an assertion but not both.  It can contain any number of variables.
  */
 export const TestScriptTestActionSchema = _BackboneElementBase.extend({
-  operation: (z.lazy(() => TestScriptSetupActionOperationSchema) as z.ZodTypeAny).optional(),
-  assert: (z.lazy(() => TestScriptSetupActionAssertSchema) as z.ZodTypeAny).optional(),
+  operation: (z.lazy(() => TestScriptSetupActionOperationSchema) as z.ZodType<any>).optional(),
+  assert: (z.lazy(() => TestScriptSetupActionAssertSchema) as z.ZodType<any>).optional(),
 })
 export type TestScriptTestAction = z.infer<typeof TestScriptTestActionSchema>
 
@@ -5378,7 +5378,7 @@ export type TestScriptTest = z.infer<typeof TestScriptTestSchema>
  * An action should contain either an operation or an assertion but not both.  It can contain any number of variables.
  */
 export const TestScriptTeardownActionSchema = _BackboneElementBase.extend({
-  operation: (z.lazy(() => TestScriptSetupActionOperationSchema) as z.ZodTypeAny),
+  operation: (z.lazy(() => TestScriptSetupActionOperationSchema) as z.ZodType<any>),
 })
 export type TestScriptTeardownAction = z.infer<typeof TestScriptTeardownActionSchema>
 
@@ -5631,8 +5631,8 @@ export type TestReportSetup = z.infer<typeof TestReportSetupSchema>
  * An action should contain either an operation or an assertion but not both.  It can contain any number of variables.
  */
 export const TestReportTestActionSchema = _BackboneElementBase.extend({
-  operation: (z.lazy(() => TestReportSetupActionOperationSchema) as z.ZodTypeAny).optional(),
-  assert: (z.lazy(() => TestReportSetupActionAssertSchema) as z.ZodTypeAny).optional(),
+  operation: (z.lazy(() => TestReportSetupActionOperationSchema) as z.ZodType<any>).optional(),
+  assert: (z.lazy(() => TestReportSetupActionAssertSchema) as z.ZodType<any>).optional(),
 })
 export type TestReportTestAction = z.infer<typeof TestReportTestActionSchema>
 
@@ -5654,7 +5654,7 @@ export type TestReportTest = z.infer<typeof TestReportTestSchema>
  * An action should contain either an operation or an assertion but not both.  It can contain any number of variables.
  */
 export const TestReportTeardownActionSchema = _BackboneElementBase.extend({
-  operation: (z.lazy(() => TestReportSetupActionOperationSchema) as z.ZodTypeAny),
+  operation: (z.lazy(() => TestReportSetupActionOperationSchema) as z.ZodType<any>),
 })
 export type TestReportTeardownAction = z.infer<typeof TestReportTeardownActionSchema>
 
@@ -5952,7 +5952,7 @@ export const ProvenanceEntitySchema = _BackboneElementBase.extend({
   role: z.enum(['derivation', 'revision', 'quotation', 'source', 'removal']),
   _role: ElementSchema.optional(),
   what: ReferenceSchema,
-  agent: (z.lazy(() => z.array(ProvenanceAgentSchema)) as unknown as z.ZodArray<z.ZodTypeAny>).optional(),
+  agent: (z.lazy(() => z.array(ProvenanceAgentSchema)) as unknown as z.ZodArray<z.ZodType<any>>).optional(),
 })
 export type ProvenanceEntity = z.infer<typeof ProvenanceEntitySchema>
 
@@ -6194,7 +6194,7 @@ export const ParametersParameterSchema: z.ZodType<ParametersParameter> = z.lazy(
     valueDosage: DosageSchema.optional(),
     valueMeta: MetaSchema.optional(),
     resource: ResourceSchema.optional(),
-    part: (z.lazy(() => z.array(ParametersParameterSchema)) as unknown as z.ZodArray<z.ZodTypeAny>).optional(),
+    part: (z.lazy(() => z.array(ParametersParameterSchema)) as unknown as z.ZodArray<z.ZodType<any>>).optional(),
   })
 )
 
@@ -6687,7 +6687,7 @@ export const ExplanationOfBenefitItemDetailSubDetailSchema = _BackboneElementBas
   udi: z.array(ReferenceSchema).optional(),
   noteNumber: z.array(z.number()).optional(),
   _noteNumber: ElementSchema.optional(),
-  adjudication: (z.lazy(() => z.array(ExplanationOfBenefitItemAdjudicationSchema)) as unknown as z.ZodArray<z.ZodTypeAny>).optional(),
+  adjudication: (z.lazy(() => z.array(ExplanationOfBenefitItemAdjudicationSchema)) as unknown as z.ZodArray<z.ZodType<any>>).optional(),
 })
 export type ExplanationOfBenefitItemDetailSubDetail = z.infer<typeof ExplanationOfBenefitItemDetailSubDetailSchema>
 
@@ -6711,7 +6711,7 @@ export const ExplanationOfBenefitItemDetailSchema = _BackboneElementBase.extend(
   udi: z.array(ReferenceSchema).optional(),
   noteNumber: z.array(z.number()).optional(),
   _noteNumber: ElementSchema.optional(),
-  adjudication: (z.lazy(() => z.array(ExplanationOfBenefitItemAdjudicationSchema)) as unknown as z.ZodArray<z.ZodTypeAny>).optional(),
+  adjudication: (z.lazy(() => z.array(ExplanationOfBenefitItemAdjudicationSchema)) as unknown as z.ZodArray<z.ZodType<any>>).optional(),
   subDetail: z.array(ExplanationOfBenefitItemDetailSubDetailSchema).optional(),
 })
 export type ExplanationOfBenefitItemDetail = z.infer<typeof ExplanationOfBenefitItemDetailSchema>
@@ -6772,7 +6772,7 @@ export const ExplanationOfBenefitAddItemDetailSubDetailSchema = _BackboneElement
   net: MoneySchema.optional(),
   noteNumber: z.array(z.number()).optional(),
   _noteNumber: ElementSchema.optional(),
-  adjudication: (z.lazy(() => z.array(ExplanationOfBenefitItemAdjudicationSchema)) as unknown as z.ZodArray<z.ZodTypeAny>).optional(),
+  adjudication: (z.lazy(() => z.array(ExplanationOfBenefitItemAdjudicationSchema)) as unknown as z.ZodArray<z.ZodType<any>>).optional(),
 })
 export type ExplanationOfBenefitAddItemDetailSubDetail = z.infer<typeof ExplanationOfBenefitAddItemDetailSubDetailSchema>
 
@@ -6790,7 +6790,7 @@ export const ExplanationOfBenefitAddItemDetailSchema = _BackboneElementBase.exte
   net: MoneySchema.optional(),
   noteNumber: z.array(z.number()).optional(),
   _noteNumber: ElementSchema.optional(),
-  adjudication: (z.lazy(() => z.array(ExplanationOfBenefitItemAdjudicationSchema)) as unknown as z.ZodArray<z.ZodTypeAny>).optional(),
+  adjudication: (z.lazy(() => z.array(ExplanationOfBenefitItemAdjudicationSchema)) as unknown as z.ZodArray<z.ZodType<any>>).optional(),
   subDetail: z.array(ExplanationOfBenefitAddItemDetailSubDetailSchema).optional(),
 })
 export type ExplanationOfBenefitAddItemDetail = z.infer<typeof ExplanationOfBenefitAddItemDetailSchema>
@@ -6825,7 +6825,7 @@ export const ExplanationOfBenefitAddItemSchema = _BackboneElementBase.extend({
   subSite: z.array(CodeableConceptSchema).optional(),
   noteNumber: z.array(z.number()).optional(),
   _noteNumber: ElementSchema.optional(),
-  adjudication: (z.lazy(() => z.array(ExplanationOfBenefitItemAdjudicationSchema)) as unknown as z.ZodArray<z.ZodTypeAny>).optional(),
+  adjudication: (z.lazy(() => z.array(ExplanationOfBenefitItemAdjudicationSchema)) as unknown as z.ZodArray<z.ZodType<any>>).optional(),
   detail: z.array(ExplanationOfBenefitAddItemDetailSchema).optional(),
 })
 export type ExplanationOfBenefitAddItem = z.infer<typeof ExplanationOfBenefitAddItemSchema>
@@ -6953,7 +6953,7 @@ export const ExplanationOfBenefitSchema = DomainResourceSchema.extend({
   accident: ExplanationOfBenefitAccidentSchema.optional(),
   item: z.array(ExplanationOfBenefitItemSchema).optional(),
   addItem: z.array(ExplanationOfBenefitAddItemSchema).optional(),
-  adjudication: (z.lazy(() => z.array(ExplanationOfBenefitItemAdjudicationSchema)) as unknown as z.ZodArray<z.ZodTypeAny>).optional(),
+  adjudication: (z.lazy(() => z.array(ExplanationOfBenefitItemAdjudicationSchema)) as unknown as z.ZodArray<z.ZodType<any>>).optional(),
   total: z.array(ExplanationOfBenefitTotalSchema).optional(),
   payment: ExplanationOfBenefitPaymentSchema.optional(),
   formCode: CodeableConceptSchema.optional(),
@@ -7447,7 +7447,7 @@ export const OperationDefinitionParameterSchema: z.ZodType<OperationDefinitionPa
     _searchType: ElementSchema.optional(),
     binding: OperationDefinitionParameterBindingSchema.optional(),
     referencedFrom: z.array(OperationDefinitionParameterReferencedFromSchema).optional(),
-    part: (z.lazy(() => z.array(OperationDefinitionParameterSchema)) as unknown as z.ZodArray<z.ZodTypeAny>).optional(),
+    part: (z.lazy(() => z.array(OperationDefinitionParameterSchema)) as unknown as z.ZodArray<z.ZodType<any>>).optional(),
   })
 )
 
@@ -7574,7 +7574,7 @@ export const GraphDefinitionLinkTargetSchema = _BackboneElementBase.extend({
   profile: z.string().optional(),
   _profile: ElementSchema.optional(),
   compartment: z.array(GraphDefinitionLinkTargetCompartmentSchema).optional(),
-  link: (z.lazy(() => z.array(GraphDefinitionLinkSchema)) as unknown as z.ZodArray<z.ZodTypeAny>).optional(),
+  link: (z.lazy(() => z.array(GraphDefinitionLinkSchema)) as unknown as z.ZodArray<z.ZodType<any>>).optional(),
 })
 export type GraphDefinitionLinkTarget = z.infer<typeof GraphDefinitionLinkTargetSchema>
 
@@ -7861,7 +7861,7 @@ export const RequestGroupActionSchema: z.ZodType<RequestGroupAction> = z.lazy(()
     cardinalityBehavior: z.enum(['single', 'multiple']).optional(),
     _cardinalityBehavior: ElementSchema.optional(),
     resource: ReferenceSchema.optional(),
-    action: (z.lazy(() => z.array(RequestGroupActionSchema)) as unknown as z.ZodArray<z.ZodTypeAny>).optional(),
+    action: (z.lazy(() => z.array(RequestGroupActionSchema)) as unknown as z.ZodArray<z.ZodType<any>>).optional(),
   })
 )
 
@@ -8382,7 +8382,7 @@ export const ValueSetComposeSchema = _BackboneElementBase.extend({
   inactive: z.boolean().optional(),
   _inactive: ElementSchema.optional(),
   include: z.array(ValueSetComposeIncludeSchema),
-  exclude: (z.lazy(() => z.array(ValueSetComposeIncludeSchema)) as unknown as z.ZodArray<z.ZodTypeAny>).optional(),
+  exclude: (z.lazy(() => z.array(ValueSetComposeIncludeSchema)) as unknown as z.ZodArray<z.ZodType<any>>).optional(),
 })
 export type ValueSetCompose = z.infer<typeof ValueSetComposeSchema>
 
@@ -8446,8 +8446,8 @@ export const ValueSetExpansionContainsSchema: z.ZodType<ValueSetExpansionContain
     _code: ElementSchema.optional(),
     display: z.string().optional(),
     _display: ElementSchema.optional(),
-    designation: (z.lazy(() => z.array(ValueSetComposeIncludeConceptDesignationSchema)) as unknown as z.ZodArray<z.ZodTypeAny>).optional(),
-    contains: (z.lazy(() => z.array(ValueSetExpansionContainsSchema)) as unknown as z.ZodArray<z.ZodTypeAny>).optional(),
+    designation: (z.lazy(() => z.array(ValueSetComposeIncludeConceptDesignationSchema)) as unknown as z.ZodArray<z.ZodType<any>>).optional(),
+    contains: (z.lazy(() => z.array(ValueSetExpansionContainsSchema)) as unknown as z.ZodArray<z.ZodType<any>>).optional(),
   })
 )
 
@@ -8539,7 +8539,7 @@ export const ClaimResponseItemDetailSubDetailSchema = _BackboneElementBase.exten
   _subDetailSequence: ElementSchema.optional(),
   noteNumber: z.array(z.number()).optional(),
   _noteNumber: ElementSchema.optional(),
-  adjudication: (z.lazy(() => z.array(ClaimResponseItemAdjudicationSchema)) as unknown as z.ZodArray<z.ZodTypeAny>).optional(),
+  adjudication: (z.lazy(() => z.array(ClaimResponseItemAdjudicationSchema)) as unknown as z.ZodArray<z.ZodType<any>>).optional(),
 })
 export type ClaimResponseItemDetailSubDetail = z.infer<typeof ClaimResponseItemDetailSubDetailSchema>
 
@@ -8552,7 +8552,7 @@ export const ClaimResponseItemDetailSchema = _BackboneElementBase.extend({
   _detailSequence: ElementSchema.optional(),
   noteNumber: z.array(z.number()).optional(),
   _noteNumber: ElementSchema.optional(),
-  adjudication: (z.lazy(() => z.array(ClaimResponseItemAdjudicationSchema)) as unknown as z.ZodArray<z.ZodTypeAny>),
+  adjudication: (z.lazy(() => z.array(ClaimResponseItemAdjudicationSchema)) as unknown as z.ZodArray<z.ZodType<any>>),
   subDetail: z.array(ClaimResponseItemDetailSubDetailSchema).optional(),
 })
 export type ClaimResponseItemDetail = z.infer<typeof ClaimResponseItemDetailSchema>
@@ -8585,7 +8585,7 @@ export const ClaimResponseAddItemDetailSubDetailSchema = _BackboneElementBase.ex
   net: MoneySchema.optional(),
   noteNumber: z.array(z.number()).optional(),
   _noteNumber: ElementSchema.optional(),
-  adjudication: (z.lazy(() => z.array(ClaimResponseItemAdjudicationSchema)) as unknown as z.ZodArray<z.ZodTypeAny>),
+  adjudication: (z.lazy(() => z.array(ClaimResponseItemAdjudicationSchema)) as unknown as z.ZodArray<z.ZodType<any>>),
 })
 export type ClaimResponseAddItemDetailSubDetail = z.infer<typeof ClaimResponseAddItemDetailSubDetailSchema>
 
@@ -8603,7 +8603,7 @@ export const ClaimResponseAddItemDetailSchema = _BackboneElementBase.extend({
   net: MoneySchema.optional(),
   noteNumber: z.array(z.number()).optional(),
   _noteNumber: ElementSchema.optional(),
-  adjudication: (z.lazy(() => z.array(ClaimResponseItemAdjudicationSchema)) as unknown as z.ZodArray<z.ZodTypeAny>),
+  adjudication: (z.lazy(() => z.array(ClaimResponseItemAdjudicationSchema)) as unknown as z.ZodArray<z.ZodType<any>>),
   subDetail: z.array(ClaimResponseAddItemDetailSubDetailSchema).optional(),
 })
 export type ClaimResponseAddItemDetail = z.infer<typeof ClaimResponseAddItemDetailSchema>
@@ -8638,7 +8638,7 @@ export const ClaimResponseAddItemSchema = _BackboneElementBase.extend({
   subSite: z.array(CodeableConceptSchema).optional(),
   noteNumber: z.array(z.number()).optional(),
   _noteNumber: ElementSchema.optional(),
-  adjudication: (z.lazy(() => z.array(ClaimResponseItemAdjudicationSchema)) as unknown as z.ZodArray<z.ZodTypeAny>),
+  adjudication: (z.lazy(() => z.array(ClaimResponseItemAdjudicationSchema)) as unknown as z.ZodArray<z.ZodType<any>>),
   detail: z.array(ClaimResponseAddItemDetailSchema).optional(),
 })
 export type ClaimResponseAddItem = z.infer<typeof ClaimResponseAddItemSchema>
@@ -8745,7 +8745,7 @@ export const ClaimResponseSchema = DomainResourceSchema.extend({
   payeeType: CodeableConceptSchema.optional(),
   item: z.array(ClaimResponseItemSchema).optional(),
   addItem: z.array(ClaimResponseAddItemSchema).optional(),
-  adjudication: (z.lazy(() => z.array(ClaimResponseItemAdjudicationSchema)) as unknown as z.ZodArray<z.ZodTypeAny>).optional(),
+  adjudication: (z.lazy(() => z.array(ClaimResponseItemAdjudicationSchema)) as unknown as z.ZodArray<z.ZodType<any>>).optional(),
   total: z.array(ClaimResponseTotalSchema).optional(),
   payment: ClaimResponsePaymentSchema.optional(),
   fundsReserve: CodeableConceptSchema.optional(),
@@ -8928,7 +8928,7 @@ export const ContractTermAssetSchema = _BackboneElementBase.extend({
   _text: ElementSchema.optional(),
   linkId: z.array(z.string()).optional(),
   _linkId: ElementSchema.optional(),
-  answer: (z.lazy(() => z.array(ContractTermOfferAnswerSchema)) as unknown as z.ZodArray<z.ZodTypeAny>).optional(),
+  answer: (z.lazy(() => z.array(ContractTermOfferAnswerSchema)) as unknown as z.ZodArray<z.ZodType<any>>).optional(),
   securityLabelNumber: z.array(z.number()).optional(),
   _securityLabelNumber: ElementSchema.optional(),
   valuedItem: z.array(ContractTermAssetValuedItemSchema).optional(),
@@ -9023,7 +9023,7 @@ export const ContractTermSchema: z.ZodType<ContractTerm> = z.lazy(() =>
     offer: ContractTermOfferSchema,
     asset: z.array(ContractTermAssetSchema).optional(),
     action: z.array(ContractTermActionSchema).optional(),
-    group: (z.lazy(() => z.array(ContractTermSchema)) as unknown as z.ZodArray<z.ZodTypeAny>).optional(),
+    group: (z.lazy(() => z.array(ContractTermSchema)) as unknown as z.ZodArray<z.ZodType<any>>).optional(),
   })
 )
 
@@ -9500,7 +9500,7 @@ export type MedicinalProductIngredientSpecifiedSubstance = z.infer<typeof Medici
  */
 export const MedicinalProductIngredientSubstanceSchema = _BackboneElementBase.extend({
   code: CodeableConceptSchema,
-  strength: (z.lazy(() => z.array(MedicinalProductIngredientSpecifiedSubstanceStrengthSchema)) as unknown as z.ZodArray<z.ZodTypeAny>).optional(),
+  strength: (z.lazy(() => z.array(MedicinalProductIngredientSpecifiedSubstanceStrengthSchema)) as unknown as z.ZodArray<z.ZodType<any>>).optional(),
 })
 export type MedicinalProductIngredientSubstance = z.infer<typeof MedicinalProductIngredientSubstanceSchema>
 
@@ -9562,7 +9562,7 @@ export const ConceptMapGroupElementTargetSchema = _BackboneElementBase.extend({
   comment: z.string().optional(),
   _comment: ElementSchema.optional(),
   dependsOn: z.array(ConceptMapGroupElementTargetDependsOnSchema).optional(),
-  product: (z.lazy(() => z.array(ConceptMapGroupElementTargetDependsOnSchema)) as unknown as z.ZodArray<z.ZodTypeAny>).optional(),
+  product: (z.lazy(() => z.array(ConceptMapGroupElementTargetDependsOnSchema)) as unknown as z.ZodArray<z.ZodType<any>>).optional(),
 })
 export type ConceptMapGroupElementTarget = z.infer<typeof ConceptMapGroupElementTargetSchema>
 
@@ -9724,7 +9724,7 @@ export const InvoiceSchema = DomainResourceSchema.extend({
   issuer: ReferenceSchema.optional(),
   account: ReferenceSchema.optional(),
   lineItem: z.array(InvoiceLineItemSchema).optional(),
-  totalPriceComponent: (z.lazy(() => z.array(InvoiceLineItemPriceComponentSchema)) as unknown as z.ZodArray<z.ZodTypeAny>).optional(),
+  totalPriceComponent: (z.lazy(() => z.array(InvoiceLineItemPriceComponentSchema)) as unknown as z.ZodArray<z.ZodType<any>>).optional(),
   totalNet: MoneySchema.optional(),
   totalGross: MoneySchema.optional(),
   paymentTerms: z.string().optional(),
@@ -10113,7 +10113,7 @@ export const MedicinalProductPackagedPackageItemSchema: z.ZodType<MedicinalProdu
     alternateMaterial: z.array(CodeableConceptSchema).optional(),
     device: z.array(ReferenceSchema).optional(),
     manufacturedItem: z.array(ReferenceSchema).optional(),
-    packageItem: (z.lazy(() => z.array(MedicinalProductPackagedPackageItemSchema)) as unknown as z.ZodArray<z.ZodTypeAny>).optional(),
+    packageItem: (z.lazy(() => z.array(MedicinalProductPackagedPackageItemSchema)) as unknown as z.ZodArray<z.ZodType<any>>).optional(),
     physicalCharacteristics: ProdCharacteristicSchema.optional(),
     otherCharacteristics: z.array(CodeableConceptSchema).optional(),
     shelfLifeStorage: z.array(ProductShelfLifeSchema).optional(),
@@ -10459,7 +10459,7 @@ export type BundleEntryResponse = z.infer<typeof BundleEntryResponseSchema>
  * An entry in a bundle resource - will either contain a resource or information about a resource (transactions and history only).
  */
 export const BundleEntrySchema = _BackboneElementBase.extend({
-  link: (z.lazy(() => z.array(BundleLinkSchema)) as unknown as z.ZodArray<z.ZodTypeAny>).optional(),
+  link: (z.lazy(() => z.array(BundleLinkSchema)) as unknown as z.ZodArray<z.ZodType<any>>).optional(),
   fullUrl: z.string().optional(),
   _fullUrl: ElementSchema.optional(),
   resource: ResourceSchema.optional(),
@@ -10653,7 +10653,7 @@ export const ImplementationGuideDefinitionPageSchema: z.ZodType<ImplementationGu
     _title: ElementSchema.optional(),
     generation: z.enum(['html', 'markdown', 'xml', 'generated']),
     _generation: ElementSchema.optional(),
-    page: (z.lazy(() => z.array(ImplementationGuideDefinitionPageSchema)) as unknown as z.ZodArray<z.ZodTypeAny>).optional(),
+    page: (z.lazy(() => z.array(ImplementationGuideDefinitionPageSchema)) as unknown as z.ZodArray<z.ZodType<any>>).optional(),
   })
 )
 
@@ -11096,7 +11096,7 @@ export const CodeSystemConceptSchema: z.ZodType<CodeSystemConcept> = z.lazy(() =
     _definition: ElementSchema.optional(),
     designation: z.array(CodeSystemConceptDesignationSchema).optional(),
     property: z.array(CodeSystemConceptPropertySchema).optional(),
-    concept: (z.lazy(() => z.array(CodeSystemConceptSchema)) as unknown as z.ZodArray<z.ZodTypeAny>).optional(),
+    concept: (z.lazy(() => z.array(CodeSystemConceptSchema)) as unknown as z.ZodArray<z.ZodType<any>>).optional(),
   })
 )
 
@@ -12175,7 +12175,7 @@ export const PlanDefinitionActionSchema: z.ZodType<PlanDefinitionAction> = z.laz
     transform: z.string().optional(),
     _transform: ElementSchema.optional(),
     dynamicValue: z.array(PlanDefinitionActionDynamicValueSchema).optional(),
-    action: (z.lazy(() => z.array(PlanDefinitionActionSchema)) as unknown as z.ZodArray<z.ZodTypeAny>).optional(),
+    action: (z.lazy(() => z.array(PlanDefinitionActionSchema)) as unknown as z.ZodArray<z.ZodType<any>>).optional(),
   })
 )
 
@@ -12568,7 +12568,7 @@ export const ConsentProvisionSchema: z.ZodType<ConsentProvision> = z.lazy(() =>
     code: z.array(CodeableConceptSchema).optional(),
     dataPeriod: PeriodSchema.optional(),
     data: z.array(ConsentProvisionDataSchema).optional(),
-    provision: (z.lazy(() => z.array(ConsentProvisionSchema)) as unknown as z.ZodArray<z.ZodTypeAny>).optional(),
+    provision: (z.lazy(() => z.array(ConsentProvisionSchema)) as unknown as z.ZodArray<z.ZodType<any>>).optional(),
   })
 )
 
@@ -12900,7 +12900,7 @@ export const StructureMapGroupRuleSchema: z.ZodType<StructureMapGroupRule> = z.l
     _name: ElementSchema.optional(),
     source: z.array(StructureMapGroupRuleSourceSchema),
     target: z.array(StructureMapGroupRuleTargetSchema).optional(),
-    rule: (z.lazy(() => z.array(StructureMapGroupRuleSchema)) as unknown as z.ZodArray<z.ZodTypeAny>).optional(),
+    rule: (z.lazy(() => z.array(StructureMapGroupRuleSchema)) as unknown as z.ZodArray<z.ZodType<any>>).optional(),
     dependent: z.array(StructureMapGroupRuleDependentSchema).optional(),
     documentation: z.string().optional(),
     _documentation: ElementSchema.optional(),
@@ -13295,7 +13295,7 @@ export const ObservationComponentSchema = _BackboneElementBase.extend({
   valuePeriod: PeriodSchema.optional(),
   dataAbsentReason: CodeableConceptSchema.optional(),
   interpretation: z.array(CodeableConceptSchema).optional(),
-  referenceRange: (z.lazy(() => z.array(ObservationReferenceRangeSchema)) as unknown as z.ZodArray<z.ZodTypeAny>).optional(),
+  referenceRange: (z.lazy(() => z.array(ObservationReferenceRangeSchema)) as unknown as z.ZodArray<z.ZodType<any>>).optional(),
 })
 export type ObservationComponent = z.infer<typeof ObservationComponentSchema>
 
@@ -13684,7 +13684,7 @@ export const MedicinalProductAuthorizationProcedureSchema: z.ZodType<MedicinalPr
     datePeriod: PeriodSchema.optional(),
     dateDateTime: z.string().optional(),
     _dateDateTime: ElementSchema.optional(),
-    application: (z.lazy(() => z.array(MedicinalProductAuthorizationProcedureSchema)) as unknown as z.ZodArray<z.ZodTypeAny>).optional(),
+    application: (z.lazy(() => z.array(MedicinalProductAuthorizationProcedureSchema)) as unknown as z.ZodArray<z.ZodType<any>>).optional(),
   })
 )
 

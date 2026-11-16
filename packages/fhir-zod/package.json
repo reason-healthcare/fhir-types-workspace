@@ -40,11 +40,12 @@
     "prepublishOnly": "bun run build",
     "typecheck": "tsc --noEmit"
   },
-  "dependencies": {
-    "zod": "^3.24.0"
-  },
   "devDependencies": {
     "@reasonhealth/fhir-ts-codegen": "workspace:*",
-    "@types/bun": "latest"
+    "@types/bun": "latest",
+    "zod": "^4.6.7"
+  },
+  "peerDependencies": {
+    "zod": "^3.24.0 || ^4.0.0"
   }
 }

@@ -203,10 +203,14 @@ function buildUsedAsBases(interfaces: IrInterface[], forceAnnotated: Set<string>
  * Map an IR field to its TypeScript Zod *annotation* type string (used in
  * the explicit `z.ZodObject<{…}>` annotation on private `_TBase` consts).
  *
- * Force-lazy fields become `z.ZodTypeAny` / `z.ZodArray<z.ZodTypeAny>` — this
+ * Force-lazy fields become `z.ZodType<any>` / `z.ZodArray<z.ZodType<any>>` — this
  * is intentionally imprecise because the goal is only to break the TS7022
  * inference cycle, not to fully re-type the schema.  Consumers get accurate
  * types via the exported `interface T` declaration.
+ *
+ * `z.ZodType<any>` rather than `z.ZodTypeAny`: in Zod 3 the two are the same
+ * type, but in Zod 4 `ZodTypeAny` outputs `unknown`, which no `interface T`
+ * field accepts.  `z.ZodType<any>` outputs `any` under both majors.
  */
 function zodAnnotationType(
   tsType: string,
@@ -216,7 +220,7 @@ function zodAnnotationType(
 
   let atom: string;
   if (lazy) {
-    atom = isArray ? "z.ZodArray<z.ZodTypeAny>" : "z.ZodTypeAny";
+    atom = isArray ? "z.ZodArray<z.ZodType<any>>" : "z.ZodType<any>";
   } else {
     const enumMatch = tsType.match(/^\(([^)]+)\)$/);
     if (enumMatch) {
@@ -231,11 +235,11 @@ function zodAnnotationType(
     } else if (tsType === "number") {
       atom = "z.ZodNumber";
     } else {
-      // Non-lazy complex type: use ZodTypeAny to avoid pulling in potentially
+      // Non-lazy complex type: use ZodType<any> to avoid pulling in potentially
       // unannotated forward references into the shape annotation.
-      atom = isArray ? "z.ZodArray<z.ZodTypeAny>" : "z.ZodTypeAny";
+      atom = isArray ? "z.ZodArray<z.ZodType<any>>" : "z.ZodType<any>";
     }
-    if (!lazy && !isArray && atom !== "z.ZodTypeAny") {
+    if (!lazy && !isArray && atom !== "z.ZodType<any>") {
       // isArray already handled above for the non-lazy path
     }
   }
@@ -258,7 +262,7 @@ function ownFieldAnnotationLines(iface: IrInterface, forceLazy: Set<string>): st
     });
     lines.push(`  ${field.name}: ${annType};`);
     if (field.hasPrimitiveExtension) {
-      lines.push(`  _${field.name}: z.ZodOptional<z.ZodTypeAny>;`);
+      lines.push(`  _${field.name}: z.ZodOptional<z.ZodType<any>>;`);
     }
   }
   return lines;
@@ -316,18 +320,18 @@ function renderField(
   const { isArray, required, lazy } = opts;
   let expr: string;
   if (isArray) {
-    // ZodLazy<ZodArray<T>> and ZodArray<ZodTypeAny> don't overlap sufficiently
+    // ZodLazy<ZodArray<T>> and ZodArray<ZodType<any>> don't overlap sufficiently
     // for a direct `as` cast (TS2352).  The double cast through `unknown` is
     // always valid and provides TypeScript with a concrete type without needing
     // to evaluate the lazy target — breaking the TS7022 inference chain when
     // used alongside the explicit ZodObject<Shape> annotation on _TBase consts.
     expr = lazy
-      ? `(z.lazy(() => z.array(${zodAtom(tsType)})) as unknown as z.ZodArray<z.ZodTypeAny>)`
+      ? `(z.lazy(() => z.array(${zodAtom(tsType)})) as unknown as z.ZodArray<z.ZodType<any>>)`
       : `z.array(${zodAtom(tsType)})`;
   } else {
-    // ZodLazy<T> extends ZodType which extends ZodTypeAny, so a direct `as`
-    // cast is valid (no TS2352).
-    expr = lazy ? `(z.lazy(() => ${zodAtom(tsType)}) as z.ZodTypeAny)` : zodAtom(tsType, false);
+    // ZodLazy<T> extends ZodType, so a direct `as` cast to ZodType<any>
+    // is valid (no TS2352).
+    expr = lazy ? `(z.lazy(() => ${zodAtom(tsType)}) as z.ZodType<any>)` : zodAtom(tsType, false);
   }
   if (!required) expr = `${expr}.optional()`;
   return `  ${name}: ${expr},`;
@@ -352,7 +356,7 @@ function renderSchemaFields(iface: IrInterface, forceLazy: Set<string>): string[
     if (field.hasPrimitiveExtension) {
       const extKey = `${iface.name}._${field.name}`;
       if (forceLazy.has(extKey)) {
-        lines.push(`  _${field.name}: (z.lazy(() => ElementSchema) as z.ZodTypeAny).optional(),`);
+        lines.push(`  _${field.name}: (z.lazy(() => ElementSchema) as z.ZodType<any>).optional(),`);
       } else {
         lines.push(`  _${field.name}: ElementSchema.optional(),`);
       }
@@ -385,6 +389,14 @@ function extendExpr(iface: IrInterface, ctx: RenderContext): string | null {
   if (!iface.extends || !allNames.has(iface.extends)) return null;
   if (usedAsBases.has(iface.extends)) return `_${iface.extends}Base.extend`;
   return `${iface.extends}Schema.extend`;
+}
+
+/** True when `iface` and every in-model ancestor declare no fields. */
+function hasEmptyShape(iface: IrInterface, ctx: RenderContext): boolean {
+  if (iface.fields.length > 0) return false;
+  if (!iface.extends || !ctx.allNames.has(iface.extends)) return true;
+  const parent = ctx.nameToIface.get(iface.extends);
+  return parent === undefined || hasEmptyShape(parent, ctx);
 }
 
 function renderSchema(iface: IrInterface, ctx: RenderContext): string {
@@ -509,7 +521,14 @@ function renderSchema(iface: IrInterface, ctx: RenderContext): string {
     lines.push(fl);
   }
   lines.push("})");
-  lines.push(`export type ${iface.name} = z.infer<typeof ${schemaName}>`);
+  if (hasEmptyShape(iface, ctx)) {
+    // Zod 4 infers an empty object as `Record<string, never>`, which would give
+    // every interface extending this type a `never` index signature.
+    const ifaceExt = ext ? ` extends ${iface.extends}` : "";
+    lines.push(`export interface ${iface.name}${ifaceExt} {}`);
+  } else {
+    lines.push(`export type ${iface.name} = z.infer<typeof ${schemaName}>`);
+  }
 
   return lines.join("\n");
 }
